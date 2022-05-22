@@ -4,6 +4,7 @@ public class Main {
 
     public Window window;
     public Renderer renderer;
+    private Mesh mesh;
 
     public void run() throws Exception {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -12,6 +13,7 @@ public class Main {
         loop();
 
         renderer.cleanup();
+        mesh.cleanup();
         window.destroy();
     }
 
@@ -21,6 +23,19 @@ public class Main {
 
         renderer = new Renderer();
         renderer.init();
+
+        float[] vertices = {
+                -0.5f,  0.5f, 0.0f,
+                -0.5f, -0.5f, 0.0f,
+                0.5f, -0.5f, 0.0f,
+                0.5f,  0.5f, 0.0f,
+        };
+
+        int[] indices = {
+                0, 1, 3, 3, 1, 2,
+        };
+
+        mesh = new Mesh(vertices, indices);
     }
 
     private void loop() {
@@ -35,7 +50,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render();
+        renderer.render(mesh);
         window.swapBuffers();
     }
 

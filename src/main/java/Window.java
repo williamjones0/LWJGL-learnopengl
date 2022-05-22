@@ -105,7 +105,6 @@ public class Window {
         glfwSwapBuffers(windowHandle);
     }
 
-    // Getters
     public long getWindowHandle() {
         return windowHandle;
     }
