@@ -1,3 +1,11 @@
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.FloatBuffer;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.lwjgl.opengl.GL20.*;
 
 class ShaderProgram {
@@ -5,11 +13,31 @@ class ShaderProgram {
     private final int programID;
     private int vertexShaderID;
     private int fragmentShaderID;
+    private final Map<String, Integer> uniforms;
 
     public ShaderProgram() {
         programID = glCreateProgram();
         if (programID == 0) {
             System.out.println("Could not create shader");
+        }
+
+        uniforms = new HashMap<>();
+    }
+
+    public void createUniform(String uniformName) throws Exception {
+        int uniformLocation = glGetUniformLocation(programID, uniformName);
+        if (uniformLocation < 0) {
+            throw new Exception("Could not find uniform:" + uniformName);
+        }
+        uniforms.put(uniformName, uniformLocation);
+    }
+
+    public void setUniform(String uniformName, Vector4f value) {
+        // Dump the vector into a float buffer
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(4);
+            value.get(fb);
+            glUniform4fv(uniforms.get(uniformName), fb);
         }
     }
 
