@@ -27,7 +27,7 @@ class ShaderProgram {
     public void createUniform(String uniformName) throws Exception {
         int uniformLocation = glGetUniformLocation(programID, uniformName);
         if (uniformLocation < 0) {
-            throw new Exception("Could not find uniform:" + uniformName);
+            throw new Exception("Could not find uniform: " + uniformName);
         }
         uniforms.put(uniformName, uniformLocation);
     }
@@ -38,6 +38,15 @@ class ShaderProgram {
             FloatBuffer fb = stack.mallocFloat(4);
             value.get(fb);
             glUniform4fv(uniforms.get(uniformName), fb);
+        }
+    }
+
+    public void setUniform(String uniformName, Matrix4f value) {
+        // Dump the matrix into a float buffer
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(16);
+            value.get(fb);
+            glUniformMatrix4fv(uniforms.get(uniformName), false, fb);
         }
     }
 

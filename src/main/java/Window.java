@@ -68,6 +68,8 @@ public class Window {
 
         // Make the window visible
         glfwShowWindow(windowHandle);
+
+        glEnable(GL_DEPTH_TEST);
     }
 
     public void update() {
@@ -103,6 +105,14 @@ public class Window {
 
     public void swapBuffers() {
         glfwSwapBuffers(windowHandle);
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
     }
 
     public long getWindowHandle() {
