@@ -25,40 +25,82 @@ public class Main {
         renderer.init(window);
 
         float[] vertices = {
-             // VO
-            -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.0f,
-             // V1
-            -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-             // V2
-             0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
-             // V3
-             0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.0f,
-             // V4
-            -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,
-             // V5
-             0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
-             // V6
-            -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
-             // V7
-             0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f
+            // VO
+           -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            // V1
+           -0.5f, -0.5f,  0.5f,  0.0f, 0.5f,
+            // V2
+            0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
+            // V3
+            0.5f,  0.5f,  0.5f,  0.5f, 0.0f,
+            // V4
+           -0.5f,  0.5f, -0.5f,  0.5f, 0.0f,
+            // V5
+            0.5f,  0.5f, -0.5f,  0.0f, 0.0f,
+            // V6
+           -0.5f, -0.5f, -0.5f,  0.5f, 0.5f,
+            // V7
+            0.5f, -0.5f, -0.5f,  0.0f, 0.5f,
+
+            // Top face
+            // V8: V4 repeated
+           -0.5f,  0.5f, -0.5f,  0.0f, 0.5f,
+            // V9: V5 repeated
+            0.5f,  0.5f, -0.5f,  0.5f, 0.5f,
+            // V10: V0 repeated
+           -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+            // V11: V3 repeated
+            0.5f,  0.5f,  0.5f,  0.5f, 1.0f,
+
+            // Right face
+            // V12: V3 repeated
+            0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+            // V13: V2 repeated
+            0.5f, -0.5f,  0.5f,  0.0f, 0.5f,
+            // V14: V5 repeated
+            0.5f,  0.5f, -0.5f,  0.5f, 0.0f,
+            // V15: V7 repeated
+            0.5f, -0.5f, -0.5f,  0.5f, 0.5f,
+
+            // Left face
+            // V16: V0 repeated
+           -0.5f,  0.5f,  0.5f,  0.5f, 0.0f,
+            // V17: V1 repeated
+           -0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
+            // V18: V4 repeated
+           -0.5f,  0.5f, -0.5f,  0.0f, 0.0f,
+            // V19: V6 repeated
+           -0.5f, -0.5f, -0.5f,  0.0f, 0.5f,
+
+            // Bottom face
+            // V20: V6 repeated
+           -0.5f, -0.5f, -0.5f,  0.5f, 0.0f,
+            // V21: V7 repeated
+            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+            // V22: V1 repeated
+           -0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
+            // V23: V2 repeated
+            0.5f, -0.5f,  0.5f,  1.0f, 0.5f
         };
 
         int[] indices = {
             // Front face
             0, 1, 3, 3, 1, 2,
-            // Top Face
-            4, 0, 3, 5, 4, 3,
+            // Top face
+            8, 10, 11, 9, 8, 11,
             // Right face
-            3, 2, 7, 5, 3, 7,
+            12, 13, 14, 14, 13, 15,
             // Left face
-            6, 1, 0, 6, 0, 4,
+            18, 19, 16, 16, 19, 17,
             // Bottom face
-            2, 1, 6, 2, 6, 7,
+            22, 20, 23, 23, 20, 21,
             // Back face
-            7, 6, 4, 7, 4, 5
+            5, 7, 4, 4, 7, 6
         };
 
-        mesh = new Mesh(vertices, indices);
+        Texture texture = new Texture("src/main/resources/grassblock.png");
+
+        mesh = new Mesh(vertices, indices, texture);
     }
 
     private void loop() {

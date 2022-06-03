@@ -5,8 +5,6 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.glfwGetTime;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.*;
 
 public class Renderer {
 
@@ -45,14 +43,9 @@ public class Renderer {
         shaderProgram.setUniform("view", view);
         shaderProgram.setUniform("projection", projection);
 
-        model.rotate((float) glfwGetTime() * 0.001f, new Vector3f(0.5f, 1.0f, 0.0f).normalize());
+        model.rotate((float) glfwGetTime() * 0.001f, new Vector3f(0.5f, 1.0f, 1.0f).normalize());
 
-        // Draw mesh
-        glBindVertexArray(mesh.getVAO());
-        glDrawElements(GL_TRIANGLES, mesh.getVertexCount(), GL_UNSIGNED_INT, 0);
-
-        // Restore state
-        glBindVertexArray(0);
+        mesh.render();
 
         shaderProgram.unbind();
     }
