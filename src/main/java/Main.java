@@ -5,6 +5,7 @@ public class Main {
     public Window window;
     public Renderer renderer;
     private Mesh mesh;
+    private Entity[] entities;
 
     public void run() throws Exception {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -101,6 +102,14 @@ public class Main {
         Texture texture = new Texture("src/main/resources/grassblock.png");
 
         mesh = new Mesh(vertices, indices, texture);
+        Entity entity1 = new Entity(mesh);
+        Entity entity2 = new Entity(mesh);
+        entity2.setPosition(2, 1, -1);
+
+        entities = new Entity[] {
+            entity1,
+            entity2
+        };
     }
 
     private void loop() {
@@ -115,7 +124,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(mesh);
+        renderer.render(entities);
         window.swapBuffers();
     }
 
