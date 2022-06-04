@@ -1,11 +1,20 @@
+import org.joml.Vector3f;
 import org.lwjgl.*;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class Main {
 
-    public Window window;
-    public Renderer renderer;
+    private Window window;
+    private Renderer renderer;
     private Mesh mesh;
     private Entity[] entities;
+    private Camera camera;
+
+    private float deltaTime = 0.0f;
+    private float lastFrame = 0.0f;
+
+    private double lastX, lastY = 0;
 
     public void run() throws Exception {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -24,6 +33,8 @@ public class Main {
 
         renderer = new Renderer();
         renderer.init(window);
+
+        camera = new Camera(new Vector3f(0, 0, -5), 0, 0);
 
         float[] vertices = {
             // VO
@@ -113,7 +124,7 @@ public class Main {
     }
 
     private void loop() {
-        while ( !window.shouldClose() ) {
+        while ( !window.shouldClose() && !Input.isKeyDown(GLFW_KEY_ESCAPE)) {
             update();
             render();
         }
@@ -121,10 +132,41 @@ public class Main {
 
     private void update() {
         window.update();
+
+        // Calculate delta time
+        float currentFrame = (float) glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput();
+    }
+
+    private void processInput() {
+        // Keyboard
+        if (Input.isKeyDown(GLFW_KEY_W))
+            camera.processKeyboard(Camera.Movement.FORWARD, deltaTime);
+        if (Input.isKeyDown(GLFW_KEY_S))
+            camera.processKeyboard(Camera.Movement.BACKWARD, deltaTime);
+        if (Input.isKeyDown(GLFW_KEY_A))
+            camera.processKeyboard(Camera.Movement.LEFT, deltaTime);
+        if (Input.isKeyDown(GLFW_KEY_D))
+            camera.processKeyboard(Camera.Movement.RIGHT, deltaTime);
+
+        // Mouse
+        double xpos = Input.getMouseX();
+        double ypos = Input.getMouseY();
+
+        double xoffset = xpos - lastX;
+        double yoffset = lastY - ypos;  // reversed since y-coordinates go from bottom to top
+
+        lastX = xpos;
+        lastY = ypos;
+
+        camera.processMouse((float) xoffset, (float) yoffset);
     }
 
     private void render() {
-        renderer.render(entities);
+        renderer.render(camera, entities);
         window.swapBuffers();
     }
 

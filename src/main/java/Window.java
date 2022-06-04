@@ -1,3 +1,4 @@
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
@@ -17,6 +18,8 @@ public class Window {
     private float g;
     private float b;
 
+    private Input input;
+
     public Window(int width, int height, String title, boolean fullscreen, float r, float g, float b) {
         this.width = width;
         this.height = height;
@@ -25,6 +28,7 @@ public class Window {
         this.r = r;
         this.g = g;
         this.b = b;
+        this.input = new Input();
     }
 
     public void create() {
@@ -70,16 +74,18 @@ public class Window {
         glfwShowWindow(windowHandle);
 
         glEnable(GL_DEPTH_TEST);
+
+        // Hides the cursor and locks it to the window
+        org.lwjgl.glfw.GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
+        // Use raw mouse motion
+        if (GLFW.glfwRawMouseMotionSupported())
+            GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
 
     public void update() {
         glClearColor(r, g, b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwPollEvents();
-    }
-
-    public boolean isKeyPressed(int keyCode) {
-        return glfwGetKey(windowHandle, keyCode) == GLFW_PRESS;
     }
 
     private void createCallbacks() {
@@ -89,10 +95,10 @@ public class Window {
             glViewport(0, 0, width, height);
         });
 
-        glfwSetKeyCallback(windowHandle, (window, key, scancode, action, mods) -> {
-            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-                glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
-        });
+        GLFW.glfwSetKeyCallback(windowHandle, input.getKeyboardCallback());
+        GLFW.glfwSetCursorPosCallback(windowHandle, input.getMouseMoveCallback());
+        GLFW.glfwSetMouseButtonCallback(windowHandle, input.getMouseButtonsCallback());
+        GLFW.glfwSetScrollCallback(windowHandle, input.getMouseScrollCallback());
     }
 
     public void destroy() {

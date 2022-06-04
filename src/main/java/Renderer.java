@@ -2,9 +2,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
-
-import static org.lwjgl.glfw.GLFW.glfwGetTime;
 
 public class Renderer {
 
@@ -13,7 +10,6 @@ public class Renderer {
     private static final float FOV = (float) Math.toRadians(60.0);
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 100f;
-    private Matrix4f view;
     private Matrix4f projection;
 
     public void init(Window window) throws Exception {
@@ -23,9 +19,6 @@ public class Renderer {
         shaderProgram.link();
 
         shaderProgram.createUniform("model");
-
-        view = new Matrix4f().identity();
-        view.translate(new Vector3f(0.0f, 0.0f, -3.0f));
         shaderProgram.createUniform("view");
 
         float aspectRatio = (float) window.getWidth() / window.getHeight();
@@ -33,10 +26,12 @@ public class Renderer {
         shaderProgram.createUniform("projection");
     }
 
-    public void render(Entity[] entities) {
+    public void render(Camera camera, Entity[] entities) {
         shaderProgram.bind();
 
+        Matrix4f view = camera.calculateViewMatrix();
         shaderProgram.setUniform("view", view);
+
         shaderProgram.setUniform("projection", projection);
 
         for (Entity entity : entities) {
