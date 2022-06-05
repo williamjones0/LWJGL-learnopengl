@@ -19,7 +19,9 @@ public class Camera {
         FORWARD,
         BACKWARD,
         LEFT,
-        RIGHT
+        RIGHT,
+        UP,
+        DOWN
     }
 
     public Camera(Vector3f position, float yaw, float pitch) {
@@ -36,26 +38,18 @@ public class Camera {
     public void processKeyboard(Movement direction,  float deltaTime) {
         float velocity = movementSpeed * deltaTime;
 
-        if (direction == Movement.FORWARD) {
-            Vector3f diff = new Vector3f();
-            front.mul(velocity, diff);
-            position.add(diff);
-        }
-        if (direction == Movement.BACKWARD) {
-            Vector3f diff = new Vector3f();
-            front.mul(velocity, diff);
-            position.sub(diff);
-        }
-        if (direction == Movement.LEFT) {
-            Vector3f diff = new Vector3f();
-            right.mul(velocity, diff);
-            position.sub(diff);
-        }
-        if (direction == Movement.RIGHT) {
-            Vector3f diff = new Vector3f();
-            right.mul(velocity, diff);
-            position.add(diff);
-        }
+        if (direction == Movement.FORWARD)
+            position.add(front.mul(velocity, new Vector3f()));
+        if (direction == Movement.BACKWARD)
+            position.sub(front.mul(velocity, new Vector3f()));
+        if (direction == Movement.LEFT)
+            position.sub(right.mul(velocity, new Vector3f()));
+        if (direction == Movement.RIGHT)
+            position.add(right.mul(velocity, new Vector3f()));
+        if (direction == Movement.UP)
+            position.add(worldUp.mul(velocity, new Vector3f()));
+        if (direction == Movement.DOWN)
+            position.sub(worldUp.mul(velocity, new Vector3f()));
     }
 
     public void processMouse(float xoffset, float yoffset) {

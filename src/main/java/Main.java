@@ -151,6 +151,10 @@ public class Main {
             camera.processKeyboard(Camera.Movement.LEFT, deltaTime);
         if (Input.isKeyDown(GLFW_KEY_D))
             camera.processKeyboard(Camera.Movement.RIGHT, deltaTime);
+        if (Input.isKeyDown(GLFW_KEY_SPACE))
+            camera.processKeyboard(Camera.Movement.UP, deltaTime);
+        if (Input.isKeyDown(GLFW_KEY_LEFT_CONTROL))
+            camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
 
         // Mouse
         double xpos = Input.getMouseX();
