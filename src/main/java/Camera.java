@@ -88,4 +88,8 @@ public class Camera {
         right.cross(front, up);
         up.normalize();
     }
+
+    public Vector3f getPosition() {
+        return position;
+    }
 }

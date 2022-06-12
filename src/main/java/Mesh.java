@@ -14,50 +14,43 @@ public class Mesh {
 
     private final int VAO;
     private final int VBO;
-    private final int EBO;
     private final int vertexCount;
     private final Texture texture;
 
-    public Mesh(float[] positions, int[] indices, Texture texture) {
+    public Mesh(float[] vertices, Texture texture) {
         this.texture = texture;
 
         // Store array of floats into a FloatBuffer so that it can be managed by OpenGL
-        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(positions.length);
-        verticesBuffer.put(positions).flip();
-        vertexCount = indices.length;
-
-        IntBuffer indicesBuffer = MemoryUtil.memAllocInt(indices.length);
-        indicesBuffer.put(indices).flip();
+        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length);
+        verticesBuffer.put(vertices).flip();
+        vertexCount = vertices.length;
 
         // Create VAO and bind it
         VAO = glGenVertexArrays();
         glBindVertexArray(VAO);
 
-        // Create positions VBO, bind it and put the data into it
+        // Create vertices VBO, bind it and put the data into it
         VBO = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, verticesBuffer, GL_STATIC_DRAW);
 
         // Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * 5, 0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 4 * 8, 0);
         glEnableVertexAttribArray(0);
-        // Texture coordinates attribute
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * 5, 4 * 3);
+        // Normals attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 4 * 8, 4 * 3);
         glEnableVertexAttribArray(1);
+        // Texture coordinates attribute
+        glVertexAttribPointer(2, 2, GL_FLOAT, false, 4 * 8, 4 * 6);
+        glEnableVertexAttribArray(2);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Create indices VBO (EBO)
-        EBO = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
 
         // Unbind VAO
         glBindVertexArray(0);
 
         // Free the off-heap memory allocated by the FloatBuffer / IntBuffer
         MemoryUtil.memFree(verticesBuffer);
-        MemoryUtil.memFree(indicesBuffer);
     }
 
     public void render() {
@@ -67,7 +60,7 @@ public class Mesh {
 
         glBindVertexArray(VAO);
 
-        glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
 
         glBindVertexArray(0);
     }
@@ -75,10 +68,9 @@ public class Mesh {
     public void cleanup() {
         glDisableVertexAttribArray(0);
 
-        // Delete the VBOs
+        // Delete the VBO
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDeleteBuffers(VBO);
-        glDeleteBuffers(EBO);
 
         // Delete the VAO
         glBindVertexArray(0);

@@ -1,4 +1,5 @@
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 
@@ -32,6 +33,28 @@ class ShaderProgram {
         uniforms.put(uniformName, uniformLocation);
     }
 
+    public void createMaterialUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".diffuse");
+        createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".shininess");
+    }
+
+    public void createLightUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".position");
+        createUniform(uniformName + ".ambient");
+        createUniform(uniformName + ".diffuse");
+        createUniform(uniformName + ".specular");
+    }
+
+    public void setUniform(String uniformName, Vector3f value) {
+        // Dump the vector into a float buffer
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(3);
+            value.get(fb);
+            glUniform3fv(uniforms.get(uniformName), fb);
+        }
+    }
+
     public void setUniform(String uniformName, Vector4f value) {
         // Dump the vector into a float buffer
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -48,6 +71,14 @@ class ShaderProgram {
             value.get(fb);
             glUniformMatrix4fv(uniforms.get(uniformName), false, fb);
         }
+    }
+
+    public void setUniform(String uniformName, int value) {
+        glUniform1i(uniforms.get(uniformName), value);
+    }
+
+    public void setUniform(String uniformName, float value) {
+        glUniform1f(uniforms.get(uniformName), value);
     }
 
     public void createVertexShader(String source) {

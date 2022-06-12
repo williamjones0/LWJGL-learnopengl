@@ -10,6 +10,8 @@ public class Main {
     private Mesh mesh;
     private Entity[] entities;
     private Camera camera;
+    private PointLight pointLight;
+    private Material material;
 
     private float deltaTime = 0.0f;
     private float lastFrame = 0.0f;
@@ -37,90 +39,76 @@ public class Main {
         camera = new Camera(new Vector3f(0, 0, -5), 0, 0);
 
         float[] vertices = {
-            // VO
-           -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-            // V1
-           -0.5f, -0.5f,  0.5f,  0.0f, 0.5f,
-            // V2
-            0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
-            // V3
-            0.5f,  0.5f,  0.5f,  0.5f, 0.0f,
-            // V4
-           -0.5f,  0.5f, -0.5f,  0.5f, 0.0f,
-            // V5
-            0.5f,  0.5f, -0.5f,  0.0f, 0.0f,
-            // V6
-           -0.5f, -0.5f, -0.5f,  0.5f, 0.5f,
-            // V7
-            0.5f, -0.5f, -0.5f,  0.0f, 0.5f,
-
-            // Top face
-            // V8: V4 repeated
-           -0.5f,  0.5f, -0.5f,  0.0f, 0.5f,
-            // V9: V5 repeated
-            0.5f,  0.5f, -0.5f,  0.5f, 0.5f,
-            // V10: V0 repeated
-           -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-            // V11: V3 repeated
-            0.5f,  0.5f,  0.5f,  0.5f, 1.0f,
-
-            // Right face
-            // V12: V3 repeated
-            0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-            // V13: V2 repeated
-            0.5f, -0.5f,  0.5f,  0.0f, 0.5f,
-            // V14: V5 repeated
-            0.5f,  0.5f, -0.5f,  0.5f, 0.0f,
-            // V15: V7 repeated
-            0.5f, -0.5f, -0.5f,  0.5f, 0.5f,
-
-            // Left face
-            // V16: V0 repeated
-           -0.5f,  0.5f,  0.5f,  0.5f, 0.0f,
-            // V17: V1 repeated
-           -0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
-            // V18: V4 repeated
-           -0.5f,  0.5f, -0.5f,  0.0f, 0.0f,
-            // V19: V6 repeated
-           -0.5f, -0.5f, -0.5f,  0.0f, 0.5f,
-
-            // Bottom face
-            // V20: V6 repeated
-           -0.5f, -0.5f, -0.5f,  0.5f, 0.0f,
-            // V21: V7 repeated
-            0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-            // V22: V1 repeated
-           -0.5f, -0.5f,  0.5f,  0.5f, 0.5f,
-            // V23: V2 repeated
-            0.5f, -0.5f,  0.5f,  1.0f, 0.5f
-        };
-
-        int[] indices = {
+            // positions         // normals           // texture coords
             // Front face
-            0, 1, 3, 3, 1, 2,
-            // Top face
-            8, 10, 11, 9, 8, 11,
-            // Right face
-            12, 13, 14, 14, 13, 15,
-            // Left face
-            18, 19, 16, 16, 19, 17,
-            // Bottom face
-            22, 20, 23, 23, 20, 21,
+           -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+           -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+           -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+
             // Back face
-            5, 7, 4, 4, 7, 6
+           -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+           -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+           -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+
+            // Left face
+           -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+           -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+           -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+           -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+           -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+           -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+            // Right face
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+            // Bottom face
+           -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+           -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+           -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+
+            // Top face
+           -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+           -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+           -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
         };
 
-        Texture texture = new Texture("src/main/resources/grassblock.png");
+        Texture texture = new Texture("src/main/resources/container.png");
 
-        mesh = new Mesh(vertices, indices, texture);
-        Entity entity1 = new Entity(mesh);
-        Entity entity2 = new Entity(mesh);
-        entity2.setPosition(2, 1, -1);
+        mesh = new Mesh(vertices, texture);
+        Entity entity1 = new Entity(mesh, new Vector3f(), new Vector3f(), 2);
+        Entity entity2 = new Entity(mesh, new Vector3f(4, 2, -2), new Vector3f(), 2);
 
         entities = new Entity[] {
             entity1,
             entity2
         };
+
+        Vector3f lightPos = new Vector3f(1.2f, 2.0f, 4.0f);
+        Vector3f lightAmbient = new Vector3f(0.2f, 0.2f, 0.2f);
+        Vector3f lightDiffuse = new Vector3f(0.5f, 0.5f, 0.5f);
+        Vector3f lightSpecular = new Vector3f(1.0f, 1.0f, 1.0f);
+        pointLight = new PointLight(mesh, lightPos, lightAmbient, lightDiffuse, lightSpecular);
+
+        Vector3f materialSpecular = new Vector3f(0.5f, 0.5f, 0.5f);
+        float materialShininess = 64.0f;
+        material = new Material(texture, materialSpecular, materialShininess);
     }
 
     private void loop() {
@@ -132,6 +120,8 @@ public class Main {
 
     private void update() {
         window.update();
+
+        pointLight.setPosition(pointLight.getPosition().x + 0.001f, pointLight.getPosition().y, pointLight.getPosition().z);
 
         // Calculate delta time
         float currentFrame = (float) glfwGetTime();
@@ -170,7 +160,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, entities);
+        renderer.render(camera, entities, pointLight, material);
         window.swapBuffers();
     }
 
