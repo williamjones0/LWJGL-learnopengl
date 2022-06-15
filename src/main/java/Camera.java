@@ -59,8 +59,6 @@ public class Camera {
         yaw += xoffset;
         pitch += yoffset;
 
-        System.out.println(pitch);
-
         if (pitch > 89.0f)
             pitch = 89.0f;
         if (pitch < -89.0f)

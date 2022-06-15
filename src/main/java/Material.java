@@ -3,10 +3,10 @@ import org.joml.Vector3f;
 public class Material {
 
     private Texture diffuse;
-    private Vector3f specular;
+    private Texture specular;
     private float shininess;
 
-    public Material(Texture diffuse, Vector3f specular, float shininess) {
+    public Material(Texture diffuse, Texture specular, float shininess) {
         this.diffuse = diffuse;
         this.specular = specular;
         this.shininess = shininess;
@@ -20,11 +20,11 @@ public class Material {
         this.diffuse = diffuse;
     }
 
-    public Vector3f getSpecular() {
+    public Texture getSpecular() {
         return specular;
     }
 
-    public void setSpecular(Vector3f specular) {
+    public void setSpecular(Texture specular) {
         this.specular = specular;
     }
 

@@ -10,7 +10,11 @@ public class PointLight {
     private Vector3f diffuse;
     private Vector3f specular;
 
-    public PointLight(Mesh mesh, Vector3f position, Vector3f ambient, Vector3f diffuse, Vector3f specular) {
+    private float constant;
+    private float linear;
+    private float quadratic;
+
+    public PointLight(Mesh mesh, Vector3f position, Vector3f ambient, Vector3f diffuse, Vector3f specular, float constant, float linear, float quadratic) {
         this.mesh = mesh;
 
         this.position = position;
@@ -18,6 +22,10 @@ public class PointLight {
         this.ambient = ambient;
         this.diffuse = diffuse;
         this.specular = specular;
+
+        this.constant = constant;
+        this.linear = linear;
+        this.quadratic = quadratic;
     }
 
     public Mesh getMesh() {
@@ -58,5 +66,29 @@ public class PointLight {
 
     public void setSpecular(Vector3f specular) {
         this.specular = specular;
+    }
+
+    public float getConstant() {
+        return constant;
+    }
+
+    public void setConstant(float constant) {
+        this.constant = constant;
+    }
+
+    public float getLinear() {
+        return linear;
+    }
+
+    public void setLinear(float linear) {
+        this.linear = linear;
+    }
+
+    public float getQuadratic() {
+        return quadratic;
+    }
+
+    public void setQuadratic(float quadratic) {
+        this.quadratic = quadratic;
     }
 }

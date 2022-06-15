@@ -60,15 +60,14 @@ public class Renderer {
         shaderProgram.setUniform("light.ambient", pointLight.getAmbient());
         shaderProgram.setUniform("light.diffuse", pointLight.getDiffuse());
         shaderProgram.setUniform("light.specular", pointLight.getSpecular());
+        shaderProgram.setUniform("light.constant", pointLight.getConstant());
+        shaderProgram.setUniform("light.linear", pointLight.getLinear());
+        shaderProgram.setUniform("light.quadratic", pointLight.getQuadratic());
 
         // Material uniforms
         shaderProgram.setUniform("material.diffuse", 0);
-        shaderProgram.setUniform("material.specular", material.getSpecular());
+        shaderProgram.setUniform("material.specular", 1);
         shaderProgram.setUniform("material.shininess", material.getShininess());
-
-        // Bind diffuse map
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, material.getDiffuse().getID());
 
         // Render containers
         for (Entity entity : entities) {

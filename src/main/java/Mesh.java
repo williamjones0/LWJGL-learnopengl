@@ -1,7 +1,6 @@
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL15.*;
@@ -15,10 +14,12 @@ public class Mesh {
     private final int VAO;
     private final int VBO;
     private final int vertexCount;
-    private final Texture texture;
+    private final Texture diffuse;
+    private final Texture specular;
 
-    public Mesh(float[] vertices, Texture texture) {
-        this.texture = texture;
+    public Mesh(float[] vertices, Texture diffuse, Texture specular) {
+        this.diffuse = diffuse;
+        this.specular = specular;
 
         // Store array of floats into a FloatBuffer so that it can be managed by OpenGL
         FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length);
@@ -54,9 +55,11 @@ public class Mesh {
     }
 
     public void render() {
-        // Activate and bind texture
+        // Activate and bind textures
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture.getID());
+        glBindTexture(GL_TEXTURE_2D, diffuse.getID());
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specular.getID());
 
         glBindVertexArray(VAO);
 

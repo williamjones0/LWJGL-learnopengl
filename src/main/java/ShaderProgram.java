@@ -44,6 +44,9 @@ class ShaderProgram {
         createUniform(uniformName + ".ambient");
         createUniform(uniformName + ".diffuse");
         createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".constant");
+        createUniform(uniformName + ".linear");
+        createUniform(uniformName + ".quadratic");
     }
 
     public void setUniform(String uniformName, Vector3f value) {
