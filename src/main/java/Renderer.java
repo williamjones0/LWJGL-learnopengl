@@ -3,9 +3,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import org.joml.Matrix4f;
 
-import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL13.*;
-
 public class Renderer {
 
     private ShaderProgram shaderProgram;
@@ -33,7 +30,8 @@ public class Renderer {
 
         // Light uniforms
         shaderProgram.createMaterialUniform("material");
-        shaderProgram.createLightUniform("light");
+        shaderProgram.createDirLightUniform("dirLight");
+        shaderProgram.createPointLightUniform("pointLight");
 
         // Light cube shader
         lightCubeShader = new ShaderProgram();
@@ -46,7 +44,7 @@ public class Renderer {
         lightCubeShader.createUniform("projection");
     }
 
-    public void render(Camera camera, Entity[] entities, PointLight pointLight, Material material) {
+    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight pointLight, Material material) {
         shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
@@ -55,14 +53,20 @@ public class Renderer {
 
         shaderProgram.setUniform("viewPos", camera.getPosition());
 
-        // Update light uniforms
-        shaderProgram.setUniform("light.position", pointLight.getPosition());
-        shaderProgram.setUniform("light.ambient", pointLight.getAmbient());
-        shaderProgram.setUniform("light.diffuse", pointLight.getDiffuse());
-        shaderProgram.setUniform("light.specular", pointLight.getSpecular());
-        shaderProgram.setUniform("light.constant", pointLight.getConstant());
-        shaderProgram.setUniform("light.linear", pointLight.getLinear());
-        shaderProgram.setUniform("light.quadratic", pointLight.getQuadratic());
+        // Update directional light uniforms
+        shaderProgram.setUniform("dirLight.direction", dirLight.getDirection());
+        shaderProgram.setUniform("dirLight.ambient", dirLight.getAmbient());
+        shaderProgram.setUniform("dirLight.diffuse", dirLight.getDiffuse());
+        shaderProgram.setUniform("dirLight.specular", dirLight.getSpecular());
+
+        // Update point light uniforms
+        shaderProgram.setUniform("pointLight.position", pointLight.getPosition());
+        shaderProgram.setUniform("pointLight.ambient", pointLight.getAmbient());
+        shaderProgram.setUniform("pointLight.diffuse", pointLight.getDiffuse());
+        shaderProgram.setUniform("pointLight.specular", pointLight.getSpecular());
+        shaderProgram.setUniform("pointLight.constant", pointLight.getConstant());
+        shaderProgram.setUniform("pointLight.linear", pointLight.getLinear());
+        shaderProgram.setUniform("pointLight.quadratic", pointLight.getQuadratic());
 
         // Material uniforms
         shaderProgram.setUniform("material.diffuse", 0);

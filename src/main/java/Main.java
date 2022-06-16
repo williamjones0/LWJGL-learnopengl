@@ -10,6 +10,7 @@ public class Main {
     private Mesh mesh;
     private Entity[] entities;
     private Camera camera;
+    private DirLight dirLight;
     private PointLight pointLight;
     private Material material;
 
@@ -101,14 +102,23 @@ public class Main {
             entity2
         };
 
-        Vector3f lightPos = new Vector3f(1.2f, 2.0f, 4.0f);
-        Vector3f lightAmbient = new Vector3f(0.2f, 0.2f, 0.2f);
-        Vector3f lightDiffuse = new Vector3f(0.5f, 0.5f, 0.5f);
-        Vector3f lightSpecular = new Vector3f(1.0f, 1.0f, 1.0f);
-        float constant = 1.0f;
-        float linear = 0.09f;
-        float quadratic = 0.032f;
-        pointLight = new PointLight(mesh, lightPos, lightAmbient, lightDiffuse, lightSpecular, constant, linear, quadratic);
+        dirLight = new DirLight(
+            new Vector3f(-0.2f, -1.0f, -0.3f),
+            new Vector3f(0.05f, 0.05f, 0.05f),
+            new Vector3f(0.4f, 0.4f, 0.4f),
+            new Vector3f(0.5f, 0.5f, 0.5f)
+        );
+
+        pointLight = new PointLight(
+            mesh,
+            new Vector3f(1.2f, 2.0f, 4.0f),
+            new Vector3f(0.2f, 0.2f, 0.2f),
+            new Vector3f(0.5f, 0.5f, 0.5f),
+            new Vector3f(1.0f, 1.0f, 1.0f),
+            1.0f,
+            0.09f,
+            0.032f
+        );
 
         float materialShininess = 64.0f;
         material = new Material(materialDiffuse, materialSpecular, materialShininess);
@@ -163,7 +173,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, entities, pointLight, material);
+        renderer.render(camera, entities, dirLight, pointLight, material);
         window.swapBuffers();
     }
 

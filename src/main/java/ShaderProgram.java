@@ -39,7 +39,14 @@ class ShaderProgram {
         createUniform(uniformName + ".shininess");
     }
 
-    public void createLightUniform(String uniformName) throws Exception {
+    public void createDirLightUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".direction");
+        createUniform(uniformName + ".ambient");
+        createUniform(uniformName + ".diffuse");
+        createUniform(uniformName + ".specular");
+    }
+
+    public void createPointLightUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".position");
         createUniform(uniformName + ".ambient");
         createUniform(uniformName + ".diffuse");
