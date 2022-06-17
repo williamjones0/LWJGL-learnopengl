@@ -46,6 +46,12 @@ class ShaderProgram {
         createUniform(uniformName + ".specular");
     }
 
+    public void createPointLightListUniform(String uniformName, int size) throws Exception {
+        for (int i = 0; i < size; i++) {
+            createPointLightUniform(uniformName + "[" + i + "]");
+        }
+    }
+
     public void createPointLightUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".position");
         createUniform(uniformName + ".ambient");

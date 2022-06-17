@@ -59,10 +59,10 @@ public class Camera {
         yaw += xoffset;
         pitch += yoffset;
 
-        if (pitch > 89.0f)
-            pitch = 89.0f;
-        if (pitch < -89.0f)
-            pitch = -89.0f;
+        if (pitch > 90.0f)
+            pitch = 90.0f;
+        if (pitch < -90.0f)
+            pitch = -90.0f;
 
         updateCameraVectors();
     }
