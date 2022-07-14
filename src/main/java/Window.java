@@ -14,6 +14,8 @@ public class Window {
     private boolean fullscreen;
     private String title;
     private long windowHandle;
+    private int frames;
+    private long time;
     private float r;
     private float g;
     private float b;
@@ -86,6 +88,14 @@ public class Window {
         glClearColor(r, g, b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwPollEvents();
+
+        // FPS tracker
+        frames++;
+        if (System.currentTimeMillis() > time + 1000) {
+            GLFW.glfwSetWindowTitle(windowHandle, title + " | FPS: " + frames);
+            time = System.currentTimeMillis();
+            frames = 0;
+        }
     }
 
     private void createCallbacks() {

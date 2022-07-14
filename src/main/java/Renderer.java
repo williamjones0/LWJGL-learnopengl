@@ -12,6 +12,7 @@ public class Renderer {
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 100f;
     private static final int MAX_POINT_LIGHTS = 2;
+    private static final int MAX_SPOT_LIGHTS = 1;
     private Matrix4f projection;
 
     public void init(Window window) throws Exception {
@@ -33,6 +34,7 @@ public class Renderer {
         shaderProgram.createMaterialUniform("material");
         shaderProgram.createDirLightUniform("dirLight");
         shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
         // Light cube shader
         lightCubeShader = new ShaderProgram();
@@ -45,7 +47,7 @@ public class Renderer {
         lightCubeShader.createUniform("projection");
     }
 
-    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight[] pointLights, Material material) {
+    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, Material material) {
         shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
@@ -69,6 +71,20 @@ public class Renderer {
             shaderProgram.setUniform("pointLights[" + i + "].constant", pointLights[i].getConstant());
             shaderProgram.setUniform("pointLights[" + i + "].linear", pointLights[i].getLinear());
             shaderProgram.setUniform("pointLights[" + i + "].quadratic", pointLights[i].getQuadratic());
+        }
+
+        // Update spotlight uniforms
+        for (int i = 0; i < spotLights.length; i++) {
+            shaderProgram.setUniform("spotLights[" + i + "].position",  spotLights[i].getPosition());
+            shaderProgram.setUniform("spotLights[" + i + "].direction", spotLights[i].getDirection());
+            shaderProgram.setUniform("spotLights[" + i + "].cutoff", spotLights[i].getCutoff());
+            shaderProgram.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
+            shaderProgram.setUniform("spotLights[" + i + "].ambient",   spotLights[i].getAmbient());
+            shaderProgram.setUniform("spotLights[" + i + "].diffuse",   spotLights[i].getDiffuse());
+            shaderProgram.setUniform("spotLights[" + i + "].specular",  spotLights[i].getSpecular());
+            shaderProgram.setUniform("spotLights[" + i + "].constant",  spotLights[i].getConstant());
+            shaderProgram.setUniform("spotLights[" + i + "].linear",    spotLights[i].getLinear());
+            shaderProgram.setUniform("spotLights[" + i + "].quadratic", spotLights[i].getQuadratic());
         }
 
         // Material uniforms

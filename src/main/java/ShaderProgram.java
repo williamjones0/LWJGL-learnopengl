@@ -62,6 +62,25 @@ class ShaderProgram {
         createUniform(uniformName + ".quadratic");
     }
 
+    public void createSpotLightListUniform(String uniformName, int size) throws Exception {
+        for (int i = 0; i < size; i++) {
+            createSpotLightUniform(uniformName + "[" + i + "]");
+        }
+    }
+
+    public void createSpotLightUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".position");
+        createUniform(uniformName + ".direction");
+        createUniform(uniformName + ".cutoff");
+        createUniform(uniformName + ".outerCutoff");
+        createUniform(uniformName + ".ambient");
+        createUniform(uniformName + ".diffuse");
+        createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".constant");
+        createUniform(uniformName + ".linear");
+        createUniform(uniformName + ".quadratic");
+    }
+
     public void setUniform(String uniformName, Vector3f value) {
         // Dump the vector into a float buffer
         try (MemoryStack stack = MemoryStack.stackPush()) {
