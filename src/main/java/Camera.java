@@ -35,7 +35,7 @@ public class Camera {
         updateCameraVectors();
     }
 
-    public void processKeyboard(Movement direction,  float deltaTime) {
+    public void processKeyboard(Movement direction, float deltaTime) {
         float velocity = movementSpeed * deltaTime;
 
         if (direction == Movement.FORWARD)
@@ -93,5 +93,9 @@ public class Camera {
 
     public Vector3f getFront() {
         return front;
+    }
+
+    public Matrix4f getView() {
+        return calculateViewMatrix();
     }
 }

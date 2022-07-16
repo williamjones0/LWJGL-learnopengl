@@ -1,12 +1,15 @@
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 public class Renderer {
 
     private ShaderProgram shaderProgram;
     private ShaderProgram lightCubeShader;
+    private ShaderProgram skyboxShader;
 
     private static final float FOV = (float) Math.toRadians(60.0);
     private static final float Z_NEAR = 0.1f;
@@ -45,9 +48,18 @@ public class Renderer {
         lightCubeShader.createUniform("model");
         lightCubeShader.createUniform("view");
         lightCubeShader.createUniform("projection");
+
+        // Skybox shader
+        skyboxShader = new ShaderProgram();
+        skyboxShader.createVertexShader(Files.readString(new File("src/main/resources/skybox.vs").toPath(), StandardCharsets.US_ASCII));
+        skyboxShader.createFragmentShader(Files.readString(new File("src/main/resources/skybox.fs").toPath(), StandardCharsets.US_ASCII));
+        skyboxShader.link();
+
+        skyboxShader.createUniform("view");
+        skyboxShader.createUniform("projection");
     }
 
-    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, Material material) {
+    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, Material material, Skybox skybox) {
         shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
@@ -99,8 +111,11 @@ public class Renderer {
             entity.getMesh().render();
         }
 
+        shaderProgram.unbind();
+
         // Render lights
         lightCubeShader.bind();
+        lightCubeShader.setUniform("view", view);
         lightCubeShader.setUniform("projection", projection);
         lightCubeShader.setUniform("view", view);
 
@@ -113,7 +128,17 @@ public class Renderer {
             light.getMesh().render();
         }
 
-        shaderProgram.unbind();
+        lightCubeShader.unbind();
+
+        // Render skybox
+        view = new Matrix4f(new Matrix3f(camera.getView()));  // Remove translation from view matrix
+        skyboxShader.bind();
+        skyboxShader.setUniform("view", view);
+        skyboxShader.setUniform("projection", projection);
+
+        skybox.render();
+
+        skyboxShader.unbind();
     }
 
     public void cleanup() {

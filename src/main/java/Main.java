@@ -14,6 +14,7 @@ public class Main {
     private PointLight[] pointLights;
     private SpotLight[] spotLights;
     private Material material;
+    private Skybox skybox;
 
     private float deltaTime = 0.0f;
     private float lastFrame = 0.0f;
@@ -91,6 +92,51 @@ public class Main {
             -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
         };
 
+        float[] skyboxVertices = {
+            // positions
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f
+        };
+
         Texture materialDiffuse = new Texture("src/main/resources/container.png");
         Texture materialSpecular = new Texture("src/main/resources/container_specular.png");
 
@@ -161,6 +207,17 @@ public class Main {
 
         float materialShininess = 64.0f;
         material = new Material(materialDiffuse, materialSpecular, materialShininess);
+
+        String[] faces = {
+            "src/main/resources/skybox/right.jpg",
+            "src/main/resources/skybox/left.jpg",
+            "src/main/resources/skybox/top.jpg",
+            "src/main/resources/skybox/bottom.jpg",
+            "src/main/resources/skybox/front.jpg",
+            "src/main/resources/skybox/back.jpg"
+        };
+
+        skybox = new Skybox(faces, skyboxVertices);
     }
 
     private void loop() {
@@ -213,7 +270,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, entities, dirLight, pointLights, spotLights, material);
+        renderer.render(camera, entities, dirLight, pointLights, spotLights, material, skybox);
         window.swapBuffers();
     }
 
