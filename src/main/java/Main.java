@@ -145,8 +145,7 @@ public class Main {
         Entity entity2 = new Entity(mesh, new Vector3f(4, 2, -2), new Vector3f(), 2);
 
         entities = new Entity[] {
-            entity1,
-            entity2
+            entity1
         };
 
         dirLight = new DirLight(
