@@ -33,11 +33,11 @@ public class Renderer {
 
         shaderProgram.createUniform("viewPos");
 
-//        // Light uniforms
-//        shaderProgram.createMaterialUniform("material");
-//        shaderProgram.createDirLightUniform("dirLight");
-//        shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
-//        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
+        // Light uniforms
+        shaderProgram.createMaterialUniform("material");
+        shaderProgram.createDirLightUniform("dirLight");
+        shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
         // Light cube shader
         lightCubeShader = new ShaderProgram();
@@ -59,7 +59,13 @@ public class Renderer {
         skyboxShader.createUniform("projection");
     }
 
-    public void render(Camera camera, Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, Material material, Skybox skybox) {
+    public void render(Camera camera, Scene scene) {
+        Entity[] entities = scene.getEntities();
+        DirLight dirLight = scene.getDirLight();
+        PointLight[] pointLights = scene.getPointLights();
+        SpotLight[] spotLights = scene.getSpotLights();
+        Skybox skybox = scene.getSkybox();
+
         shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
@@ -68,44 +74,44 @@ public class Renderer {
 
         shaderProgram.setUniform("viewPos", camera.getPosition());
 
-//        // Update directional light uniforms
-//        shaderProgram.setUniform("dirLight.direction", dirLight.getDirection());
-//        shaderProgram.setUniform("dirLight.ambient", dirLight.getAmbient());
-//        shaderProgram.setUniform("dirLight.diffuse", dirLight.getDiffuse());
-//        shaderProgram.setUniform("dirLight.specular", dirLight.getSpecular());
-//
-//        // Update point light uniforms
-//        for (int i = 0; i < pointLights.length; i++) {
-//            shaderProgram.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
-//            shaderProgram.setUniform("pointLights[" + i + "].ambient", pointLights[i].getAmbient());
-//            shaderProgram.setUniform("pointLights[" + i + "].diffuse", pointLights[i].getDiffuse());
-//            shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
-//            shaderProgram.setUniform("pointLights[" + i + "].constant", pointLights[i].getConstant());
-//            shaderProgram.setUniform("pointLights[" + i + "].linear", pointLights[i].getLinear());
-//            shaderProgram.setUniform("pointLights[" + i + "].quadratic", pointLights[i].getQuadratic());
-//        }
-//
-//        // Update spotlight uniforms
-//        for (int i = 0; i < spotLights.length; i++) {
-//            shaderProgram.setUniform("spotLights[" + i + "].position",  spotLights[i].getPosition());
-//            shaderProgram.setUniform("spotLights[" + i + "].direction", spotLights[i].getDirection());
-//            shaderProgram.setUniform("spotLights[" + i + "].cutoff", spotLights[i].getCutoff());
-//            shaderProgram.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
-//            shaderProgram.setUniform("spotLights[" + i + "].ambient",   spotLights[i].getAmbient());
-//            shaderProgram.setUniform("spotLights[" + i + "].diffuse",   spotLights[i].getDiffuse());
-//            shaderProgram.setUniform("spotLights[" + i + "].specular",  spotLights[i].getSpecular());
-//            shaderProgram.setUniform("spotLights[" + i + "].constant",  spotLights[i].getConstant());
-//            shaderProgram.setUniform("spotLights[" + i + "].linear",    spotLights[i].getLinear());
-//            shaderProgram.setUniform("spotLights[" + i + "].quadratic", spotLights[i].getQuadratic());
-//        }
-//
-//        // Material uniforms
-//        shaderProgram.setUniform("material.diffuse", 0);
-//        shaderProgram.setUniform("material.specular", 1);
-//        shaderProgram.setUniform("material.shininess", material.getShininess());
+        // Update directional light uniforms
+        shaderProgram.setUniform("dirLight.direction", dirLight.getDirection());
+        shaderProgram.setUniform("dirLight.ambient", dirLight.getAmbient());
+        shaderProgram.setUniform("dirLight.diffuse", dirLight.getDiffuse());
+        shaderProgram.setUniform("dirLight.specular", dirLight.getSpecular());
+
+        // Update point light uniforms
+        for (int i = 0; i < pointLights.length; i++) {
+            shaderProgram.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
+            shaderProgram.setUniform("pointLights[" + i + "].ambient", pointLights[i].getAmbient());
+            shaderProgram.setUniform("pointLights[" + i + "].diffuse", pointLights[i].getDiffuse());
+            shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
+            shaderProgram.setUniform("pointLights[" + i + "].constant", pointLights[i].getConstant());
+            shaderProgram.setUniform("pointLights[" + i + "].linear", pointLights[i].getLinear());
+            shaderProgram.setUniform("pointLights[" + i + "].quadratic", pointLights[i].getQuadratic());
+        }
+
+        // Update spotlight uniforms
+        for (int i = 0; i < spotLights.length; i++) {
+            shaderProgram.setUniform("spotLights[" + i + "].position",  spotLights[i].getPosition());
+            shaderProgram.setUniform("spotLights[" + i + "].direction", spotLights[i].getDirection());
+            shaderProgram.setUniform("spotLights[" + i + "].cutoff", spotLights[i].getCutoff());
+            shaderProgram.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
+            shaderProgram.setUniform("spotLights[" + i + "].ambient",   spotLights[i].getAmbient());
+            shaderProgram.setUniform("spotLights[" + i + "].diffuse",   spotLights[i].getDiffuse());
+            shaderProgram.setUniform("spotLights[" + i + "].specular",  spotLights[i].getSpecular());
+            shaderProgram.setUniform("spotLights[" + i + "].constant",  spotLights[i].getConstant());
+            shaderProgram.setUniform("spotLights[" + i + "].linear",    spotLights[i].getLinear());
+            shaderProgram.setUniform("spotLights[" + i + "].quadratic", spotLights[i].getQuadratic());
+        }
 
         // Render containers
         for (Entity entity : entities) {
+            // Material uniforms
+            shaderProgram.setUniform("material.diffuse", 0);
+            shaderProgram.setUniform("material.specular", 1);
+            shaderProgram.setUniform("material.shininess", entity.getMaterial().getShininess());
+
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
             shaderProgram.setUniform("model", model);
             entity.getMesh().render();
@@ -113,22 +119,22 @@ public class Renderer {
 
         shaderProgram.unbind();
 
-//        // Render lights
-//        lightCubeShader.bind();
-//        lightCubeShader.setUniform("view", view);
-//        lightCubeShader.setUniform("projection", projection);
-//        lightCubeShader.setUniform("view", view);
-//
-//        for (PointLight light : pointLights) {
-//            Matrix4f model = new Matrix4f();
-//            model.translate(light.getPosition());
-//            model.scale(0.5f);
-//            lightCubeShader.setUniform("model", model);
-//
-//            light.getMesh().render();
-//        }
-//
-//        lightCubeShader.unbind();
+        // Render lights
+        lightCubeShader.bind();
+        lightCubeShader.setUniform("view", view);
+        lightCubeShader.setUniform("projection", projection);
+        lightCubeShader.setUniform("view", view);
+
+        for (PointLight light : pointLights) {
+            Matrix4f model = new Matrix4f();
+            model.translate(light.getPosition());
+            model.scale(0.5f);
+            lightCubeShader.setUniform("model", model);
+
+            light.getMesh().render();
+        }
+
+        lightCubeShader.unbind();
 
         // Render skybox
         view = new Matrix4f(new Matrix3f(camera.getView()));  // Remove translation from view matrix

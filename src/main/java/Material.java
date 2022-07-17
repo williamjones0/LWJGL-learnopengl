@@ -1,5 +1,3 @@
-import org.joml.Vector3f;
-
 public class Material {
 
     private Texture diffuse;

@@ -3,12 +3,14 @@ import org.joml.Vector3f;
 public class Entity {
 
     private final Mesh mesh;
+    private final Material material;
     private Vector3f position;
     private Vector3f rotation;
     private float scale;
 
-    public Entity(Mesh mesh, Vector3f position, Vector3f rotation, float scale) {
+    public Entity(Mesh mesh, Material material, Vector3f position, Vector3f rotation, float scale) {
         this.mesh = mesh;
+        this.material = material;
         this.position = position;
         this.rotation = rotation;
         this.scale = scale;
@@ -16,6 +18,7 @@ public class Entity {
 
     public Entity(Mesh mesh) {
         this.mesh = mesh;
+        this.material = null;
         this.position = new Vector3f();
         this.rotation = new Vector3f();
         this.scale = 1;
@@ -23,6 +26,10 @@ public class Entity {
 
     public Mesh getMesh() {
         return mesh;
+    }
+
+    public Material getMaterial() {
+        return material;
     }
 
     public Vector3f getPosition() {

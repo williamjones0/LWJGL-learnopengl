@@ -8,13 +8,9 @@ public class Main {
     private Window window;
     private Renderer renderer;
     private Mesh mesh;
-    private Entity[] entities;
     private Camera camera;
-    private DirLight dirLight;
-    private PointLight[] pointLights;
     private SpotLight[] spotLights;
-    private Material material;
-    private Skybox skybox;
+    private Scene scene;
 
     private float deltaTime = 0.0f;
     private float lastFrame = 0.0f;
@@ -139,16 +135,19 @@ public class Main {
 
         Texture materialDiffuse = new Texture("src/main/resources/container.png");
         Texture materialSpecular = new Texture("src/main/resources/container_specular.png");
+        float materialShininess = 64.0f;
+        Material material = new Material(materialDiffuse, materialSpecular, materialShininess);
 
         mesh = new Mesh(vertices, materialDiffuse, materialSpecular);
-        Entity entity1 = new Entity(mesh, new Vector3f(), new Vector3f(), 2);
-        Entity entity2 = new Entity(mesh, new Vector3f(4, 2, -2), new Vector3f(), 2);
+        Entity entity1 = new Entity(mesh, material, new Vector3f(), new Vector3f(), 2);
+        Entity entity2 = new Entity(mesh, material, new Vector3f(4, 2, -2), new Vector3f(), 2);
 
-        entities = new Entity[] {
-            entity1
+        Entity[] entities = new Entity[]{
+            entity1,
+            entity2
         };
 
-        dirLight = new DirLight(
+        DirLight dirLight = new DirLight(
             new Vector3f(-0.2f, -1.0f, -0.3f),
             new Vector3f(0.05f, 0.05f, 0.05f),
             new Vector3f(0.4f, 0.4f, 0.4f),
@@ -177,7 +176,7 @@ public class Main {
             0.032f
         );
 
-        pointLights = new PointLight[] {
+        PointLight[] pointLights = new PointLight[]{
             pointLight1,
             pointLight2
         };
@@ -204,9 +203,6 @@ public class Main {
             spotLight
         };
 
-        float materialShininess = 64.0f;
-        material = new Material(materialDiffuse, materialSpecular, materialShininess);
-
         String[] faces = {
             "src/main/resources/skybox/right.jpg",
             "src/main/resources/skybox/left.jpg",
@@ -216,7 +212,9 @@ public class Main {
             "src/main/resources/skybox/back.jpg"
         };
 
-        skybox = new Skybox(faces, skyboxVertices);
+        Skybox skybox = new Skybox(faces, skyboxVertices);
+
+        scene = new Scene(entities, dirLight, pointLights, spotLights, skybox);
     }
 
     private void loop() {
@@ -269,7 +267,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, entities, dirLight, pointLights, spotLights, material, skybox);
+        renderer.render(camera, scene);
         window.swapBuffers();
     }
 
