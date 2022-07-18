@@ -1,5 +1,7 @@
 import org.joml.Vector3f;
 import org.lwjgl.*;
+import primitives.UVSphere;
+import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -142,9 +144,21 @@ public class Main {
         Entity entity1 = new Entity(mesh, material, new Vector3f(), new Vector3f(), 2);
         Entity entity2 = new Entity(mesh, material, new Vector3f(4, 2, -2), new Vector3f(), 2);
 
+        UVSphere uvSphere = new UVSphere(1, 36, 18);
+        List<Float> verticesList = uvSphere.getVertices();
+        float[] verticesArray = new float[verticesList.size()];
+        for (int i = 0; i < verticesList.size(); i++) {
+            verticesArray[i] = verticesList.get(i);
+        }
+
+        Mesh sphereMesh = new Mesh(verticesArray, materialDiffuse, materialSpecular);
+
+        Entity sphere = new Entity(sphereMesh, material, new Vector3f(0, 3, 0), new Vector3f(), 1);
+
         Entity[] entities = new Entity[]{
             entity1,
-            entity2
+            entity2,
+            sphere
         };
 
         DirLight dirLight = new DirLight(
