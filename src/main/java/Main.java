@@ -1,6 +1,8 @@
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import primitives.UVSphere;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -9,7 +11,7 @@ public class Main {
 
     private Window window;
     private Renderer renderer;
-    private Mesh mesh;
+    private List<Mesh> meshes;
     private Camera camera;
     private SpotLight[] spotLights;
     private Scene scene;
@@ -26,16 +28,20 @@ public class Main {
         loop();
 
         renderer.cleanup();
-        mesh.cleanup();
+        for (Mesh mesh : meshes) {
+            mesh.cleanup();
+        }
         window.destroy();
     }
 
     private void init() throws Exception {
-        window = new Window(800, 600, "LearnOpenGL", false, 0.2f, 0.3f, 0.3f);
+        window = new Window(1920, 1080, "LearnOpenGL", false, 0.2f, 0.3f, 0.3f);
         window.create();
 
         renderer = new Renderer();
         renderer.init(window);
+
+        meshes = new ArrayList<>();
 
         camera = new Camera(new Vector3f(0, 0, -5), 0, 0);
 
@@ -140,24 +146,30 @@ public class Main {
         float materialShininess = 64.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess);
 
-        mesh = new Mesh(vertices, materialDiffuse, materialSpecular);
-        Entity entity1 = new Entity(mesh, material, new Vector3f(), new Vector3f(), 2);
-        Entity entity2 = new Entity(mesh, material, new Vector3f(4, 2, -2), new Vector3f(), 2);
+//        mesh = new Mesh(vertices, materialDiffuse, materialSpecular);
+//        Entity entity1 = new Entity(mesh, material, new Vector3f(), new Vector3f(), 2);
+//        Entity entity2 = new Entity(mesh, material, new Vector3f(4, 2, -2), new Vector3f(), 2);
 
         UVSphere uvSphere = new UVSphere(1, 36, 18);
+
         List<Float> verticesList = uvSphere.getVertices();
         float[] verticesArray = new float[verticesList.size()];
         for (int i = 0; i < verticesList.size(); i++) {
             verticesArray[i] = verticesList.get(i);
         }
 
-        Mesh sphereMesh = new Mesh(verticesArray, materialDiffuse, materialSpecular);
+        List<Integer> indicesList = uvSphere.getIndices();
+        int[] indicesArray = new int[indicesList.size()];
+        for (int i = 0; i < indicesList.size(); i++) {
+            indicesArray[i] = indicesList.get(i);
+        }
+
+        Mesh sphereMesh = new Mesh(verticesArray, indicesArray, materialDiffuse, materialSpecular);
+        meshes.add(sphereMesh);
 
         Entity sphere = new Entity(sphereMesh, material, new Vector3f(0, 3, 0), new Vector3f(), 1);
 
-        Entity[] entities = new Entity[]{
-            entity1,
-            entity2,
+        Entity[] entities = new Entity[] {
             sphere
         };
 
@@ -169,7 +181,7 @@ public class Main {
         );
 
         PointLight pointLight1 = new PointLight(
-            mesh,
+            sphereMesh,
             new Vector3f(1.2f, 2.0f, 4.0f),
             new Vector3f(0.2f, 0.2f, 0.2f),
             new Vector3f(0.5f, 0.5f, 0.5f),
@@ -180,7 +192,7 @@ public class Main {
         );
 
         PointLight pointLight2 = new PointLight(
-            mesh,
+            sphereMesh,
             new Vector3f(4.5f, 2.0f, -4.0f),
             new Vector3f(0.2f, 0.2f, 0.2f),
             new Vector3f(0.5f, 0.5f, 0.5f),
@@ -196,7 +208,7 @@ public class Main {
         };
 
         SpotLight spotLight = new SpotLight(
-            mesh,
+            sphereMesh,
 
             new Vector3f(0.0f, 5.0f, 0.0f),
             new Vector3f(0.0f, -1.0f, 0.0f),
@@ -266,6 +278,14 @@ public class Main {
             camera.processKeyboard(Camera.Movement.UP, deltaTime);
         if (Input.isKeyDown(GLFW_KEY_LEFT_CONTROL))
             camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
+
+        if (Input.isKeyDown(GLFW_KEY_C)) {
+            renderer.setFOV((float) Math.toRadians(30.0));
+        } else {
+            renderer.setFOV((float) Math.toRadians(60.0));
+        }
+
+        renderer.setWireframe(Input.isKeyDown(GLFW_KEY_T));
 
         // Mouse
         double xpos = Input.getMouseX();

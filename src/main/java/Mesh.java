@@ -1,6 +1,7 @@
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL15.*;
@@ -12,11 +13,12 @@ public class Mesh {
 
     private final int VAO;
     private final int VBO;
+    private final int EBO;
     private final int vertexCount;
     private final Texture diffuse;
     private final Texture specular;
 
-    public Mesh(float[] vertices, Texture diffuse, Texture specular) {
+    public Mesh(float[] vertices, int[] indices, Texture diffuse, Texture specular) {
         this.diffuse = diffuse;
         this.specular = specular;
 
@@ -46,11 +48,21 @@ public class Mesh {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+        // Store array of ints into an IntBuffer so that it can be managed by OpenGL
+        IntBuffer indicesBuffer = MemoryUtil.memAllocInt(indices.length);
+        indicesBuffer.put(indices).flip();
+
+        // Create EBO, bind it and put the data into it
+        EBO = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+
         // Unbind VAO
         glBindVertexArray(0);
 
         // Free the off-heap memory allocated by the FloatBuffer / IntBuffer
         MemoryUtil.memFree(verticesBuffer);
+        MemoryUtil.memFree(indicesBuffer);
     }
 
     public void render() {
@@ -62,7 +74,7 @@ public class Mesh {
 
         glBindVertexArray(VAO);
 
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
 
         glBindVertexArray(0);
     }
@@ -73,6 +85,7 @@ public class Mesh {
         // Delete the VBO
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDeleteBuffers(VBO);
+        glDeleteBuffers(EBO);
 
         // Delete the VAO
         glBindVertexArray(0);

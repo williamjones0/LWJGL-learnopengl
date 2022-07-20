@@ -13,11 +13,12 @@ public class UVSphere {
     private int sectors;
     private int stacks;
 
-    private List<Vector3f> positions;
-    private List<Vector3f> normals;
-    private List<Vector2f> texCoords;
+    private final List<Vector3f> positions;
+    private final List<Vector3f> normals;
+    private final List<Vector2f> texCoords;
 
     private final List<Float> vertices;
+    private final List<Integer> indices;
 
     public UVSphere(float radius, int sectors, int stacks) {
         this.radius = radius;
@@ -29,6 +30,7 @@ public class UVSphere {
         this.texCoords = new ArrayList<>();
 
         this.vertices = new ArrayList<>();
+        this.indices = new ArrayList<>();
 
         generateVertices();
         generateTriangles();
@@ -68,6 +70,15 @@ public class UVSphere {
                 s = (float) (j) / sectors;
                 t = (float) (i) / stacks;
                 texCoords.add(new Vector2f(s, t));
+
+                vertices.add(x);
+                vertices.add(y);
+                vertices.add(z);
+                vertices.add(nx);
+                vertices.add(ny);
+                vertices.add(nz);
+                vertices.add(s);
+                vertices.add(t);
             }
         }
     }
@@ -84,61 +95,15 @@ public class UVSphere {
 
                 if (i != 0) {
                     // First triangle of each stack
-                    vertices.add(positions.get(i_j).x);
-                    vertices.add(positions.get(i_j).y);
-                    vertices.add(positions.get(i_j).z);
-                    vertices.add(normals.get(i_j).x);
-                    vertices.add(normals.get(i_j).y);
-                    vertices.add(normals.get(i_j).z);
-                    vertices.add(texCoords.get(i_j).x);
-                    vertices.add(texCoords.get(i_j).y);
-
-                    vertices.add(positions.get(i_j_plus_1).x);
-                    vertices.add(positions.get(i_j_plus_1).y);
-                    vertices.add(positions.get(i_j_plus_1).z);
-                    vertices.add(normals.get(i_j_plus_1).x);
-                    vertices.add(normals.get(i_j_plus_1).y);
-                    vertices.add(normals.get(i_j_plus_1).z);
-                    vertices.add(texCoords.get(i_j_plus_1).x);
-                    vertices.add(texCoords.get(i_j_plus_1).y);
-
-                    vertices.add(positions.get(i_plus_1_j).x);
-                    vertices.add(positions.get(i_plus_1_j).y);
-                    vertices.add(positions.get(i_plus_1_j).z);
-                    vertices.add(normals.get(i_plus_1_j).x);
-                    vertices.add(normals.get(i_plus_1_j).y);
-                    vertices.add(normals.get(i_plus_1_j).z);
-                    vertices.add(texCoords.get(i_plus_1_j).x);
-                    vertices.add(texCoords.get(i_plus_1_j).y);
+                    indices.add(i_j);
+                    indices.add(i_j_plus_1);
+                    indices.add(i_plus_1_j);
                 }
                 if (i != (stacks - 1)) {
                     // Second triangle of each stack
-                    vertices.add(positions.get(i_plus_1_j).x);
-                    vertices.add(positions.get(i_plus_1_j).y);
-                    vertices.add(positions.get(i_plus_1_j).z);
-                    vertices.add(normals.get(i_plus_1_j).x);
-                    vertices.add(normals.get(i_plus_1_j).y);
-                    vertices.add(normals.get(i_plus_1_j).z);
-                    vertices.add(texCoords.get(i_plus_1_j).x);
-                    vertices.add(texCoords.get(i_plus_1_j).y);
-
-                    vertices.add(positions.get(i_j_plus_1).x);
-                    vertices.add(positions.get(i_j_plus_1).y);
-                    vertices.add(positions.get(i_j_plus_1).z);
-                    vertices.add(normals.get(i_j_plus_1).x);
-                    vertices.add(normals.get(i_j_plus_1).y);
-                    vertices.add(normals.get(i_j_plus_1).z);
-                    vertices.add(texCoords.get(i_j_plus_1).x);
-                    vertices.add(texCoords.get(i_j_plus_1).y);
-
-                    vertices.add(positions.get(i_plus_1_j_plus_1).x);
-                    vertices.add(positions.get(i_plus_1_j_plus_1).y);
-                    vertices.add(positions.get(i_plus_1_j_plus_1).z);
-                    vertices.add(normals.get(i_plus_1_j_plus_1).x);
-                    vertices.add(normals.get(i_plus_1_j_plus_1).y);
-                    vertices.add(normals.get(i_plus_1_j_plus_1).z);
-                    vertices.add(texCoords.get(i_plus_1_j_plus_1).x);
-                    vertices.add(texCoords.get(i_plus_1_j_plus_1).y);
+                    indices.add(i_plus_1_j);
+                    indices.add(i_j_plus_1);
+                    indices.add(i_plus_1_j_plus_1);
                 }
             }
         }
@@ -170,5 +135,9 @@ public class UVSphere {
 
     public List<Float> getVertices() {
         return vertices;
+    }
+
+    public List<Integer> getIndices() {
+        return indices;
     }
 }
