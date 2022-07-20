@@ -1,3 +1,4 @@
+import Utils.Utils;
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import primitives.UVSphere;
@@ -152,19 +153,15 @@ public class Main {
 
         UVSphere uvSphere = new UVSphere(1, 36, 18);
 
-        List<Float> verticesList = uvSphere.getVertices();
-        float[] verticesArray = new float[verticesList.size()];
-        for (int i = 0; i < verticesList.size(); i++) {
-            verticesArray[i] = verticesList.get(i);
-        }
 
-        List<Integer> indicesList = uvSphere.getIndices();
-        int[] indicesArray = new int[indicesList.size()];
-        for (int i = 0; i < indicesList.size(); i++) {
-            indicesArray[i] = indicesList.get(i);
-        }
-
-        Mesh sphereMesh = new Mesh(verticesArray, indicesArray, materialDiffuse, materialSpecular);
+        Mesh sphereMesh = new Mesh(
+            uvSphere.getPositions(),
+            uvSphere.getNormals(),
+            uvSphere.getTexCoords(),
+            uvSphere.getIndices(),
+            materialDiffuse,
+            materialSpecular
+        );
         meshes.add(sphereMesh);
 
         Entity sphere = new Entity(sphereMesh, material, new Vector3f(0, 3, 0), new Vector3f(), 1);
