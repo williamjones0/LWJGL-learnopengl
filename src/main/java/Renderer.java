@@ -24,8 +24,8 @@ public class Renderer {
 
     public void init(Window window) throws Exception {
         shaderProgram = new ShaderProgram();
-        shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/vertex.vs").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/fragment.fs").toPath(), StandardCharsets.US_ASCII));
+        shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
+        shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment.fs").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();
 
         shaderProgram.createUniform("model");
@@ -45,8 +45,8 @@ public class Renderer {
 
         // Light cube shader
         lightCubeShader = new ShaderProgram();
-        lightCubeShader.createVertexShader(Files.readString(new File("src/main/resources/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
-        lightCubeShader.createFragmentShader(Files.readString(new File("src/main/resources/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
+        lightCubeShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
+        lightCubeShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
         lightCubeShader.link();
 
         lightCubeShader.createUniform("model");
@@ -55,8 +55,8 @@ public class Renderer {
 
         // Skybox shader
         skyboxShader = new ShaderProgram();
-        skyboxShader.createVertexShader(Files.readString(new File("src/main/resources/skybox.vs").toPath(), StandardCharsets.US_ASCII));
-        skyboxShader.createFragmentShader(Files.readString(new File("src/main/resources/skybox.fs").toPath(), StandardCharsets.US_ASCII));
+        skyboxShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/skybox.vs").toPath(), StandardCharsets.US_ASCII));
+        skyboxShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/skybox.fs").toPath(), StandardCharsets.US_ASCII));
         skyboxShader.link();
 
         skyboxShader.createUniform("view");
@@ -121,7 +121,7 @@ public class Renderer {
             // Material uniforms
             shaderProgram.setUniform("material.diffuse", 0);
             shaderProgram.setUniform("material.specular", 1);
-            shaderProgram.setUniform("material.shininess", entity.getMaterial().getShininess());
+            shaderProgram.setUniform("material.shininess", entity.getMesh().getMaterial().getShininess());
 
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
             shaderProgram.setUniform("model", model);

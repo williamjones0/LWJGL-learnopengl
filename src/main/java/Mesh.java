@@ -17,12 +17,10 @@ public class Mesh {
     private final int texCoordsVBO;
     private final int indicesVBO;
     private final int vertexCount;
-    private final Texture diffuse;
-    private final Texture specular;
+    private final Material material;
 
-    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices, Texture diffuse, Texture specular) {
-        this.diffuse = diffuse;
-        this.specular = specular;
+    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices, Material material) {
+        this.material = material;
 
         vertexCount = positions.length * 2;  // No clue why we need to multiply by 2
 
@@ -78,9 +76,9 @@ public class Mesh {
     public void render() {
         // Activate and bind textures
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuse.getID());
+        glBindTexture(GL_TEXTURE_2D, material.getDiffuse().getID());
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specular.getID());
+        glBindTexture(GL_TEXTURE_2D, material.getSpecular().getID());
 
         glBindVertexArray(VAO);
 
@@ -102,5 +100,9 @@ public class Mesh {
         // Delete the VAO
         glBindVertexArray(0);
         glDeleteVertexArrays(0);
+    }
+
+    public Material getMaterial() {
+        return material;
     }
 }
