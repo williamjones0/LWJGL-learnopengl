@@ -73,6 +73,10 @@ void main() {
     result += calculateSpotLight(spotLights[i], norm, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
+
+    // Gamma correction
+    float gamma = 2.2;
+    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
 }
 
 vec3 calculateDirLight(DirLight light, vec3 normal, vec3 viewDir) {
@@ -95,17 +99,18 @@ vec3 calculateDirLight(DirLight light, vec3 normal, vec3 viewDir) {
 
 vec3 calculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - FragPos);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
     // Diffuse
     float diff = max(dot(normal, lightDir), 0.0);
 
     // Specular
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDir, halfwayDir), 0.0), material.shininess);
 
     // Attenuation
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
+    float attenuation = 1.0 / distance;
 
     // Calculate result
     vec3 ambient  = light.ambient  * texture(material.diffuse, TexCoords).rgb;
@@ -117,17 +122,18 @@ vec3 calculatePointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewD
 
 vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - fragPos);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
     // Diffuse
     float diff = max(dot(normal, lightDir), 0.0);
 
     // Specular
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDir, halfwayDir), 0.0), material.shininess);
 
     // Attenuation
     float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    float attenuation = 1.0 / distance;
 
     // Intensity
     float theta     = dot(lightDir, normalize(-light.direction));

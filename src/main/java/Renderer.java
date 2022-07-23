@@ -97,9 +97,6 @@ public class Renderer {
             shaderProgram.setUniform("pointLights[" + i + "].ambient", pointLights[i].getAmbient());
             shaderProgram.setUniform("pointLights[" + i + "].diffuse", pointLights[i].getDiffuse());
             shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
-            shaderProgram.setUniform("pointLights[" + i + "].constant", pointLights[i].getConstant());
-            shaderProgram.setUniform("pointLights[" + i + "].linear", pointLights[i].getLinear());
-            shaderProgram.setUniform("pointLights[" + i + "].quadratic", pointLights[i].getQuadratic());
         }
 
         // Update spotlight uniforms
@@ -111,9 +108,6 @@ public class Renderer {
             shaderProgram.setUniform("spotLights[" + i + "].ambient",   spotLights[i].getAmbient());
             shaderProgram.setUniform("spotLights[" + i + "].diffuse",   spotLights[i].getDiffuse());
             shaderProgram.setUniform("spotLights[" + i + "].specular",  spotLights[i].getSpecular());
-            shaderProgram.setUniform("spotLights[" + i + "].constant",  spotLights[i].getConstant());
-            shaderProgram.setUniform("spotLights[" + i + "].linear",    spotLights[i].getLinear());
-            shaderProgram.setUniform("spotLights[" + i + "].quadratic", spotLights[i].getQuadratic());
         }
 
         // Render containers

@@ -93,7 +93,7 @@ public class Main {
 
         Texture materialDiffuse = new Texture("src/main/resources/container.png");
         Texture materialSpecular = new Texture("src/main/resources/container_specular.png");
-        float materialShininess = 64.0f;
+        float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess);
 
         UVSphere uvSphere = new UVSphere(1, 36, 18);
@@ -107,7 +107,8 @@ public class Main {
         );
         meshes.add(sphereMesh);
 
-        Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack/");
+//        Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+        Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
         meshes.addAll(Arrays.asList(backpackMesh));
 
         Entity backpack = new Entity(backpackMesh[0], material, new Vector3f(0, 0, 0), new Vector3f(), 1);
@@ -128,10 +129,7 @@ public class Main {
             new Vector3f(1.2f, 2.0f, 4.0f),
             new Vector3f(0.2f, 0.2f, 0.2f),
             new Vector3f(0.5f, 0.5f, 0.5f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-            1.0f,
-            0.09f,
-            0.032f
+            new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
         PointLight pointLight2 = new PointLight(
@@ -139,10 +137,7 @@ public class Main {
             new Vector3f(4.5f, 2.0f, -4.0f),
             new Vector3f(0.2f, 0.2f, 0.2f),
             new Vector3f(0.5f, 0.5f, 0.5f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-            1.0f,
-            0.09f,
-            0.032f
+            new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
         PointLight[] pointLights = new PointLight[]{
@@ -161,11 +156,7 @@ public class Main {
 
             new Vector3f(0.0f, 0.0f, 0.0f),
             new Vector3f(1.0f, 1.0f, 1.0f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-
-            1.0f,
-            0.09f,
-            0.032f
+            new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
         spotLights = new SpotLight[] {
@@ -219,7 +210,7 @@ public class Main {
             camera.processKeyboard(Camera.Movement.RIGHT, deltaTime);
         if (Input.isKeyDown(GLFW_KEY_SPACE))
             camera.processKeyboard(Camera.Movement.UP, deltaTime);
-        if (Input.isKeyDown(GLFW_KEY_LEFT_CONTROL))
+        if (Input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
             camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
 
         if (Input.isKeyDown(GLFW_KEY_C)) {
