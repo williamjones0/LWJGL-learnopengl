@@ -21,6 +21,7 @@ public class Main {
     private float lastFrame = 0.0f;
 
     private double lastX, lastY = 0;
+    private List<Integer> lastFrameKeys = new ArrayList<>();
 
     public void run() throws Exception {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -91,6 +92,48 @@ public class Main {
             1.0f, -1.0f,  1.0f
         };
 
+        float[] planePositions = {
+            // Positions
+           -10.0f, 0f,  10.0f,  // Top left
+           -10.0f, 0f, -10.0f,  // Bottom left
+            10.0f, 0f, -10.0f,  // Bottom right
+            10.0f, 0f,  10.0f,  // Top right
+        };
+
+        float[] planeNormals = {
+            0.0f, 1.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 1.0f, 0.0f
+        };
+
+        float[] planeTexCoords = {
+            0.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f, 1.0f,
+            1.0f, 0.0f
+        };
+
+        int[] planeIndices = {
+            0, 1, 3,
+            3, 1, 2
+        };
+
+        Texture planeDiffuse = new Texture("src/main/resources/wood.png");
+        Material planeMaterial = new Material(planeDiffuse, null, 32);
+
+        Mesh planeMesh = new Mesh(
+            planePositions,
+            planeNormals,
+            planeTexCoords,
+            planeIndices,
+            planeMaterial
+        );
+
+        meshes.add(planeMesh);
+
+        Entity plane = new Entity(planeMesh, planeMaterial, new Vector3f(0, -2, 0), new Vector3f(), 1);
+
         Texture materialDiffuse = new Texture("src/main/resources/container.png");
         Texture materialSpecular = new Texture("src/main/resources/container_specular.png");
         float materialShininess = 256.0f;
@@ -114,19 +157,20 @@ public class Main {
         Entity backpack = new Entity(backpackMesh[0], material, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
         Entity[] entities = new Entity[] {
-            backpack
+            backpack,
+            plane
         };
 
         DirLight dirLight = new DirLight(
             new Vector3f(-0.2f, -1.0f, -0.3f),
-            new Vector3f(0.05f, 0.05f, 0.05f),
-            new Vector3f(0.4f, 0.4f, 0.4f),
-            new Vector3f(0.5f, 0.5f, 0.5f)
+            new Vector3f(0.0f, 0.0f, 0.0f),
+            new Vector3f(0.0f, 0.0f, 0.0f),
+            new Vector3f(0.0f, 0.0f, 0.0f)
         );
 
         PointLight pointLight1 = new PointLight(
             sphereMesh,
-            new Vector3f(1.2f, 2.0f, 4.0f),
+            new Vector3f(1.2f, -1.5f, 4.0f),
             new Vector3f(0.2f, 0.2f, 0.2f),
             new Vector3f(0.5f, 0.5f, 0.5f),
             new Vector3f(1.0f, 1.0f, 1.0f)
@@ -219,7 +263,24 @@ public class Main {
             renderer.setFOV((float) Math.toRadians(60.0));
         }
 
-        renderer.setWireframe(Input.isKeyDown(GLFW_KEY_T));
+        if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F)) {  // If F pressed (and wasn't pressed last frame)
+            spotLights[0].setEnabled(!spotLights[0].isEnabled());
+        }
+
+        if (Input.isKeyDown(GLFW_KEY_T) && !lastFrameKeys.contains(GLFW_KEY_T)) {  // If T pressed (and wasn't pressed last frame)
+            renderer.setWireframe(!renderer.isWireframe());
+        }
+
+        // Update lastFrameKeys
+        if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F))
+            lastFrameKeys.add(GLFW_KEY_F);
+        else if (!Input.isKeyDown(GLFW_KEY_F))
+            lastFrameKeys.remove(Integer.valueOf(GLFW_KEY_F));
+
+        if (Input.isKeyDown(GLFW_KEY_T) && !lastFrameKeys.contains(GLFW_KEY_T))
+            lastFrameKeys.add(GLFW_KEY_T);
+        else if (!Input.isKeyDown(GLFW_KEY_T))
+            lastFrameKeys.remove(Integer.valueOf(GLFW_KEY_T));
 
         // Mouse
         double xpos = Input.getMouseX();

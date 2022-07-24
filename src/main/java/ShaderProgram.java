@@ -73,6 +73,7 @@ class ShaderProgram {
         createUniform(uniformName + ".ambient");
         createUniform(uniformName + ".diffuse");
         createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".enabled");
     }
 
     public void setUniform(String uniformName, Vector3f value) {
@@ -100,6 +101,10 @@ class ShaderProgram {
             value.get(fb);
             glUniformMatrix4fv(uniforms.get(uniformName), false, fb);
         }
+    }
+
+    public void setUniform(String uniformName, boolean value) {
+        glUniform1i(uniforms.get(uniformName), value ? 1 : 0);
     }
 
     public void setUniform(String uniformName, int value) {

@@ -4,9 +4,9 @@ public class Material {
     private Texture specular;
     private float shininess;
 
-    public Material(Texture diffuse, Texture specular, float shininess) {
+    public Material(Texture diffuse, Texture specular, float shininess) throws Exception {
         this.diffuse = diffuse;
-        this.specular = specular;
+        this.specular = specular != null ? specular : new Texture("src/main/resources/default_specular.png");
         this.shininess = shininess;
     }
 

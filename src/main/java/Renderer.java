@@ -16,6 +16,7 @@ public class Renderer {
     private float FOV = (float) Math.toRadians(60.0);
     private float aspectRatio;
     private boolean wireframe;
+    private boolean isCameraSpotLight;
     private static final float Z_NEAR = 0.1f;
     private static final float Z_FAR = 100f;
     private static final int MAX_POINT_LIGHTS = 2;
@@ -101,13 +102,14 @@ public class Renderer {
 
         // Update spotlight uniforms
         for (int i = 0; i < spotLights.length; i++) {
-            shaderProgram.setUniform("spotLights[" + i + "].position",  spotLights[i].getPosition());
-            shaderProgram.setUniform("spotLights[" + i + "].direction", spotLights[i].getDirection());
-            shaderProgram.setUniform("spotLights[" + i + "].cutoff", spotLights[i].getCutoff());
+            shaderProgram.setUniform("spotLights[" + i + "].position",    spotLights[i].getPosition());
+            shaderProgram.setUniform("spotLights[" + i + "].direction",   spotLights[i].getDirection());
+            shaderProgram.setUniform("spotLights[" + i + "].cutoff",      spotLights[i].getCutoff());
             shaderProgram.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
-            shaderProgram.setUniform("spotLights[" + i + "].ambient",   spotLights[i].getAmbient());
-            shaderProgram.setUniform("spotLights[" + i + "].diffuse",   spotLights[i].getDiffuse());
-            shaderProgram.setUniform("spotLights[" + i + "].specular",  spotLights[i].getSpecular());
+            shaderProgram.setUniform("spotLights[" + i + "].ambient",     spotLights[i].getAmbient());
+            shaderProgram.setUniform("spotLights[" + i + "].diffuse",     spotLights[i].getDiffuse());
+            shaderProgram.setUniform("spotLights[" + i + "].specular",    spotLights[i].getSpecular());
+            shaderProgram.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
         }
 
         // Render containers
@@ -158,6 +160,10 @@ public class Renderer {
 
     public void setWireframe(boolean wireframe) {
         this.wireframe = wireframe;
+    }
+
+    public boolean isWireframe() {
+        return wireframe;
     }
 
     public void setFOV(float FOV) {

@@ -41,6 +41,8 @@ struct SpotLight {
     float constant;
     float linear;
     float quadratic;
+
+    int enabled;
 };
 
 #define NR_POINT_LIGHTS 2
@@ -70,7 +72,8 @@ void main() {
     result += calculatePointLight(pointLights[i], norm, FragPos, viewDir);
 
     for (int i = 0; i < NR_SPOT_LIGHTS; i++)
-    result += calculateSpotLight(spotLights[i], norm, FragPos, viewDir);
+        if (spotLights[i].enabled == 1)
+            result += calculateSpotLight(spotLights[i], norm, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
 

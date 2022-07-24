@@ -14,6 +14,8 @@ public class SpotLight {
     private Vector3f diffuse;
     private Vector3f specular;
 
+    private boolean enabled;
+
     public SpotLight(Mesh mesh, Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f ambient, Vector3f diffuse, Vector3f specular) {
         this.mesh = mesh;
 
@@ -26,6 +28,8 @@ public class SpotLight {
         this.ambient = ambient;
         this.diffuse = diffuse;
         this.specular = specular;
+
+        this.enabled = true;
     }
 
     public Mesh getMesh() {
@@ -86,5 +90,13 @@ public class SpotLight {
 
     public void setSpecular(Vector3f specular) {
         this.specular = specular;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }
