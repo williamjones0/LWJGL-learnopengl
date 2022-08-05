@@ -37,7 +37,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "LearnOpenGL", false, 0.2f, 0.3f, 0.3f);
+        window = new Window(1280, 720, "LearnOpenGL", false, 0.1f, 0.1f, 0.1f);
         window.create();
 
         renderer = new Renderer();
@@ -45,7 +45,7 @@ public class Main {
 
         meshes = new ArrayList<>();
 
-        camera = new Camera(new Vector3f(0, 0, -5), 0, 0);
+        camera = new Camera(new Vector3f(0, 0, 3), -90f, 0);
 
         float[] skyboxVertices = {
             // positions
@@ -94,24 +94,24 @@ public class Main {
 
         float[] planePositions = {
             // Positions
-           -10.0f, 0f,  10.0f,  // Top left
-           -10.0f, 0f, -10.0f,  // Bottom left
-            10.0f, 0f, -10.0f,  // Bottom right
-            10.0f, 0f,  10.0f,  // Top right
+           -1.0f,  1.0f, 0f,  // Top left
+           -1.0f, -1.0f, 0f,  // Bottom left
+            1.0f, -1.0f, 0f,  // Bottom right
+            1.0f,  1.0f, 0f,  // Top right
         };
 
         float[] planeNormals = {
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f
         };
 
         float[] planeTexCoords = {
-            0.0f, 0.0f,
             0.0f, 1.0f,
-            1.0f, 1.0f,
-            1.0f, 0.0f
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f
         };
 
         int[] planeIndices = {
@@ -119,8 +119,9 @@ public class Main {
             3, 1, 2
         };
 
-        Texture planeDiffuse = new Texture("src/main/resources/wood.png");
-        Material planeMaterial = new Material(planeDiffuse, null, 32);
+        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg");
+        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg");
+        Material planeMaterial = new Material(planeDiffuse, null, 32, planeNormal);
 
         Mesh planeMesh = new Mesh(
             planePositions,
@@ -132,14 +133,14 @@ public class Main {
 
         meshes.add(planeMesh);
 
-        Entity plane = new Entity(planeMesh, planeMaterial, new Vector3f(0, -2, 0), new Vector3f(), 1);
+        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
-        Texture materialDiffuse = new Texture("src/main/resources/container.png");
-        Texture materialSpecular = new Texture("src/main/resources/container_specular.png");
+        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png");
+        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png");
         float materialShininess = 256.0f;
-        Material material = new Material(materialDiffuse, materialSpecular, materialShininess);
+        Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
 
-        UVSphere uvSphere = new UVSphere(1, 36, 18);
+        UVSphere uvSphere = new UVSphere(0.2f, 36, 18);
 
         Mesh sphereMesh = new Mesh(
             uvSphere.getPositions(),
@@ -154,12 +155,18 @@ public class Main {
         Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
         meshes.addAll(Arrays.asList(backpackMesh));
 
-        Entity backpack = new Entity(backpackMesh[0], material, new Vector3f(0, 0, 0), new Vector3f(), 1);
+        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 0), new Vector3f(), 1);
 
         Entity[] entities = new Entity[] {
-            backpack,
             plane
         };
+
+//        DirLight dirLight = new DirLight(
+//            new Vector3f(-0.2f, -1.0f, -0.3f),
+//            new Vector3f(0.05f, 0.05f, 0.05f),
+//            new Vector3f(0.4f, 0.4f, 0.4f),
+//            new Vector3f(0.5f, 0.5f, 0.5f)
+//        );
 
         DirLight dirLight = new DirLight(
             new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -170,23 +177,14 @@ public class Main {
 
         PointLight pointLight1 = new PointLight(
             sphereMesh,
-            new Vector3f(1.2f, -1.5f, 4.0f),
-            new Vector3f(0.2f, 0.2f, 0.2f),
-            new Vector3f(0.5f, 0.5f, 0.5f),
-            new Vector3f(1.0f, 1.0f, 1.0f)
-        );
-
-        PointLight pointLight2 = new PointLight(
-            sphereMesh,
-            new Vector3f(4.5f, 2.0f, -4.0f),
-            new Vector3f(0.2f, 0.2f, 0.2f),
-            new Vector3f(0.5f, 0.5f, 0.5f),
-            new Vector3f(1.0f, 1.0f, 1.0f)
+            new Vector3f(0.5f, 1.0f, 0.3f),
+            new Vector3f(0.1f, 0.1f, 0.1f),
+            new Vector3f(1.0f, 1.0f, 1.0f),
+            new Vector3f(0.2f, 0.2f, 0.2f)
         );
 
         PointLight[] pointLights = new PointLight[]{
-            pointLight1,
-            pointLight2
+            pointLight1
         };
 
         SpotLight spotLight = new SpotLight(
@@ -257,6 +255,15 @@ public class Main {
         if (Input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
             camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
 
+        if (Input.isKeyDown(GLFW_KEY_I))
+            scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0, 0.01f, 0)));
+        if (Input.isKeyDown(GLFW_KEY_K))
+            scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0, -0.01f, 0)));
+        if (Input.isKeyDown(GLFW_KEY_J))
+            scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(-0.01f, 0, 0)));
+        if (Input.isKeyDown(GLFW_KEY_L))
+            scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0.01f, 0, 0)));
+
         if (Input.isKeyDown(GLFW_KEY_C)) {
             renderer.setFOV((float) Math.toRadians(30.0));
         } else {
@@ -271,6 +278,10 @@ public class Main {
             renderer.setWireframe(!renderer.isWireframe());
         }
 
+        if (Input.isKeyDown(GLFW_KEY_B) && !lastFrameKeys.contains(GLFW_KEY_B)) {  // If B pressed (and wasn't pressed last frame)
+            renderer.setNormalMapping(!renderer.isNormalMapping());
+        }
+
         // Update lastFrameKeys
         if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F))
             lastFrameKeys.add(GLFW_KEY_F);
@@ -281,6 +292,11 @@ public class Main {
             lastFrameKeys.add(GLFW_KEY_T);
         else if (!Input.isKeyDown(GLFW_KEY_T))
             lastFrameKeys.remove(Integer.valueOf(GLFW_KEY_T));
+
+        if (Input.isKeyDown(GLFW_KEY_B) && !lastFrameKeys.contains(GLFW_KEY_B))
+            lastFrameKeys.add(GLFW_KEY_B);
+        else if (!Input.isKeyDown(GLFW_KEY_B))
+            lastFrameKeys.remove(Integer.valueOf(GLFW_KEY_B));
 
         // Mouse
         double xpos = Input.getMouseX();

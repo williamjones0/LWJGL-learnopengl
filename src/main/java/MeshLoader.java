@@ -53,7 +53,7 @@ public class MeshLoader {
         System.out.println(texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
             texture = new Texture(texturesDir + "/" + textPath);
-            Material material = new Material(texture, texture, 64.0f);
+            Material material = new Material(texture, texture, 64.0f, null);
             materials.add(material);
         }
     }

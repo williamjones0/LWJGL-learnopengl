@@ -28,3 +28,4 @@ hs_err_pid*
 /out/
 /.idea/
 /target/
+/src/main/java/META-INF/
