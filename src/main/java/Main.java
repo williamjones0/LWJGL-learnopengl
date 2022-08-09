@@ -167,10 +167,10 @@ public class Main {
         );
         meshes.add(sphereMesh);
 
-//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
-        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
+        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
-//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/source/Survival_BackPack_2");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
         meshes.addAll(Arrays.asList(backpackMesh));
 
         Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
@@ -202,8 +202,17 @@ public class Main {
             new Vector3f(0.2f, 0.2f, 0.2f)
         );
 
+        PointLight pointLight2 = new PointLight(
+            sphereMesh,
+            new Vector3f(5f, 1.0f, 5f),
+            new Vector3f(0.1f, 0.1f, 0.1f),
+            new Vector3f(200.0f, 200.0f, 200.0f),
+            new Vector3f(0.2f, 0.2f, 0.2f)
+        );
+
         PointLight[] pointLights = new PointLight[]{
-            pointLight1
+            pointLight1,
+            pointLight2
         };
 
         SpotLight spotLight = new SpotLight(
@@ -284,6 +293,11 @@ public class Main {
             scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(-0.01f, 0, 0)));
         if (Input.isKeyDown(GLFW_KEY_L))
             scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0.01f, 0, 0)));
+
+        if (Input.isKeyDown(GLFW_KEY_Q) && renderer.getExposure() > 0.0f)
+            renderer.setExposure(renderer.getExposure() - 0.01f);
+        if (Input.isKeyDown(GLFW_KEY_E))
+            renderer.setExposure(renderer.getExposure() + 0.01f);
 
         if (Input.isKeyDown(GLFW_KEY_C)) {
             renderer.setFOV((float) Math.toRadians(30.0));

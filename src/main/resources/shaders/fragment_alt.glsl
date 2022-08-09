@@ -46,7 +46,7 @@ struct SpotLight {
     int enabled;
 };
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 2
 #define NR_SPOT_LIGHTS 1
 
 in vec3 FragPos;
@@ -91,10 +91,6 @@ void main() {
             result += calculateSpotLight(spotLights[i], TangentPointLightPos[i], norm, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
-
-    // Gamma correction
-    float gamma = 2.2;
-    FragColor.rgb = pow(FragColor.rgb, vec3(1.0 / gamma));
 }
 
 vec3 calculateDirLight(DirLight light, vec3 tangentLightPos, vec3 normal, vec3 viewDir) {
@@ -128,16 +124,16 @@ vec3 calculatePointLight(PointLight light, vec3 tangentLightPos, vec3 normal, ve
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
 
-//    // Attenuation
-//    float distance = length(light.position - fragPos);
-//    float attenuation = 1.0 / distance;
+    // Attenuation
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / distance;
 
     // Calculate result
     vec3 ambient  = light.ambient * color;
     vec3 diffuse  = light.diffuse * diff * color;
     vec3 specular = light.specular * spec * texture(material.specular, TexCoords).rgb;
 
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse + specular) * attenuation;
 }
 
 vec3 calculateSpotLight(SpotLight light, vec3 tangentLightPos, vec3 normal, vec3 fragPos, vec3 viewDir) {

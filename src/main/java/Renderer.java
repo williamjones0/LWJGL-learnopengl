@@ -6,24 +6,32 @@ import Utils.Maths;
 import org.joml.Matrix4f;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL30.*;
 
 public class Renderer {
+
+    private Framebuffer framebuffer;
 
     private ShaderProgram shaderProgram;
     private ShaderProgram lightCubeShader;
     private ShaderProgram skyboxShader;
+    private ShaderProgram hdrShader;
 
     private float FOV = (float) Math.toRadians(60.0);
     private float aspectRatio;
     private boolean wireframe;
     private boolean isNormalMapping = false;
+    private float exposure = 1.0f;
+
     private final float Z_NEAR = 0.1f;
     private final float Z_FAR = 100f;
-    private static final int MAX_POINT_LIGHTS = 1;
+    private static final int MAX_POINT_LIGHTS = 2;
     private static final int MAX_SPOT_LIGHTS = 1;
     private Matrix4f projection;
 
     public void init(Window window) throws Exception {
+        framebuffer = new Framebuffer(new Texture(window.getWidth(), window.getHeight(), Texture.Format.RGBA16F, Texture.Format.RGBA));
+
         shaderProgram = new ShaderProgram();
         shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment_alt.glsl").toPath(), StandardCharsets.US_ASCII));
@@ -63,6 +71,15 @@ public class Renderer {
 
         skyboxShader.createUniform("view");
         skyboxShader.createUniform("projection");
+
+        // HDR shader
+        hdrShader = new ShaderProgram();
+        hdrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/hdr.vert").toPath(), StandardCharsets.US_ASCII));
+        hdrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/hdr.frag").toPath(), StandardCharsets.US_ASCII));
+        hdrShader.link();
+
+        hdrShader.createUniform("hdrBuffer");
+        hdrShader.createUniform("exposure");
     }
 
     public void render(Camera camera, Scene scene) {
@@ -71,6 +88,12 @@ public class Renderer {
         PointLight[] pointLights = scene.getPointLights();
         SpotLight[] spotLights = scene.getSpotLights();
         Skybox skybox = scene.getSkybox();
+
+        // First pass: render scene to floating point framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         if (wireframe) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -155,6 +178,46 @@ public class Renderer {
 //        skybox.render();
 //
 //        skyboxShader.unbind();
+
+
+        // Second pass: render floating point framebuffer to default framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+
+        glClearColor(0.5f, 1.0f, 0.5f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Render framebuffer to screen
+        hdrShader.bind();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.getTexture().getID());
+        hdrShader.setUniform("hdrBuffer", 0);
+        hdrShader.setUniform("exposure", exposure);
+
+        // Render quad
+        float[] quadVertices = {
+            // positions        // texture coords
+           -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
+           -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
+            1.0f,  1.0f, 0.0f,  1.0f, 1.0f,
+            1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+        };
+
+        int quadVAO = glGenVertexArrays();
+        glBindVertexArray(quadVAO);
+
+        int quadVBO = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
+        glEnableVertexAttribArray(1);
+
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glBindVertexArray(0);
     }
 
     public void cleanup() {
@@ -179,5 +242,13 @@ public class Renderer {
 
     public void setNormalMapping(boolean normalMapping) {
         isNormalMapping = normalMapping;
+    }
+
+    public float getExposure() {
+        return exposure;
+    }
+
+    public void setExposure(float exposure) {
+        this.exposure = exposure;
     }
 }

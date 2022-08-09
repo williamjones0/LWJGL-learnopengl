@@ -14,7 +14,7 @@ public class ModelLoader {
     public static Mesh[] load(String modelPath, String texturesPath) throws Exception {
         return load(modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
             | aiProcess_Triangulate | aiProcess_FixInfacingNormals
-            | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
+            | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     }
 
     public static Mesh[] load(String modelPath, String texturesPath, int flags) throws Exception {

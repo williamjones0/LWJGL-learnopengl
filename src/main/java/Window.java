@@ -75,8 +75,6 @@ public class Window {
         // Make the window visible
         glfwShowWindow(windowHandle);
 
-        glEnable(GL_DEPTH_TEST);
-
         // Hides the cursor and locks it to the window
         org.lwjgl.glfw.GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
         // Use raw mouse motion
@@ -85,8 +83,6 @@ public class Window {
     }
 
     public void update() {
-        glClearColor(r, g, b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwPollEvents();
 
         // FPS tracker
