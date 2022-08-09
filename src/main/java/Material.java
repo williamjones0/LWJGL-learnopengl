@@ -6,10 +6,10 @@ public class Material {
     private Texture normalMap;
 
     public Material(Texture diffuse, Texture specular, float shininess, Texture normalMap) throws Exception {
-        this.diffuse = diffuse;
-        this.specular = specular != null ? specular : new Texture("src/main/resources/textures/default_specular.png");
+        this.diffuse = diffuse != null ? diffuse : new Texture("src/main/resources/textures/default_diffuse.png", Texture.Format.SRGBA);
+        this.specular = specular != null ? specular : new Texture("src/main/resources/textures/default_specular.png", Texture.Format.RGBA);
         this.shininess = shininess;
-        this.normalMap = normalMap != null ? normalMap : new Texture("src/main/resources/textures/default_normal.png");
+        this.normalMap = normalMap != null ? normalMap : new Texture("src/main/resources/textures/default_normal.png", Texture.Format.RGBA);
     }
 
     public Texture getDiffuse() {

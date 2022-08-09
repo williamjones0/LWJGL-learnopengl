@@ -9,12 +9,12 @@ import static Utils.Utils.floatListToArray;
 import static Utils.Utils.intListToArray;
 import static org.lwjgl.assimp.Assimp.*;
 
-public class MeshLoader {
+public class ModelLoader {
 
     public static Mesh[] load(String modelPath, String texturesPath) throws Exception {
         return load(modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
             | aiProcess_Triangulate | aiProcess_FixInfacingNormals
-            | aiProcess_PreTransformVertices);
+            | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
     }
 
     public static Mesh[] load(String modelPath, String texturesPath, int flags) throws Exception {
@@ -33,8 +33,15 @@ public class MeshLoader {
             processMaterial(aiMaterial, materials, texturesPath);
         }
 
+        // If none of the materials have any textures, use the default material
+        if (materials.size() == 0) {
+            Material material = new Material(null, null, 32.0f, null);
+            materials.add(material);
+        }
+
         // Process meshes
         int numMeshes = aiScene.mNumMeshes();
+        System.out.println("Number of meshes: " + numMeshes);
         PointerBuffer aiMeshes = aiScene.mMeshes();
         Mesh[] meshes = new Mesh[numMeshes];
         for (int i = 0; i < numMeshes; i++) {
@@ -46,14 +53,43 @@ public class MeshLoader {
     }
 
     private static void processMaterial(AIMaterial aiMaterial, List<Material> materials, String texturesDir) throws Exception {
+        // Check if the material has any textures
+        boolean hasDiffuseMap = aiGetMaterialTextureCount(aiMaterial, aiTextureType_DIFFUSE) > 0;
+        boolean hasSpecularMap = aiGetMaterialTextureCount(aiMaterial, aiTextureType_SPECULAR) > 0;
+        boolean hasNormalMap = aiGetMaterialTextureCount(aiMaterial, aiTextureType_NORMALS) > 0;
+
+        // Diffuse map
         AIString path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, path, (IntBuffer) null, null, null, null, null, null);
         String textPath = path.dataString();
-        Texture texture;
+        Texture diffuseTexture = null;
         System.out.println(texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            texture = new Texture(texturesDir + "/" + textPath);
-            Material material = new Material(texture, texture, 64.0f, null);
+            diffuseTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.SRGBA);
+        }
+
+        // Specular map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SPECULAR, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture specularTexture = null;
+        System.out.println(texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            specularTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        // Normal map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_NORMALS, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture normalTexture = null;
+        System.out.println(texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            normalTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        if (hasDiffuseMap) {
+            Material material = new Material(diffuseTexture, specularTexture, 32.0f, normalTexture);
             materials.add(material);
         }
     }
@@ -61,6 +97,7 @@ public class MeshLoader {
     private static Mesh processMesh(AIMesh aiMesh, List<Material> materials) {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
+        List<Float> tangents = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
 
@@ -80,6 +117,15 @@ public class MeshLoader {
             normals.add(aiNormal.x());
             normals.add(aiNormal.y());
             normals.add(aiNormal.z());
+        }
+
+        // Process tangents
+        AIVector3D.Buffer aiTangents = aiMesh.mTangents();
+        while (aiTangents.hasRemaining()) {
+            AIVector3D aiTangent = aiTangents.get();
+            tangents.add(aiTangent.x());
+            tangents.add(aiTangent.y());
+            tangents.add(aiTangent.z());
         }
 
         // Process texture coordinates
@@ -112,6 +158,7 @@ public class MeshLoader {
         return new Mesh(
             floatListToArray(vertices),
             floatListToArray(normals),
+            floatListToArray(tangents),
             floatListToArray(texCoords),
             intListToArray(indices),
             materials.get(0)

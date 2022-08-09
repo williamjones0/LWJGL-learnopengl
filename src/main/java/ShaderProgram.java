@@ -35,7 +35,7 @@ class ShaderProgram {
 
     public void createMaterialUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".diffuse");
-//        createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".specular");
         createUniform(uniformName + ".shininess");
         createUniform(uniformName + ".normalMap");
     }

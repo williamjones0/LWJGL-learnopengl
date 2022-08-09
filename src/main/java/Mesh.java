@@ -1,5 +1,3 @@
-import org.joml.Vector2f;
-import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
@@ -18,12 +16,11 @@ public class Mesh {
     private final int normalsVBO;
     private final int texCoordsVBO;
     private final int tangentsVBO;
-    private final int bitangentsVBO;
     private final int indicesVBO;
     private final int vertexCount;
     private final Material material;
 
-    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices, Material material) {
+    public Mesh(float[] positions, float[] normals, float[] tangents, float[] texCoords, int[] indices, Material material) {
         this.material = material;
 
         vertexCount = indices.length;
@@ -61,61 +58,6 @@ public class Mesh {
 
         // Normal mapping
         if (material.getNormalMap() != null) {
-            Vector3f edge1 = new Vector3f(positions[4], positions[5], positions[6]).sub(new Vector3f(positions[0], positions[1], positions[2]));
-            Vector3f edge2 = new Vector3f(positions[7], positions[8], positions[9]).sub(new Vector3f(positions[0], positions[1], positions[2]));
-            Vector2f deltaUV1 = new Vector2f(texCoords[2], texCoords[3]).sub(new Vector2f(texCoords[0], texCoords[1]));
-            Vector2f deltaUV2 = new Vector2f(texCoords[4], texCoords[5]).sub(new Vector2f(texCoords[0], texCoords[1]));
-
-            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-            Vector3f tangent1 = new Vector3f(
-                f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
-                f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
-                f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z)
-            );
-
-            Vector3f bitangent1 = new Vector3f(
-                f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
-                f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
-                f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z)
-            );
-
-            edge1 = new Vector3f(positions[6], positions[7], positions[8]).sub(new Vector3f(positions[0], positions[1], positions[2]));
-            edge2 = new Vector3f(positions[9], positions[10], positions[11]).sub(new Vector3f(positions[0], positions[1], positions[2]));
-            deltaUV1 = new Vector2f(texCoords[4], texCoords[5]).sub(new Vector2f(texCoords[0], texCoords[1]));
-            deltaUV2 = new Vector2f(texCoords[6], texCoords[7]).sub(new Vector2f(texCoords[0], texCoords[1]));
-
-            f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-            Vector3f tangent2 = new Vector3f(
-                f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x),
-                f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y),
-                f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z)
-            );
-
-            Vector3f bitangent2 = new Vector3f(
-                f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x),
-                f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y),
-                f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z)
-            );
-
-            System.out.println(tangent1);
-            System.out.println(tangent2);
-
-            tangent1 = new Vector3f(2, 0, 0);
-            tangent2 = new Vector3f(2, 0, 0);
-
-            bitangent1 = new Vector3f(0, 2, 0);
-            bitangent2 = new Vector3f(0, 2, 0);
-
-            // Tangents
-            float[] tangents = {
-                tangent1.x, tangent1.y, tangent1.z,
-                tangent1.x, tangent1.y, tangent1.z,
-                tangent2.x, tangent2.y, tangent2.z,
-                tangent2.x, tangent2.y, tangent2.z
-            };
-
             FloatBuffer tangentsBuffer = MemoryUtil.memAllocFloat(tangents.length);
             tangentsBuffer.put(tangents).flip();
             tangentsVBO = glGenBuffers();
@@ -123,25 +65,8 @@ public class Mesh {
             glBufferData(GL_ARRAY_BUFFER, tangentsBuffer, GL_STATIC_DRAW);
             glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0);
             glEnableVertexAttribArray(3);
-
-            // Bitangent
-            float[] bitangents = {
-                bitangent1.x, bitangent1.y, bitangent1.z,
-                bitangent1.x, bitangent1.y, bitangent1.z,
-                bitangent2.x, bitangent2.y, bitangent2.z,
-                bitangent2.x, bitangent2.y, bitangent2.z
-            };
-
-            FloatBuffer bitangentsBuffer = MemoryUtil.memAllocFloat(bitangents.length);
-            bitangentsBuffer.put(bitangents).flip();
-            bitangentsVBO = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, bitangentsVBO);
-            glBufferData(GL_ARRAY_BUFFER, bitangentsBuffer, GL_STATIC_DRAW);
-            glVertexAttribPointer(4, 3, GL_FLOAT, false, 0, 0);
-            glEnableVertexAttribArray(4);
         } else {
             tangentsVBO = 0;
-            bitangentsVBO = 0;
         }
 
         // Indices VBO

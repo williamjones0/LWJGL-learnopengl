@@ -99,7 +99,7 @@ public class Renderer {
             shaderProgram.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
             shaderProgram.setUniform("pointLights[" + i + "].ambient", pointLights[i].getAmbient());
             shaderProgram.setUniform("pointLights[" + i + "].diffuse", pointLights[i].getDiffuse());
-//            shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
+            shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
         }
 
 //        // Update spotlight uniforms
@@ -118,7 +118,7 @@ public class Renderer {
         for (Entity entity : entities) {
             // Material uniforms
             shaderProgram.setUniform("material.diffuse", 0);
-//            shaderProgram.setUniform("material.specular", 1);
+            shaderProgram.setUniform("material.specular", 1);
             shaderProgram.setUniform("material.shininess", entity.getMesh().getMaterial().getShininess());
             shaderProgram.setUniform("material.normalMap", 2);
 

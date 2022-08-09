@@ -107,6 +107,13 @@ public class Main {
             0.0f, 0.0f, 1.0f
         };
 
+        float[] planeTangents = {
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f
+        };
+
         float[] planeTexCoords = {
             0.0f, 1.0f,
             0.0f, 0.0f,
@@ -119,13 +126,14 @@ public class Main {
             3, 1, 2
         };
 
-        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg");
-        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg");
+        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg", Texture.Format.SRGBA);
+        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg", Texture.Format.RGBA);
         Material planeMaterial = new Material(planeDiffuse, null, 32, planeNormal);
 
         Mesh planeMesh = new Mesh(
             planePositions,
             planeNormals,
+            planeTangents,
             planeTexCoords,
             planeIndices,
             planeMaterial
@@ -135,30 +143,41 @@ public class Main {
 
         Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
-        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png");
-        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png");
+        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", Texture.Format.SRGBA);
+        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", Texture.Format.RGBA);
         float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
 
         UVSphere uvSphere = new UVSphere(0.2f, 36, 18);
 
+        float[] sphereNormals = {
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f,
+            2.0f, 0.0f, 0.0f,
+        };
+
         Mesh sphereMesh = new Mesh(
             uvSphere.getPositions(),
             uvSphere.getNormals(),
+            sphereNormals,
             uvSphere.getTexCoords(),
             uvSphere.getIndices(),
             material
         );
         meshes.add(sphereMesh);
 
-//        Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
-        Mesh[] backpackMesh = MeshLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/source/Survival_BackPack_2");
         meshes.addAll(Arrays.asList(backpackMesh));
 
-        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 0), new Vector3f(), 1);
+        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
 
         Entity[] entities = new Entity[] {
-            plane
+            plane,
+            backpack
         };
 
 //        DirLight dirLight = new DirLight(
@@ -236,6 +255,8 @@ public class Main {
 
         spotLights[0].setPosition(camera.getPosition());
         spotLights[0].setDirection(camera.getFront());
+
+        scene.getEntities()[1].setRotation(scene.getEntities()[1].getRotation().add(new Vector3f(0, 0, 0.1f)));
 
         processInput();
     }
