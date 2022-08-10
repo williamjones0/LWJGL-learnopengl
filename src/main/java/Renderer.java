@@ -4,6 +4,7 @@ import java.nio.file.Files;
 
 import Utils.Maths;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -13,6 +14,7 @@ public class Renderer {
     private Framebuffer framebuffer;
 
     private ShaderProgram shaderProgram;
+    private ShaderProgram pbrShader;
     private ShaderProgram lightCubeShader;
     private ShaderProgram skyboxShader;
     private ShaderProgram hdrShader;
@@ -25,7 +27,7 @@ public class Renderer {
 
     private final float Z_NEAR = 0.1f;
     private final float Z_FAR = 100f;
-    private static final int MAX_POINT_LIGHTS = 2;
+    private static final int MAX_POINT_LIGHTS = 4;
     private static final int MAX_SPOT_LIGHTS = 1;
     private Matrix4f projection;
 
@@ -50,8 +52,26 @@ public class Renderer {
         // Light uniforms
         shaderProgram.createMaterialUniform("material");
 //        shaderProgram.createDirLightUniform("dirLight");
-        shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+//        shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
 //        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
+
+        // PBR shader
+        pbrShader = new ShaderProgram();
+        pbrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
+        pbrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbr.frag").toPath(), StandardCharsets.US_ASCII));
+        pbrShader.link();
+
+        pbrShader.createUniform("model");
+        pbrShader.createUniform("view");
+        pbrShader.createUniform("projection");
+
+        pbrShader.createUniform("camPos");
+        pbrShader.createUniform("albedo");
+        pbrShader.createUniform("metallic");
+        pbrShader.createUniform("roughness");
+        pbrShader.createUniform("ao");
+
+        pbrShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
 
         // Light cube shader
         lightCubeShader = new ShaderProgram();
@@ -117,13 +137,11 @@ public class Renderer {
 //        shaderProgram.setUniform("dirLight.diffuse", dirLight.getDiffuse());
 //        shaderProgram.setUniform("dirLight.specular", dirLight.getSpecular());
 
-        // Update point light uniforms
-        for (int i = 0; i < pointLights.length; i++) {
-            shaderProgram.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
-            shaderProgram.setUniform("pointLights[" + i + "].ambient", pointLights[i].getAmbient());
-            shaderProgram.setUniform("pointLights[" + i + "].diffuse", pointLights[i].getDiffuse());
-            shaderProgram.setUniform("pointLights[" + i + "].specular", pointLights[i].getSpecular());
-        }
+//        // Update point light uniforms
+//        for (int i = 0; i < pointLights.length; i++) {
+//            shaderProgram.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
+//            shaderProgram.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
+//        }
 
 //        // Update spotlight uniforms
 //        for (int i = 0; i < spotLights.length; i++) {
@@ -137,20 +155,52 @@ public class Renderer {
 //            shaderProgram.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
 //        }
 
-        // Render containers
-        for (Entity entity : entities) {
-            // Material uniforms
-            shaderProgram.setUniform("material.diffuse", 0);
-            shaderProgram.setUniform("material.specular", 1);
-            shaderProgram.setUniform("material.shininess", entity.getMesh().getMaterial().getShininess());
-            shaderProgram.setUniform("material.normalMap", 2);
+//        // Render containers
+//        for (Entity entity : entities) {
+//            // Material uniforms
+//            shaderProgram.setUniform("material.diffuse", 0);
+//            shaderProgram.setUniform("material.specular", 1);
+//            shaderProgram.setUniform("material.shininess", entity.getMesh().getMaterial().getShininess());
+//            shaderProgram.setUniform("material.normalMap", 2);
+//
+//            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+//            shaderProgram.setUniform("model", model);
+//            entity.getMesh().render();
+//        }
 
+        shaderProgram.unbind();
+
+        // PBR shader
+        pbrShader.bind();
+        pbrShader.setUniform("view", view);
+        pbrShader.setUniform("projection", projection);
+
+        pbrShader.setUniform("camPos", camera.getPosition());
+
+        pbrShader.setUniform("albedo", new Vector3f(0.5f, 0.0f, 0.0f));
+        pbrShader.setUniform("ao", 1.0f);
+
+        // Update point light uniforms
+        for (int i = 0; i < pointLights.length; i++) {
+            pbrShader.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
+            pbrShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
+        }
+
+        // Render spheres
+        for (int i = 0; i < entities.length; i++) {
+            Entity entity = entities[i];
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
-            shaderProgram.setUniform("model", model);
+            pbrShader.setUniform("model", model);
+
+            int row = i / 7;
+            int column = i % 7;
+            pbrShader.setUniform("metallic", (float) row / (float) 7);
+            pbrShader.setUniform("roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
+
             entity.getMesh().render();
         }
 
-        shaderProgram.unbind();
+        pbrShader.unbind();
 
         // Render lights
         lightCubeShader.bind();
@@ -183,6 +233,7 @@ public class Renderer {
         // Second pass: render floating point framebuffer to default framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         glClearColor(0.5f, 1.0f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);

@@ -141,14 +141,14 @@ public class Main {
 
         meshes.add(planeMesh);
 
-        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
+//        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
         Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", Texture.Format.SRGBA);
         Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", Texture.Format.RGBA);
         float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
 
-        UVSphere uvSphere = new UVSphere(0.2f, 36, 18);
+        UVSphere uvSphere = new UVSphere(1f, 36, 18);
 
         float[] sphereNormals = {
             2.0f, 0.0f, 0.0f,
@@ -167,18 +167,26 @@ public class Main {
         );
         meshes.add(sphereMesh);
 
-        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
-        meshes.addAll(Arrays.asList(backpackMesh));
+//        meshes.addAll(Arrays.asList(backpackMesh));
 
-        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
+//        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
 
-        Entity[] entities = new Entity[] {
-            plane,
-            backpack
-        };
+        int numRows = 7;
+        int numColumns = 7;
+        float spacing = 2.5f;
+
+        Entity[] entities = new Entity[numRows * numColumns];
+
+        for (int row = 0; row < numRows; row++) {
+            for (int column = 0; column < numColumns; column++) {
+                Entity sphere = new Entity(sphereMesh, new Vector3f((column - (numColumns / 2)) * spacing, (row - (numRows / 2)) * spacing, 0), new Vector3f(), 1);
+                entities[row * numColumns + column] = sphere;
+            }
+        }
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -196,23 +204,33 @@ public class Main {
 
         PointLight pointLight1 = new PointLight(
             sphereMesh,
-            new Vector3f(0.5f, 1.0f, 0.3f),
-            new Vector3f(0.1f, 0.1f, 0.1f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-            new Vector3f(0.2f, 0.2f, 0.2f)
+            new Vector3f(-10.0f,  10.0f, 10.0f),
+            new Vector3f(300.0f, 300.0f, 300.0f)
         );
 
         PointLight pointLight2 = new PointLight(
             sphereMesh,
-            new Vector3f(5f, 1.0f, 5f),
-            new Vector3f(0.1f, 0.1f, 0.1f),
-            new Vector3f(200.0f, 200.0f, 200.0f),
-            new Vector3f(0.2f, 0.2f, 0.2f)
+            new Vector3f(10.0f,  10.0f, 10.0f),
+            new Vector3f(300.0f, 300.0f, 300.0f)
+        );
+
+        PointLight pointLight3 = new PointLight(
+            sphereMesh,
+            new Vector3f(-10.0f,  -10.0f, 10.0f),
+            new Vector3f(300.0f, 300.0f, 300.0f)
+        );
+
+        PointLight pointLight4 = new PointLight(
+            sphereMesh,
+            new Vector3f(10.0f,  -10.0f, 10.0f),
+            new Vector3f(300.0f, 300.0f, 300.0f)
         );
 
         PointLight[] pointLights = new PointLight[]{
             pointLight1,
-            pointLight2
+            pointLight2,
+            pointLight3,
+            pointLight4
         };
 
         SpotLight spotLight = new SpotLight(
@@ -265,7 +283,7 @@ public class Main {
         spotLights[0].setPosition(camera.getPosition());
         spotLights[0].setDirection(camera.getFront());
 
-        scene.getEntities()[1].setRotation(scene.getEntities()[1].getRotation().add(new Vector3f(0, 0, 0.1f)));
+//        scene.getEntities()[1].setRotation(scene.getEntities()[1].getRotation().add(new Vector3f(0, 0, 0.1f)));
 
         processInput();
     }

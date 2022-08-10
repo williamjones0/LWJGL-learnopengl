@@ -15,7 +15,7 @@ public class Mesh {
     private final int positionsVBO;
     private final int normalsVBO;
     private final int texCoordsVBO;
-    private final int tangentsVBO;
+//    private final int tangentsVBO;
     private final int indicesVBO;
     private final int vertexCount;
     private final Material material;
@@ -56,18 +56,18 @@ public class Mesh {
         glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(2);
 
-        // Normal mapping
-        if (material.getNormalMap() != null) {
-            FloatBuffer tangentsBuffer = MemoryUtil.memAllocFloat(tangents.length);
-            tangentsBuffer.put(tangents).flip();
-            tangentsVBO = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, tangentsVBO);
-            glBufferData(GL_ARRAY_BUFFER, tangentsBuffer, GL_STATIC_DRAW);
-            glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0);
-            glEnableVertexAttribArray(3);
-        } else {
-            tangentsVBO = 0;
-        }
+//        // Normal mapping
+//        if (material.getNormalMap() != null) {
+//            FloatBuffer tangentsBuffer = MemoryUtil.memAllocFloat(tangents.length);
+//            tangentsBuffer.put(tangents).flip();
+//            tangentsVBO = glGenBuffers();
+//            glBindBuffer(GL_ARRAY_BUFFER, tangentsVBO);
+//            glBufferData(GL_ARRAY_BUFFER, tangentsBuffer, GL_STATIC_DRAW);
+//            glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0);
+//            glEnableVertexAttribArray(3);
+//        } else {
+//            tangentsVBO = 0;
+//        }
 
         // Indices VBO
         IntBuffer indicesBuffer = MemoryUtil.memAllocInt(indices.length);

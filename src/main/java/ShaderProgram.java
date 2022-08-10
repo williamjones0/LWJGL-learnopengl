@@ -55,9 +55,7 @@ class ShaderProgram {
 
     public void createPointLightUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".position");
-        createUniform(uniformName + ".ambient");
-        createUniform(uniformName + ".diffuse");
-        createUniform(uniformName + ".specular");
+        createUniform(uniformName + ".color");
     }
 
     public void createSpotLightListUniform(String uniformName, int size) throws Exception {
