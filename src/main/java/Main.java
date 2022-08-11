@@ -148,7 +148,7 @@ public class Main {
         float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
 
-        PBRMaterial pbrMaterial = new PBRMaterial(
+        PBRMaterial rustedIron = new PBRMaterial(
             new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", Texture.Format.SRGBA),
             new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", Texture.Format.RGBA),
             new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", Texture.Format.RGBA),
@@ -171,23 +171,23 @@ public class Main {
             sphereNormals,
             uvSphere.getTexCoords(),
             uvSphere.getIndices(),
-            pbrMaterial
+            rustedIron
         );
         meshes.add(sphereMesh);
 
-//        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
 //        meshes.addAll(Arrays.asList(backpackMesh));
 
-//        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
+        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
 
         int numRows = 7;
         int numColumns = 7;
         float spacing = 2.5f;
 
-        Entity[] entities = new Entity[numRows * numColumns];
+        Entity[] entities = new Entity[numRows * numColumns + 1];
 
         for (int row = 0; row < numRows; row++) {
             for (int column = 0; column < numColumns; column++) {
@@ -195,6 +195,8 @@ public class Main {
                 entities[row * numColumns + column] = sphere;
             }
         }
+
+        entities[numRows * numColumns] = backpack;
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),

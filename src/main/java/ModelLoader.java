@@ -28,9 +28,11 @@ public class ModelLoader {
         System.out.println("Number of materials: " + numMaterials);
         PointerBuffer aiMaterials = aiScene.mMaterials();
         List<Material> materials = new ArrayList<>();
+        List<PBRMaterial> pbrMaterials = new ArrayList<>();
         for (int i = 0; i < numMaterials; i++) {
             AIMaterial aiMaterial = AIMaterial.create(aiMaterials.get(i));
-            processMaterial(aiMaterial, materials, texturesPath);
+//            processMaterial(aiMaterial, materials, texturesPath);
+            processPBRMaterial(aiMaterial, pbrMaterials, texturesPath);
         }
 
         // If none of the materials have any textures, use the default material
@@ -46,7 +48,8 @@ public class ModelLoader {
         Mesh[] meshes = new Mesh[numMeshes];
         for (int i = 0; i < numMeshes; i++) {
             AIMesh aiMesh = AIMesh.create(aiMeshes.get(i));
-            meshes[i] = processMesh(aiMesh, materials);
+//            meshes[i] = processMesh(aiMesh, materials);
+            meshes[i] = processMesh(aiMesh, pbrMaterials);
         }
 
         return meshes;
@@ -94,7 +97,62 @@ public class ModelLoader {
         }
     }
 
-    private static Mesh processMesh(AIMesh aiMesh, List<Material> materials) throws Exception {
+    private static void processPBRMaterial(AIMaterial aiMaterial, List<PBRMaterial> materials, String texturesDir) throws Exception {
+        // Albedo map
+        AIString path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, path, (IntBuffer) null, null, null, null, null, null);
+        String textPath = path.dataString();
+        Texture albedoTexture = null;
+        System.out.println("Albedo map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            albedoTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.SRGBA);
+        }
+
+        // Normal map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_NORMALS, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture normalTexture = null;
+        System.out.println("Normal map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            normalTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        // Metallic map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SPECULAR, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture metallicTexture = null;
+        System.out.println("Metallic map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            metallicTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        // Roughness map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SHININESS, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture roughnessTexture = null;
+        System.out.println("Roughness map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            roughnessTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        // AO map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_AMBIENT, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture aoTexture = null;
+        System.out.println("AO map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            aoTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+        }
+
+        PBRMaterial material = new PBRMaterial(albedoTexture, metallicTexture, roughnessTexture, normalTexture, aoTexture);
+        materials.add(material);
+    }
+
+    private static Mesh processMesh(AIMesh aiMesh, List<PBRMaterial> pbrMaterials) throws Exception {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> tangents = new ArrayList<>();
@@ -161,7 +219,13 @@ public class ModelLoader {
             floatListToArray(tangents),
             floatListToArray(texCoords),
             intListToArray(indices),
-            new PBRMaterial(null, null, null, null, null)
+            new PBRMaterial(
+                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", Texture.Format.SRGBA),
+                new Texture("src/main/resources/models/helmet/Default_normal.jpg", Texture.Format.RGBA),
+                new Texture("src/main/resources/textures/PBR/default_metallic.png", Texture.Format.RGBA),
+                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", Texture.Format.RGBA),
+                new Texture("src/main/resources/models/helmet/Default_AO.jpg", Texture.Format.RGBA)
+            )
         );
 
     }

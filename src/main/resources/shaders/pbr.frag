@@ -82,8 +82,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 void main() {
     vec3 albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
     vec3 N = getNormalFromMap();
-    float metallic = texture(material.metallic, TexCoords).r;
-    float roughness = texture(material.roughness, TexCoords).r;
+    float metallic = texture(material.roughness, TexCoords).b;
+    float roughness = texture(material.roughness, TexCoords).g;
     float ao = texture(material.ao, TexCoords).r;
 
     vec3 V = normalize(camPos - WorldPos);

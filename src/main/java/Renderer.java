@@ -177,7 +177,7 @@ public class Renderer {
 
         pbrShader.setUniform("material.albedo", 0);
         pbrShader.setUniform("material.normal", 1);
-        pbrShader.setUniform("material.metallic", 2);
+//        pbrShader.setUniform("material.metallic", 2);
         pbrShader.setUniform("material.roughness", 3);
         pbrShader.setUniform("material.ao", 4);
 

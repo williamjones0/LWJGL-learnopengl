@@ -43,7 +43,7 @@ class ShaderProgram {
     public void createPBRMaterialUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".albedo");
         createUniform(uniformName + ".normal");
-        createUniform(uniformName + ".metallic");
+//        createUniform(uniformName + ".metallic");
         createUniform(uniformName + ".roughness");
         createUniform(uniformName + ".ao");
     }
