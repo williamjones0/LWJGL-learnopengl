@@ -40,6 +40,14 @@ class ShaderProgram {
         createUniform(uniformName + ".normalMap");
     }
 
+    public void createPBRMaterialUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".albedo");
+        createUniform(uniformName + ".normal");
+        createUniform(uniformName + ".metallic");
+        createUniform(uniformName + ".roughness");
+        createUniform(uniformName + ".ao");
+    }
+
     public void createDirLightUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".direction");
         createUniform(uniformName + ".ambient");

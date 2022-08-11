@@ -66,10 +66,8 @@ public class Renderer {
         pbrShader.createUniform("projection");
 
         pbrShader.createUniform("camPos");
-        pbrShader.createUniform("albedo");
-        pbrShader.createUniform("metallic");
-        pbrShader.createUniform("roughness");
-        pbrShader.createUniform("ao");
+
+        pbrShader.createPBRMaterialUniform("material");
 
         pbrShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
 
@@ -177,8 +175,11 @@ public class Renderer {
 
         pbrShader.setUniform("camPos", camera.getPosition());
 
-        pbrShader.setUniform("albedo", new Vector3f(0.5f, 0.0f, 0.0f));
-        pbrShader.setUniform("ao", 1.0f);
+        pbrShader.setUniform("material.albedo", 0);
+        pbrShader.setUniform("material.normal", 1);
+        pbrShader.setUniform("material.metallic", 2);
+        pbrShader.setUniform("material.roughness", 3);
+        pbrShader.setUniform("material.ao", 4);
 
         // Update point light uniforms
         for (int i = 0; i < pointLights.length; i++) {
@@ -187,15 +188,9 @@ public class Renderer {
         }
 
         // Render spheres
-        for (int i = 0; i < entities.length; i++) {
-            Entity entity = entities[i];
+        for (Entity entity : entities) {
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
             pbrShader.setUniform("model", model);
-
-            int row = i / 7;
-            int column = i % 7;
-            pbrShader.setUniform("metallic", (float) row / (float) 7);
-            pbrShader.setUniform("roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
 
             entity.getMesh().render();
         }

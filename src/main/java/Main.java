@@ -126,27 +126,35 @@ public class Main {
             3, 1, 2
         };
 
-        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg", Texture.Format.SRGBA);
-        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg", Texture.Format.RGBA);
-        Material planeMaterial = new Material(planeDiffuse, null, 32, planeNormal);
-
-        Mesh planeMesh = new Mesh(
-            planePositions,
-            planeNormals,
-            planeTangents,
-            planeTexCoords,
-            planeIndices,
-            planeMaterial
-        );
-
-        meshes.add(planeMesh);
-
+//        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg", Texture.Format.SRGBA);
+//        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg", Texture.Format.RGBA);
+//        Material planeMaterial = new Material(planeDiffuse, null, 32, planeNormal);
+//
+//        Mesh planeMesh = new Mesh(
+//            planePositions,
+//            planeNormals,
+//            planeTangents,
+//            planeTexCoords,
+//            planeIndices,
+//            planeMaterial
+//        );
+//
+//        meshes.add(planeMesh);
+//
 //        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
         Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", Texture.Format.SRGBA);
         Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", Texture.Format.RGBA);
         float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
+
+        PBRMaterial pbrMaterial = new PBRMaterial(
+            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", Texture.Format.SRGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", Texture.Format.RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", Texture.Format.RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", Texture.Format.RGBA),
+            null
+        );
 
         UVSphere uvSphere = new UVSphere(1f, 36, 18);
 
@@ -163,7 +171,7 @@ public class Main {
             sphereNormals,
             uvSphere.getTexCoords(),
             uvSphere.getIndices(),
-            material
+            pbrMaterial
         );
         meshes.add(sphereMesh);
 
@@ -183,7 +191,7 @@ public class Main {
 
         for (int row = 0; row < numRows; row++) {
             for (int column = 0; column < numColumns; column++) {
-                Entity sphere = new Entity(sphereMesh, new Vector3f((column - (numColumns / 2)) * spacing, (row - (numRows / 2)) * spacing, 0), new Vector3f(), 1);
+                Entity sphere = new Entity(sphereMesh, new Vector3f((column - (numColumns / 2)) * spacing, (row - (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1);
                 entities[row * numColumns + column] = sphere;
             }
         }
@@ -205,25 +213,25 @@ public class Main {
         PointLight pointLight1 = new PointLight(
             sphereMesh,
             new Vector3f(-10.0f,  10.0f, 10.0f),
-            new Vector3f(300.0f, 300.0f, 300.0f)
+            new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight2 = new PointLight(
             sphereMesh,
             new Vector3f(10.0f,  10.0f, 10.0f),
-            new Vector3f(300.0f, 300.0f, 300.0f)
+            new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight3 = new PointLight(
             sphereMesh,
             new Vector3f(-10.0f,  -10.0f, 10.0f),
-            new Vector3f(300.0f, 300.0f, 300.0f)
+            new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight4 = new PointLight(
             sphereMesh,
             new Vector3f(10.0f,  -10.0f, 10.0f),
-            new Vector3f(300.0f, 300.0f, 300.0f)
+            new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight[] pointLights = new PointLight[]{

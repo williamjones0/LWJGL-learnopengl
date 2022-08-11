@@ -94,7 +94,7 @@ public class ModelLoader {
         }
     }
 
-    private static Mesh processMesh(AIMesh aiMesh, List<Material> materials) {
+    private static Mesh processMesh(AIMesh aiMesh, List<Material> materials) throws Exception {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> tangents = new ArrayList<>();
@@ -161,7 +161,7 @@ public class ModelLoader {
             floatListToArray(tangents),
             floatListToArray(texCoords),
             intListToArray(indices),
-            materials.get(0)
+            new PBRMaterial(null, null, null, null, null)
         );
 
     }

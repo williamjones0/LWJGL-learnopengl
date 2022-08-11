@@ -6,6 +6,14 @@ struct PointLight {
     vec3 color;
 };
 
+struct PBRMaterial {
+    sampler2D albedo;
+    sampler2D normal;
+    sampler2D metallic;
+    sampler2D roughness;
+    sampler2D ao;
+};
+
 #define NUM_POINT_LIGHTS 4
 #define PI 3.14159265359
 
@@ -15,12 +23,25 @@ in vec3 Normal;
 
 uniform vec3 camPos;
 
-uniform vec3 albedo;
-uniform float metallic;
-uniform float roughness;
-uniform float ao;
+uniform PBRMaterial material;
 
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
+
+vec3 getNormalFromMap() {
+    vec3 tangentNormal = texture(material.normal, TexCoords).rgb * 2.0 - 1.0;
+
+    vec3 Q1 = dFdx(WorldPos);
+    vec3 Q2 = dFdy(WorldPos);
+    vec2 st1 = dFdx(TexCoords);
+    vec2 st2 = dFdy(TexCoords);
+
+    vec3 N = normalize(Normal);
+    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 B = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
+}
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness;
@@ -59,7 +80,12 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 }
 
 void main() {
-    vec3 N = normalize(Normal);
+    vec3 albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
+    vec3 N = getNormalFromMap();
+    float metallic = texture(material.metallic, TexCoords).r;
+    float roughness = texture(material.roughness, TexCoords).r;
+    float ao = texture(material.ao, TexCoords).r;
+
     vec3 V = normalize(camPos - WorldPos);
 
     vec3 F0 = vec3(0.04);

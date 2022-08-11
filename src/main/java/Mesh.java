@@ -18,10 +18,12 @@ public class Mesh {
 //    private final int tangentsVBO;
     private final int indicesVBO;
     private final int vertexCount;
-    private final Material material;
+//    private final Material material;
+    private final PBRMaterial pbrMaterial;
 
-    public Mesh(float[] positions, float[] normals, float[] tangents, float[] texCoords, int[] indices, Material material) {
-        this.material = material;
+    public Mesh(float[] positions, float[] normals, float[] tangents, float[] texCoords, int[] indices, PBRMaterial material) {
+//        this.material = material;
+        this.pbrMaterial = material;
 
         vertexCount = indices.length;
 
@@ -90,11 +92,15 @@ public class Mesh {
     public void render() {
         // Activate and bind textures
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, material.getDiffuse().getID());
+        glBindTexture(GL_TEXTURE_2D, pbrMaterial.getAlbedo().getID());
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, material.getSpecular().getID());
+        glBindTexture(GL_TEXTURE_2D, pbrMaterial.getNormal().getID());
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, material.getNormalMap().getID());
+        glBindTexture(GL_TEXTURE_2D, pbrMaterial.getMetallic().getID());
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, pbrMaterial.getRoughness().getID());
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, pbrMaterial.getAo().getID());
 
         glBindVertexArray(VAO);
 
@@ -118,7 +124,11 @@ public class Mesh {
         glDeleteVertexArrays(0);
     }
 
-    public Material getMaterial() {
-        return material;
+//    public Material getMaterial() {
+//        return material;
+//    }
+
+    public PBRMaterial getPbrMaterial() {
+        return pbrMaterial;
     }
 }
