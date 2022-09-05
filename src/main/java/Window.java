@@ -1,7 +1,11 @@
+import org.lwjgl.BufferUtils;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
+
+import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
@@ -11,25 +15,21 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class Window {
 
     private int width, height;
-    private boolean fullscreen;
     private String title;
+    private int targetMonitor;
+    private boolean fullscreen;
     private long windowHandle;
     private int frames;
     private long time;
-    private float r;
-    private float g;
-    private float b;
 
     private Input input;
 
-    public Window(int width, int height, String title, boolean fullscreen, float r, float g, float b) {
+    public Window(int width, int height, String title, int targetMonitor, boolean fullscreen) {
         this.width = width;
         this.height = height;
-        this.fullscreen = fullscreen;
         this.title = title;
-        this.r = r;
-        this.g = g;
-        this.b = b;
+        this.targetMonitor = targetMonitor;
+        this.fullscreen = fullscreen;
         this.input = new Input();
     }
 
@@ -52,14 +52,22 @@ public class Window {
         if ( windowHandle == NULL )
             throw new RuntimeException("Failed to create the GLFW window");
 
-        // Get the resolution of the primary monitor
-        GLFWVidMode videoMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        // Get the target monitor
+        PointerBuffer monitors = glfwGetMonitors();
+        long monitor = monitors.get(targetMonitor);
+
+        // Get the resolution and position of the target monitor
+        GLFWVidMode videoMode = glfwGetVideoMode(monitor);
+
+        IntBuffer monitorX = BufferUtils.createIntBuffer(1);
+        IntBuffer monitorY = BufferUtils.createIntBuffer(1);
+        glfwGetMonitorPos(monitor, monitorX, monitorY);
 
         // Center the window
         glfwSetWindowPos(
                 windowHandle,
-                (videoMode.width() - width) / 2,
-                (videoMode.height() - height) / 2
+                monitorX.get(0) + (videoMode.width() - width) / 2,
+                monitorY.get(0) + (videoMode.height() - height) / 2
         );
 
         glfwMakeContextCurrent(windowHandle);

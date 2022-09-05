@@ -1,13 +1,11 @@
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
-import static org.lwjgl.opengl.GL21.GL_SRGB;
-import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
-import static org.lwjgl.opengl.GL30.GL_RGBA16F;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import static org.lwjgl.stb.STBImage.*;
 
@@ -17,59 +15,35 @@ public class Texture {
     private int width;
     private int height;
 
-    public enum Format {
-        RGB, RGBA, SRGB, SRGBA, RGBA16F
+    public Texture(String fileName, int internalFormat, int pixelFormat, int type, boolean flip) throws Exception {
+        ID = loadTexture(fileName, internalFormat, pixelFormat, type, flip);
     }
 
-    public Texture(String fileName, Format format) throws Exception {
-        int textureFormat;
-        if (format == Format.RGB) {
-            textureFormat = GL_RGB;
-        } else if (format == Format.RGBA) {
-            textureFormat = GL_RGBA;
-        } else if (format == Format.SRGB) {
-            textureFormat = GL_SRGB;
-        } else if (format == Format.SRGBA) {
-            textureFormat = GL_SRGB_ALPHA;
-        } else {
-            throw new Exception("Invalid texture format");
-        }
-        ID = loadTexture(fileName, textureFormat);
+    public Texture(String fileName, int internalFormat, int pixelFormat) throws Exception {
+        ID = loadTexture(fileName, internalFormat, pixelFormat, GL_UNSIGNED_BYTE, false);
     }
 
-    public Texture(int width, int height, Format internalFormat, Format pixelFormat) throws Exception {
-        int internal_format;
-        int pixel_format;
+    public Texture(String fileName, int internalFormat) throws Exception {
+        ID = loadTexture(fileName, internalFormat, GL_RGBA, GL_UNSIGNED_BYTE, false);
+    }
 
-        if (internalFormat == Format.RGBA) {
-            internal_format = GL_RGBA;
-        } else if (internalFormat == Format.RGBA16F) {
-            internal_format = GL_RGBA16F;
-        } else {
-            throw new Exception("Invalid internal format");
-        }
-        
-        if (pixelFormat == Format.RGB) {
-            pixel_format = GL_RGB;
-        } else if (pixelFormat == Format.RGBA) {
-            pixel_format = GL_RGBA;
-        } else if (pixelFormat == Format.SRGB) {
-            pixel_format = GL_SRGB;
-        } else if (pixelFormat == Format.SRGBA) {
-            pixel_format = GL_SRGB_ALPHA;
-        } else {
-            throw new Exception("Invalid texture format");
-        }
-        
-        ID = createTexture(width, height, internal_format, pixel_format);
+    public Texture(int width, int height, int internalFormat, int pixelFormat, int type) throws Exception {
+        ID = createTexture(width, height, internalFormat, pixelFormat, type);
+    }
+
+    public Texture(int width, int height, int internalFormat, int pixelFormat) throws Exception {
+        ID = createTexture(width, height, internalFormat, pixelFormat, GL_UNSIGNED_BYTE);
     }
 
     public void bind() {
         glBindTexture(GL_TEXTURE_2D, ID);
     }
 
-    private int loadTexture(String fileName, int internalFormat) throws Exception {
-        ByteBuffer buffer;
+    private int loadTexture(String fileName, int internalFormat, int pixelFormat, int type, boolean flip) throws Exception {
+        ByteBuffer buffer = null;
+        FloatBuffer floatBuffer = null;
+
+        stbi_set_flip_vertically_on_load(flip);
 
         // Load texture file
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -77,9 +51,20 @@ public class Texture {
             IntBuffer h = stack.mallocInt(1);
             IntBuffer channels = stack.mallocInt(4);
 
-            buffer = stbi_load(fileName, w, h, channels, 4);
-            if (buffer == null) {
-                throw new Exception("Image file [" + fileName + "] not loaded: " + stbi_failure_reason());
+            if (type == GL_FLOAT) {
+                floatBuffer = stbi_loadf(fileName, w, h, channels, 4);
+            } else {
+                buffer = stbi_load(fileName, w, h, channels, 4);
+            }
+
+            if (type == GL_FLOAT) {
+                if (floatBuffer == null) {
+                    throw new Exception("Image file [" + fileName + "] not loaded: " + stbi_failure_reason());
+                }
+            } else {
+                if (buffer == null) {
+                    throw new Exception("Image file [" + fileName + "] not loaded: " + stbi_failure_reason());
+                }
             }
 
             width = w.get();
@@ -93,18 +78,29 @@ public class Texture {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         // Upload texture data and generate mipmaps
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        if (type == GL_FLOAT) {
+            glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, type, floatBuffer);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, type, buffer);
+        }
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        stbi_image_free(buffer);
+        if (type == GL_FLOAT) {
+            stbi_image_free(floatBuffer);
+        } else {
+            stbi_image_free(buffer);
+        }
 
         return textureID;
     }
 
-    private static int createTexture(int width, int height, int internalFormat, int pixelFormat) {
+    private int createTexture(int width, int height, int internalFormat, int pixelFormat, int type) {
+        this.width = width;
+        this.height = height;
+
         int textureID = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, type, (ByteBuffer) null);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

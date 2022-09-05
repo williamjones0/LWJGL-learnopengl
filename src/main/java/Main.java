@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class Main {
 
@@ -37,7 +39,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1280, 720, "LearnOpenGL", false, 0.1f, 0.1f, 0.1f);
+        window = new Window(1920, 1080, "LearnOpenGL", 1, false);
         window.create();
 
         renderer = new Renderer();
@@ -143,16 +145,26 @@ public class Main {
 //
 //        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
 
-        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", Texture.Format.SRGBA);
-        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", Texture.Format.RGBA);
+        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", GL_SRGB_ALPHA);
+        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", GL_RGBA);
         float materialShininess = 256.0f;
         Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
 
         PBRMaterial rustedIron = new PBRMaterial(
-            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", Texture.Format.SRGBA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", Texture.Format.RGBA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", Texture.Format.RGBA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", Texture.Format.RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
+            null,
+            null
+        );
+
+        PBRMaterial red = new PBRMaterial(
+            null,
+            null,
+            null,
+            null,
+            null,
             null
         );
 
@@ -171,7 +183,7 @@ public class Main {
             sphereNormals,
             uvSphere.getTexCoords(),
             uvSphere.getIndices(),
-            rustedIron
+            red
         );
         meshes.add(sphereMesh);
 
@@ -272,7 +284,19 @@ public class Main {
 
         Skybox skybox = new Skybox(faces, skyboxVertices);
 
-        scene = new Scene(entities, dirLight, pointLights, spotLights, skybox);
+        Texture backgroundTexture = new Texture(
+            "src/main/resources/skybox/HDR/Newport_Loft.hdr",
+            org.lwjgl.opengl.GL30.GL_RGB16F,
+            org.lwjgl.opengl.GL30.GL_RGBA,
+            org.lwjgl.opengl.GL30.GL_FLOAT,
+            true
+        );
+
+        EquirectangularMap equirectangularMap = new EquirectangularMap(
+            backgroundTexture
+        );
+
+        scene = new Scene(entities, dirLight, pointLights, spotLights, equirectangularMap);
     }
 
     private void loop() {
@@ -293,7 +317,7 @@ public class Main {
         spotLights[0].setPosition(camera.getPosition());
         spotLights[0].setDirection(camera.getFront());
 
-//        scene.getEntities()[1].setRotation(scene.getEntities()[1].getRotation().add(new Vector3f(0, 0, 0.1f)));
+        scene.getEntities()[49].setRotation(scene.getEntities()[49].getRotation().add(new Vector3f(0, 0, 0.1f)));
 
         processInput();
     }
@@ -375,7 +399,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, scene);
+        renderer.render(camera, scene, window);
         window.swapBuffers();
     }
 

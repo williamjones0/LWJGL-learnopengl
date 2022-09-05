@@ -46,6 +46,7 @@ class ShaderProgram {
 //        createUniform(uniformName + ".metallic");
         createUniform(uniformName + ".roughness");
         createUniform(uniformName + ".ao");
+        createUniform(uniformName + ".emissive");
     }
 
     public void createDirLightUniform(String uniformName) throws Exception {

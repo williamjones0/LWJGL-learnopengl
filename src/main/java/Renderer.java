@@ -15,6 +15,7 @@ public class Renderer {
 
     private ShaderProgram shaderProgram;
     private ShaderProgram pbrShader;
+    private ShaderProgram pbrNoMaterialShader;
     private ShaderProgram lightCubeShader;
     private ShaderProgram skyboxShader;
     private ShaderProgram hdrShader;
@@ -32,7 +33,11 @@ public class Renderer {
     private Matrix4f projection;
 
     public void init(Window window) throws Exception {
-        framebuffer = new Framebuffer(new Texture(window.getWidth(), window.getHeight(), Texture.Format.RGBA16F, Texture.Format.RGBA));
+        framebuffer = new Framebuffer(
+            new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
+            GL_DEPTH24_STENCIL8,
+            GL_DEPTH_STENCIL_ATTACHMENT
+        );
 
         shaderProgram = new ShaderProgram();
         shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
@@ -71,6 +76,32 @@ public class Renderer {
 
         pbrShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
 
+        pbrShader.createUniform("irradianceMap");
+        pbrShader.createUniform("prefilterMap");
+        pbrShader.createUniform("brdfLUT");
+
+        pbrNoMaterialShader = new ShaderProgram();
+        pbrNoMaterialShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
+        pbrNoMaterialShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrnomaterial.frag").toPath(), StandardCharsets.US_ASCII));
+        pbrNoMaterialShader.link();
+
+        pbrNoMaterialShader.createUniform("model");
+        pbrNoMaterialShader.createUniform("view");
+        pbrNoMaterialShader.createUniform("projection");
+
+        pbrNoMaterialShader.createUniform("camPos");
+
+        pbrNoMaterialShader.createUniform("values.albedo");
+        pbrNoMaterialShader.createUniform("values.metallic");
+        pbrNoMaterialShader.createUniform("values.roughness");
+        pbrNoMaterialShader.createUniform("values.ao");
+
+        pbrNoMaterialShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+
+        pbrNoMaterialShader.createUniform("irradianceMap");
+        pbrNoMaterialShader.createUniform("prefilterMap");
+        pbrNoMaterialShader.createUniform("brdfLUT");
+
         // Light cube shader
         lightCubeShader = new ShaderProgram();
         lightCubeShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
@@ -100,16 +131,18 @@ public class Renderer {
         hdrShader.createUniform("exposure");
     }
 
-    public void render(Camera camera, Scene scene) {
+    public void render(Camera camera, Scene scene, Window window) {
         Entity[] entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         PointLight[] pointLights = scene.getPointLights();
         SpotLight[] spotLights = scene.getSpotLights();
         Skybox skybox = scene.getSkybox();
+        EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
 
         // First pass: render scene to floating point framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         glEnable(GL_DEPTH_TEST);
+        glViewport(0, 0, window.getWidth(), window.getHeight());
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -180,6 +213,7 @@ public class Renderer {
 //        pbrShader.setUniform("material.metallic", 2);
         pbrShader.setUniform("material.roughness", 3);
         pbrShader.setUniform("material.ao", 4);
+        pbrShader.setUniform("material.emissive", 5);
 
         // Update point light uniforms
         for (int i = 0; i < pointLights.length; i++) {
@@ -187,15 +221,88 @@ public class Renderer {
             pbrShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
         }
 
-        // Render spheres
-        for (Entity entity : entities) {
-            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
-            pbrShader.setUniform("model", model);
+        // Render entities
+        pbrShader.setUniform("irradianceMap", 6);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
 
-            entity.getMesh().render();
-        }
+        pbrShader.setUniform("prefilterMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
+
+        pbrShader.setUniform("brdfLUT", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUTTexture());
+
+//        for (Entity entity : entities) {
+//            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+//            pbrShader.setUniform("model", model);
+//
+//            entity.getMesh().render();
+//        }
+
+        Entity entity1 = entities[49];
+
+        Matrix4f model1 = Maths.calculateModelMatrix(entity1.getPosition(), entity1.getRotation(), entity1.getScale());
+        pbrShader.setUniform("model", model1);
+
+        entity1.getMesh().render();
 
         pbrShader.unbind();
+
+        // PBRNoMaterial shader
+        pbrNoMaterialShader.bind();
+        pbrNoMaterialShader.setUniform("view", view);
+        pbrNoMaterialShader.setUniform("projection", projection);
+
+        pbrNoMaterialShader.setUniform("camPos", camera.getPosition());
+
+        pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(0.5f, 0.0f, 0.0f));
+        pbrNoMaterialShader.setUniform("values.ao", 1.0f);
+
+        // Update point light uniforms
+        for (int i = 0; i < pointLights.length; i++) {
+            pbrNoMaterialShader.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
+            pbrNoMaterialShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
+        }
+
+        // Render entities
+        pbrNoMaterialShader.setUniform("irradianceMap", 6);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
+
+        pbrNoMaterialShader.setUniform("prefilterMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
+
+        pbrNoMaterialShader.setUniform("brdfLUT", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUTTexture());
+
+//        for (Entity entity : entities) {
+//            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+//            pbrShader.setUniform("model", model);
+//
+//            entity.getMesh().render();
+//        }
+
+        for (int i = 0; i < entities.length; i++) {
+            if (i != 49) {
+                Entity entity = entities[i];
+
+                Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+                pbrNoMaterialShader.setUniform("model", model);
+
+                int row = i / 7;
+                int column = i % 7;
+                pbrNoMaterialShader.setUniform("values.metallic", (float) row / (float) 7);
+                pbrNoMaterialShader.setUniform("values.roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
+
+                entity.getMesh().render();
+            }
+        }
+
+        pbrNoMaterialShader.unbind();
 
         // Render lights
         lightCubeShader.bind();
@@ -224,6 +331,7 @@ public class Renderer {
 //
 //        skyboxShader.unbind();
 
+        equirectangularMap.render(camera);
 
         // Second pass: render floating point framebuffer to default framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

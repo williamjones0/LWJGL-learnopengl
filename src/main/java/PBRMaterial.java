@@ -1,3 +1,6 @@
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
+
 public class PBRMaterial {
 
     private Texture albedo;
@@ -5,13 +8,15 @@ public class PBRMaterial {
     private Texture metallic;
     private Texture roughness;
     private Texture ao;
+    private Texture emissive;
 
-    public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture ao) throws Exception {
-        this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", Texture.Format.SRGBA);
-        this.normal = normal != null ? normal : new Texture("src/main/resources/textures/PBR/default_normal.png", Texture.Format.RGBA);
-        this.metallic = metallic != null ? metallic : new Texture("src/main/resources/textures/PBR/default_metallic.png", Texture.Format.RGBA);
-        this.roughness = roughness != null ? roughness : new Texture("src/main/resources/textures/PBR/default_roughness.png", Texture.Format.RGBA);
-        this.ao = ao != null ? ao : new Texture("src/main/resources/textures/PBR/default_ao.png", Texture.Format.RGBA);
+    public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture ao, Texture emissive) throws Exception {
+        this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
+        this.normal = normal != null ? normal : new Texture("src/main/resources/textures/PBR/default_normal.png", GL_RGBA);
+        this.metallic = metallic != null ? metallic : new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA);
+        this.roughness = roughness != null ? roughness : new Texture("src/main/resources/textures/PBR/default_roughness.png", GL_RGBA);
+        this.ao = ao != null ? ao : new Texture("src/main/resources/textures/PBR/default_ao.png", GL_RGBA);
+        this.emissive = emissive != null ? emissive : new Texture("src/main/resources/textures/PBR/default_emissive.png", GL_RGBA);
     }
 
     public Texture getAlbedo() {
@@ -52,5 +57,13 @@ public class PBRMaterial {
 
     public void setAo(Texture ao) {
         this.ao = ao;
+    }
+
+    public Texture getEmissive() {
+        return emissive;
+    }
+
+    public void setEmissive(Texture emissive) {
+        this.emissive = emissive;
     }
 }

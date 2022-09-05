@@ -1,3 +1,6 @@
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
+
 public class Material {
 
     private Texture diffuse;
@@ -6,10 +9,10 @@ public class Material {
     private Texture normalMap;
 
     public Material(Texture diffuse, Texture specular, float shininess, Texture normalMap) throws Exception {
-        this.diffuse = diffuse != null ? diffuse : new Texture("src/main/resources/textures/default_diffuse.png", Texture.Format.SRGBA);
-        this.specular = specular != null ? specular : new Texture("src/main/resources/textures/default_specular.png", Texture.Format.RGBA);
+        this.diffuse = diffuse != null ? diffuse : new Texture("src/main/resources/textures/default_diffuse.png", GL_SRGB_ALPHA);
+        this.specular = specular != null ? specular : new Texture("src/main/resources/textures/default_specular.png", GL_RGBA);
         this.shininess = shininess;
-        this.normalMap = normalMap != null ? normalMap : new Texture("src/main/resources/textures/default_normal.png", Texture.Format.RGBA);
+        this.normalMap = normalMap != null ? normalMap : new Texture("src/main/resources/textures/default_normal.png",GL_RGBA);
     }
 
     public Texture getDiffuse() {

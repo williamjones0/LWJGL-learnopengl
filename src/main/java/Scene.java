@@ -5,13 +5,15 @@ public class Scene {
     private PointLight[] pointLights;
     private SpotLight[] spotLights;
     private Skybox skybox;
+    private EquirectangularMap equirectangularMap;
 
-    public Scene(Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, Skybox skybox) {
+    public Scene(Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, EquirectangularMap equirectangularMap) {
         this.entities = entities;
         this.dirLight = dirLight;
         this.pointLights = pointLights;
         this.spotLights = spotLights;
-        this.skybox = skybox;
+//        this.skybox = skybox;
+        this.equirectangularMap = equirectangularMap;
     }
 
     public Entity[] getEntities() {
@@ -32,6 +34,10 @@ public class Scene {
 
     public Skybox getSkybox() {
         return skybox;
+    }
+
+    public EquirectangularMap getEquirectangularMap() {
+        return equirectangularMap;
     }
 
 }

@@ -8,6 +8,8 @@ import java.util.List;
 import static Utils.Utils.floatListToArray;
 import static Utils.Utils.intListToArray;
 import static org.lwjgl.assimp.Assimp.*;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class ModelLoader {
 
@@ -68,7 +70,7 @@ public class ModelLoader {
         Texture diffuseTexture = null;
         System.out.println(texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            diffuseTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.SRGBA);
+            diffuseTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
         }
 
         // Specular map
@@ -78,7 +80,7 @@ public class ModelLoader {
         Texture specularTexture = null;
         System.out.println(texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            specularTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            specularTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
         // Normal map
@@ -88,7 +90,7 @@ public class ModelLoader {
         Texture normalTexture = null;
         System.out.println(texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            normalTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            normalTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
         if (hasDiffuseMap) {
@@ -105,7 +107,7 @@ public class ModelLoader {
         Texture albedoTexture = null;
         System.out.println("Albedo map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            albedoTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.SRGBA);
+            albedoTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
         }
 
         // Normal map
@@ -115,7 +117,7 @@ public class ModelLoader {
         Texture normalTexture = null;
         System.out.println("Normal map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            normalTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            normalTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
         // Metallic map
@@ -125,7 +127,7 @@ public class ModelLoader {
         Texture metallicTexture = null;
         System.out.println("Metallic map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            metallicTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            metallicTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
         // Roughness map
@@ -135,7 +137,7 @@ public class ModelLoader {
         Texture roughnessTexture = null;
         System.out.println("Roughness map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            roughnessTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            roughnessTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
         // AO map
@@ -145,10 +147,20 @@ public class ModelLoader {
         Texture aoTexture = null;
         System.out.println("AO map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            aoTexture = new Texture(texturesDir + "/" + textPath, Texture.Format.RGBA);
+            aoTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
-        PBRMaterial material = new PBRMaterial(albedoTexture, metallicTexture, roughnessTexture, normalTexture, aoTexture);
+        // Emissive map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_EMISSIVE, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture emissiveTexture = null;
+        System.out.println("Emissive map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            emissiveTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        }
+
+        PBRMaterial material = new PBRMaterial(albedoTexture, metallicTexture, roughnessTexture, normalTexture, aoTexture, emissiveTexture);
         materials.add(material);
     }
 
@@ -220,11 +232,12 @@ public class ModelLoader {
             floatListToArray(texCoords),
             intListToArray(indices),
             new PBRMaterial(
-                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", Texture.Format.SRGBA),
-                new Texture("src/main/resources/models/helmet/Default_normal.jpg", Texture.Format.RGBA),
-                new Texture("src/main/resources/textures/PBR/default_metallic.png", Texture.Format.RGBA),
-                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", Texture.Format.RGBA),
-                new Texture("src/main/resources/models/helmet/Default_AO.jpg", Texture.Format.RGBA)
+                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", GL_SRGB_ALPHA),
+                new Texture("src/main/resources/models/helmet/Default_normal.jpg", GL_RGBA),
+                new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA),
+                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", GL_RGBA),
+                new Texture("src/main/resources/models/helmet/Default_AO.jpg", GL_RGBA),
+                new Texture("src/main/resources/models/helmet/Default_emissive.jpg", GL_SRGB_ALPHA)
             )
         );
 
