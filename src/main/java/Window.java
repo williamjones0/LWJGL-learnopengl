@@ -127,6 +127,13 @@ public class Window {
         glfwSwapBuffers(windowHandle);
     }
 
+    public void setCursorEnabled(boolean enabled) {
+        if (enabled)
+            org.lwjgl.glfw.GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        else
+            org.lwjgl.glfw.GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
     public int getWidth() {
         return width;
     }

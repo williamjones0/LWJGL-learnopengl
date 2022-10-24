@@ -28,11 +28,15 @@ public class Texture {
     }
 
     public Texture(int width, int height, int internalFormat, int pixelFormat, int type) throws Exception {
-        ID = createTexture(width, height, internalFormat, pixelFormat, type);
+        ID = createTexture(width, height, internalFormat, pixelFormat, type, null);
     }
 
     public Texture(int width, int height, int internalFormat, int pixelFormat) throws Exception {
-        ID = createTexture(width, height, internalFormat, pixelFormat, GL_UNSIGNED_BYTE);
+        ID = createTexture(width, height, internalFormat, pixelFormat, GL_UNSIGNED_BYTE, null);
+    }
+
+    public Texture(int width, int height, ByteBuffer buffer) {
+        ID = createTexture(width, height, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
     }
 
     public void bind() {
@@ -94,17 +98,17 @@ public class Texture {
         return textureID;
     }
 
-    private int createTexture(int width, int height, int internalFormat, int pixelFormat, int type) {
+    private int createTexture(int width, int height, int internalFormat, int pixelFormat, int type, ByteBuffer buffer) {
         this.width = width;
         this.height = height;
 
         int textureID = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, type, (ByteBuffer) null);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, pixelFormat, type, buffer);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         return textureID;
     }
 

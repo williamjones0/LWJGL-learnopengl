@@ -112,6 +112,8 @@ public class Renderer {
         lightCubeShader.createUniform("view");
         lightCubeShader.createUniform("projection");
 
+        lightCubeShader.createUniform("colour");
+
         // Skybox shader
         skyboxShader = new ShaderProgram();
         skyboxShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/skybox.vs").toPath(), StandardCharsets.US_ASCII));
@@ -131,7 +133,7 @@ public class Renderer {
         hdrShader.createUniform("exposure");
     }
 
-    public void render(Camera camera, Scene scene, Window window) {
+    public void render(Camera camera, Scene scene, GUI gui, Window window) {
         Entity[] entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         PointLight[] pointLights = scene.getPointLights();
@@ -152,15 +154,15 @@ public class Renderer {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
 
-        shaderProgram.bind();
+//        shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
         projection = new Matrix4f().setPerspective(FOV, aspectRatio, Z_NEAR, Z_FAR);
-        shaderProgram.setUniform("view", view);
-        shaderProgram.setUniform("projection", projection);
-
-        shaderProgram.setUniform("viewPos", camera.getPosition());
-        shaderProgram.setUniform("isNormalMapping", isNormalMapping);
+//        shaderProgram.setUniform("view", view);
+//        shaderProgram.setUniform("projection", projection);
+//
+//        shaderProgram.setUniform("viewPos", camera.getPosition());
+//        shaderProgram.setUniform("isNormalMapping", isNormalMapping);
 
 //        // Update directional light uniforms
 //        shaderProgram.setUniform("dirLight.direction", dirLight.getDirection());
@@ -198,8 +200,8 @@ public class Renderer {
 //            shaderProgram.setUniform("model", model);
 //            entity.getMesh().render();
 //        }
-
-        shaderProgram.unbind();
+//
+//        shaderProgram.unbind();
 
         // PBR shader
         pbrShader.bind();
@@ -257,7 +259,7 @@ public class Renderer {
 
         pbrNoMaterialShader.setUniform("camPos", camera.getPosition());
 
-        pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(0.5f, 0.0f, 0.0f));
+        pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(1.0f, 1.0f, 1.0f));
         pbrNoMaterialShader.setUniform("values.ao", 1.0f);
 
         // Update point light uniforms
@@ -287,19 +289,22 @@ public class Renderer {
 //        }
 
         for (int i = 0; i < entities.length; i++) {
-            if (i != 49) {
-                Entity entity = entities[i];
+            Entity entity = entities[i];
+            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
 
-                Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+            if (entity.getMesh().getPbrMaterial() != null) {
+                pbrShader.bind();
+                pbrShader.setUniform("model", model);
+            } else {
                 pbrNoMaterialShader.setUniform("model", model);
 
                 int row = i / 7;
                 int column = i % 7;
                 pbrNoMaterialShader.setUniform("values.metallic", (float) row / (float) 7);
                 pbrNoMaterialShader.setUniform("values.roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
-
-                entity.getMesh().render();
             }
+
+            entity.getMesh().render();
         }
 
         pbrNoMaterialShader.unbind();
@@ -316,6 +321,8 @@ public class Renderer {
             model.scale(0.5f);
             lightCubeShader.setUniform("model", model);
 
+            lightCubeShader.setUniform("colour", light.getColor());
+
             light.getMesh().render();
         }
 
@@ -331,6 +338,7 @@ public class Renderer {
 //
 //        skyboxShader.unbind();
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         equirectangularMap.render(camera);
 
         // Second pass: render floating point framebuffer to default framebuffer
@@ -372,6 +380,9 @@ public class Renderer {
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glBindVertexArray(0);
+
+        // Render GUI
+        gui.render();
     }
 
     public void cleanup() {
