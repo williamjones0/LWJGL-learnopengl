@@ -91,11 +91,11 @@ public class Camera {
         return position;
     }
 
-    public Vector3f getFront() {
-        return front;
+    public void setPosition(Vector3f position) {
+        this.position = position;
     }
 
-    public Matrix4f getView() {
-        return calculateViewMatrix();
+    public Vector3f getFront() {
+        return front;
     }
 }

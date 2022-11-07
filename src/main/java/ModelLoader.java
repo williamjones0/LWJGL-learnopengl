@@ -122,7 +122,7 @@ public class ModelLoader {
 
         // Metallic map
         path = AIString.calloc();
-        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SPECULAR, 0, path, (IntBuffer) null, null, null, null, null, null);
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_METALNESS, 0, path, (IntBuffer) null, null, null, null, null, null);
         textPath = path.dataString();
         Texture metallicTexture = null;
         System.out.println("Metallic map: " + texturesDir + "/" + textPath);
@@ -140,9 +140,19 @@ public class ModelLoader {
             roughnessTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
         }
 
+        // Metallic roughness map
+        path = AIString.calloc();
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_UNKNOWN, 0, path, (IntBuffer) null, null, null, null, null, null);
+        textPath = path.dataString();
+        Texture metallicRoughnessTexture = null;
+        System.out.println("Metallic roughness map: " + texturesDir + "/" + textPath);
+        if (textPath.length() > 0) {
+            metallicRoughnessTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        }
+
         // AO map
         path = AIString.calloc();
-        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_AMBIENT, 0, path, (IntBuffer) null, null, null, null, null, null);
+        Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_LIGHTMAP, 0, path, (IntBuffer) null, null, null, null, null, null);
         textPath = path.dataString();
         Texture aoTexture = null;
         System.out.println("AO map: " + texturesDir + "/" + textPath);
@@ -157,10 +167,23 @@ public class ModelLoader {
         Texture emissiveTexture = null;
         System.out.println("Emissive map: " + texturesDir + "/" + textPath);
         if (textPath.length() > 0) {
-            emissiveTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+            emissiveTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
         }
 
-        PBRMaterial material = new PBRMaterial(albedoTexture, metallicTexture, roughnessTexture, normalTexture, aoTexture, emissiveTexture);
+        for (int i = 0; i < 21; i++) {
+            path = AIString.calloc();
+            Assimp.aiGetMaterialTexture(aiMaterial, i, 0, path, (IntBuffer) null, null, null, null, null, null);
+            System.out.println(i + ": " + path.dataString());
+        }
+
+        PBRMaterial material = new PBRMaterial(
+            albedoTexture,
+            normalTexture,
+            metallicTexture,
+            roughnessTexture,
+            metallicRoughnessTexture,
+            aoTexture,
+            emissiveTexture);
         materials.add(material);
     }
 
@@ -228,17 +251,17 @@ public class ModelLoader {
         return new Mesh(
             floatListToArray(vertices),
             floatListToArray(normals),
-            floatListToArray(tangents),
             floatListToArray(texCoords),
             intListToArray(indices),
-            new PBRMaterial(
-                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", GL_SRGB_ALPHA),
-                new Texture("src/main/resources/models/helmet/Default_normal.jpg", GL_RGBA),
-                new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA),
-                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", GL_RGBA),
-                new Texture("src/main/resources/models/helmet/Default_AO.jpg", GL_RGBA),
-                new Texture("src/main/resources/models/helmet/Default_emissive.jpg", GL_SRGB_ALPHA)
-            )
+//            new PBRMaterial(
+//                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", GL_SRGB_ALPHA),
+//                new Texture("src/main/resources/models/helmet/Default_normal.jpg", GL_RGBA),
+//                new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA),
+//                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", GL_RGBA),
+//                new Texture("src/main/resources/models/helmet/Default_AO.jpg", GL_RGBA),
+//                new Texture("src/main/resources/models/helmet/Default_emissive.jpg", GL_SRGB_ALPHA)
+//            )
+            pbrMaterials.get(0)
         );
 
     }

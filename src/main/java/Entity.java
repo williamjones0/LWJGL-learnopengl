@@ -15,13 +15,6 @@ public class Entity {
         this.scale = scale;
     }
 
-    public Entity(Mesh mesh) {
-        this.mesh = mesh;
-        this.position = new Vector3f();
-        this.rotation = new Vector3f();
-        this.scale = 1;
-    }
-
     public Mesh getMesh() {
         return mesh;
     }

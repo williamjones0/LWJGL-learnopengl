@@ -2,7 +2,7 @@ package primitives;
 
 public class Cube {
 
-    private float[] positions = {
+    private final float[] positions = {
         // Front face
        -0.5f, -0.5f, -0.5f,
         0.5f, -0.5f, -0.5f,
@@ -52,7 +52,7 @@ public class Cube {
        -0.5f,  0.5f, -0.5f
     };
 
-    private float[] normals = {
+    private final float[] normals = {
         0.0f,  0.0f, -1.0f,
         0.0f,  0.0f, -1.0f,
         0.0f,  0.0f, -1.0f,
@@ -96,7 +96,7 @@ public class Cube {
         0.0f,  1.0f,  0.0f
     };
 
-    private float[] texCoords = {
+    private final float[] texCoords = {
         0.0f, 0.0f,
         1.0f, 0.0f,
         1.0f, 1.0f,
@@ -141,7 +141,7 @@ public class Cube {
     };
 
     // 36 vertices, so 36 indices
-    private int[] indices = {
+    private final int[] indices = {
         // Front face
         0, 1, 2,
         3, 4, 5,

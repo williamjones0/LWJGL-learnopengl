@@ -15,14 +15,14 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class Window {
 
     private int width, height;
-    private String title;
-    private int targetMonitor;
+    private final String title;
+    private final int targetMonitor;
     private boolean fullscreen;
     private long windowHandle;
     private int frames;
     private long time;
 
-    private Input input;
+    private final Input input;
 
     public Window(int width, int height, String title, int targetMonitor, boolean fullscreen) {
         this.width = width;

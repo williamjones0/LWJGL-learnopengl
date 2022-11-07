@@ -1,5 +1,7 @@
 package Utils;
 
+import org.joml.Vector3f;
+
 import java.util.List;
 
 public class Utils {
@@ -18,6 +20,14 @@ public class Utils {
             array[i] = list.get(i);
         }
         return array;
+    }
+
+    public static float[] vector3fToArray(Vector3f vector) {
+        return new float[] {
+            vector.x,
+            vector.y,
+            vector.z
+        };
     }
 
 }

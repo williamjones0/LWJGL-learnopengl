@@ -1,6 +1,7 @@
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 
 import Utils.Maths;
 import org.joml.Matrix4f;
@@ -133,8 +134,8 @@ public class Renderer {
         hdrShader.createUniform("exposure");
     }
 
-    public void render(Camera camera, Scene scene, GUI gui, Window window) {
-        Entity[] entities = scene.getEntities();
+    public void render(Camera camera, Scene scene, Window window) {
+        List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         PointLight[] pointLights = scene.getPointLights();
         SpotLight[] spotLights = scene.getSpotLights();
@@ -148,11 +149,7 @@ public class Renderer {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (wireframe) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        } else {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
+        glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
 //        shaderProgram.bind();
 
@@ -212,10 +209,11 @@ public class Renderer {
 
         pbrShader.setUniform("material.albedo", 0);
         pbrShader.setUniform("material.normal", 1);
-//        pbrShader.setUniform("material.metallic", 2);
+        pbrShader.setUniform("material.metallic", 2);
         pbrShader.setUniform("material.roughness", 3);
-        pbrShader.setUniform("material.ao", 4);
-        pbrShader.setUniform("material.emissive", 5);
+        pbrShader.setUniform("material.metallicRoughness", 4);
+        pbrShader.setUniform("material.ao", 5);
+        pbrShader.setUniform("material.emissive", 6);
 
         // Update point light uniforms
         for (int i = 0; i < pointLights.length; i++) {
@@ -224,17 +222,17 @@ public class Renderer {
         }
 
         // Render entities
-        pbrShader.setUniform("irradianceMap", 6);
-        glActiveTexture(GL_TEXTURE6);
+        pbrShader.setUniform("irradianceMap", 7);
+        glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
 
-        pbrShader.setUniform("prefilterMap", 7);
-        glActiveTexture(GL_TEXTURE7);
+        pbrShader.setUniform("prefilterMap", 8);
+        glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
 
-        pbrShader.setUniform("brdfLUT", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUTTexture());
+        pbrShader.setUniform("brdfLUT", 9);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
 //        for (Entity entity : entities) {
 //            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
@@ -242,13 +240,6 @@ public class Renderer {
 //
 //            entity.getMesh().render();
 //        }
-
-        Entity entity1 = entities[49];
-
-        Matrix4f model1 = Maths.calculateModelMatrix(entity1.getPosition(), entity1.getRotation(), entity1.getScale());
-        pbrShader.setUniform("model", model1);
-
-        entity1.getMesh().render();
 
         pbrShader.unbind();
 
@@ -269,17 +260,17 @@ public class Renderer {
         }
 
         // Render entities
-        pbrNoMaterialShader.setUniform("irradianceMap", 6);
-        glActiveTexture(GL_TEXTURE6);
+        pbrNoMaterialShader.setUniform("irradianceMap", 7);
+        glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
 
-        pbrNoMaterialShader.setUniform("prefilterMap", 7);
-        glActiveTexture(GL_TEXTURE7);
+        pbrNoMaterialShader.setUniform("prefilterMap", 8);
+        glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
 
-        pbrNoMaterialShader.setUniform("brdfLUT", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUTTexture());
+        pbrNoMaterialShader.setUniform("brdfLUT", 9);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
 //        for (Entity entity : entities) {
 //            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
@@ -288,18 +279,20 @@ public class Renderer {
 //            entity.getMesh().render();
 //        }
 
-        for (int i = 0; i < entities.length; i++) {
-            Entity entity = entities[i];
+        for (int i = 0; i < entities.size(); i++) {
+            Entity entity = entities.get(i);
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
 
             if (entity.getMesh().getPbrMaterial() != null) {
                 pbrShader.bind();
                 pbrShader.setUniform("model", model);
+                pbrShader.setUniform("material.combinedMetallicRoughness", entity.getMesh().getPbrMaterial().isCombinedMetallicRoughness());
             } else {
                 pbrNoMaterialShader.setUniform("model", model);
 
                 int row = i / 7;
                 int column = i % 7;
+                pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(1.0f, row * 1.0f, column * 1.0f).normalize());
                 pbrNoMaterialShader.setUniform("values.metallic", (float) row / (float) 7);
                 pbrNoMaterialShader.setUniform("values.roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
             }
@@ -358,31 +351,7 @@ public class Renderer {
         hdrShader.setUniform("exposure", exposure);
 
         // Render quad
-        float[] quadVertices = {
-            // positions        // texture coords
-           -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
-           -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
-            1.0f,  1.0f, 0.0f,  1.0f, 1.0f,
-            1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-        };
-
-        int quadVAO = glGenVertexArrays();
-        glBindVertexArray(quadVAO);
-
-        int quadVBO = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
-        glEnableVertexAttribArray(1);
-
-        glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
-
-        // Render GUI
-        gui.render();
+        Utils.rendering.Quad.render();
     }
 
     public void cleanup() {
@@ -395,6 +364,10 @@ public class Renderer {
 
     public boolean isWireframe() {
         return wireframe;
+    }
+
+    public float getFOV() {
+        return FOV;
     }
 
     public void setFOV(float FOV) {

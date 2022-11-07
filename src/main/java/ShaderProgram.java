@@ -43,10 +43,12 @@ class ShaderProgram {
     public void createPBRMaterialUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".albedo");
         createUniform(uniformName + ".normal");
-//        createUniform(uniformName + ".metallic");
+        createUniform(uniformName + ".metallic");
         createUniform(uniformName + ".roughness");
+        createUniform(uniformName + ".metallicRoughness");
         createUniform(uniformName + ".ao");
         createUniform(uniformName + ".emissive");
+        createUniform(uniformName + ".combinedMetallicRoughness");
     }
 
     public void createDirLightUniform(String uniformName) throws Exception {

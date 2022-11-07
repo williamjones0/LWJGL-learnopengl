@@ -4,7 +4,7 @@ public class Framebuffer {
 
     private final int ID;
     private int renderbuffer;
-    private Texture texture;
+    private final Texture texture;
 
     public Framebuffer(Texture texture, int internalFormat, int attachment) {
         this.texture = texture;

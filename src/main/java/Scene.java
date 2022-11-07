@@ -1,13 +1,15 @@
+import java.util.List;
+
 public class Scene {
 
-    private Entity[] entities;
+    private List<Entity> entities;
     private DirLight dirLight;
     private PointLight[] pointLights;
     private SpotLight[] spotLights;
     private Skybox skybox;
     private EquirectangularMap equirectangularMap;
 
-    public Scene(Entity[] entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, EquirectangularMap equirectangularMap) {
+    public Scene(List<Entity> entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, EquirectangularMap equirectangularMap) {
         this.entities = entities;
         this.dirLight = dirLight;
         this.pointLights = pointLights;
@@ -16,7 +18,7 @@ public class Scene {
         this.equirectangularMap = equirectangularMap;
     }
 
-    public Entity[] getEntities() {
+    public List<Entity> getEntities() {
         return entities;
     }
 

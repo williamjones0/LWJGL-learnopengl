@@ -7,16 +7,22 @@ public class PBRMaterial {
     private Texture normal;
     private Texture metallic;
     private Texture roughness;
+    private Texture metallicRoughness;
     private Texture ao;
     private Texture emissive;
 
-    public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture ao, Texture emissive) throws Exception {
+    private final boolean combinedMetallicRoughness;
+
+    public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
         this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
         this.normal = normal != null ? normal : new Texture("src/main/resources/textures/PBR/default_normal.png", GL_RGBA);
         this.metallic = metallic != null ? metallic : new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA);
         this.roughness = roughness != null ? roughness : new Texture("src/main/resources/textures/PBR/default_roughness.png", GL_RGBA);
+        this.metallicRoughness = metallicRoughness != null ? metallicRoughness : new Texture("src/main/resources/textures/PBR/default_metallicRoughness.png", GL_RGBA);
         this.ao = ao != null ? ao : new Texture("src/main/resources/textures/PBR/default_ao.png", GL_RGBA);
         this.emissive = emissive != null ? emissive : new Texture("src/main/resources/textures/PBR/default_emissive.png", GL_RGBA);
+
+        this.combinedMetallicRoughness = metallicRoughness != null;
     }
 
     public Texture getAlbedo() {
@@ -51,6 +57,14 @@ public class PBRMaterial {
         this.roughness = roughness;
     }
 
+    public Texture getMetallicRoughness() {
+        return metallicRoughness;
+    }
+
+    public void setMetallicRoughness(Texture metallicRoughness) {
+        this.metallicRoughness = metallicRoughness;
+    }
+
     public Texture getAo() {
         return ao;
     }
@@ -65,5 +79,9 @@ public class PBRMaterial {
 
     public void setEmissive(Texture emissive) {
         this.emissive = emissive;
+    }
+
+    public boolean isCombinedMetallicRoughness() {
+        return combinedMetallicRoughness;
     }
 }

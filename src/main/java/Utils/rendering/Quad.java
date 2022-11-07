@@ -3,6 +3,7 @@ package Utils.rendering;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -13,25 +14,16 @@ public class Quad {
 
     public static void render() {
         if (VAO == 0) {
-            float[] positions = {
-               -1.0f,  1.0f, 0.0f,
-               -1.0f, -1.0f, 0.0f,
-                1.0f,  1.0f, 0.0f,
-                1.0f, -1.0f, 0.0f
-            };
+            primitives.Quad quad = new primitives.Quad();
 
-            float[] texCoords = {
-                0.0f, 1.0f,
-                0.0f, 0.0f,
-                1.0f, 1.0f,
-                1.0f, 0.0f,
-            };
+            FloatBuffer positionsBuffer = MemoryUtil.memAllocFloat(quad.getPositions().length);
+            positionsBuffer.put(quad.getPositions()).flip();
 
-            FloatBuffer positionsBuffer = MemoryUtil.memAllocFloat(positions.length);
-            positionsBuffer.put(positions).flip();
+            FloatBuffer texCoordsBuffer = MemoryUtil.memAllocFloat(quad.getTexCoords().length);
+            texCoordsBuffer.put(quad.getTexCoords()).flip();
 
-            FloatBuffer texCoordsBuffer = MemoryUtil.memAllocFloat(texCoords.length);
-            texCoordsBuffer.put(texCoords).flip();
+            IntBuffer indicesBuffer = MemoryUtil.memAllocInt(quad.getIndices().length);
+            indicesBuffer.put(quad.getIndices()).flip();
 
             // Set up VAO
             VAO = glGenVertexArrays();
@@ -48,10 +40,14 @@ public class Quad {
             glBufferData(GL_ARRAY_BUFFER, texCoordsBuffer, GL_STATIC_DRAW);
             glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
             glEnableVertexAttribArray(1);
+
+            int indicesVBO = glGenBuffers();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesVBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
         }
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
 

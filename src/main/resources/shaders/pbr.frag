@@ -11,8 +11,11 @@ struct PBRMaterial {
     sampler2D normal;
     sampler2D metallic;
     sampler2D roughness;
+    sampler2D metallicRoughness;
     sampler2D ao;
     sampler2D emissive;
+
+    bool combinedMetallicRoughness;
 };
 
 #define NUM_POINT_LIGHTS 4
@@ -91,8 +94,17 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 void main() {
     // Material properties
     vec3 albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
-    float metallic = texture(material.roughness, TexCoords).b;
-    float roughness = texture(material.roughness, TexCoords).g;
+
+    float metallic;
+    float roughness;
+    if (material.combinedMetallicRoughness) {
+        metallic = texture(material.metallicRoughness, TexCoords).b;
+        roughness = texture(material.metallicRoughness, TexCoords).g;
+    } else {
+        metallic = texture(material.metallic, TexCoords).r;
+        roughness = texture(material.roughness, TexCoords).r;
+    }
+
     float ao = texture(material.ao, TexCoords).r;
 
     // Lighting data input

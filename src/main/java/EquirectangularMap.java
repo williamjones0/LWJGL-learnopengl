@@ -13,9 +13,7 @@ import static org.lwjgl.opengl.GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS;
 
 public class EquirectangularMap {
 
-    private Framebuffer framebuffer;
-    private Matrix4f projection;
-    private Matrix4f[] views;
+    private final Matrix4f projection;
 
     private final ShaderProgram equirectangularToCubemapShader;
     private final ShaderProgram irradianceShader;
@@ -26,7 +24,7 @@ public class EquirectangularMap {
     private final int environmentCubemap;
     private final int irradianceMap;
     private final int prefilterMap;
-    private final int brdfLUTTexture;
+    private final int brdfLUT;
 
     private Mesh cubeMesh;
 
@@ -35,7 +33,13 @@ public class EquirectangularMap {
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         glDepthFunc(GL_LEQUAL);
 
-        framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT, 512, 512);
+        texture.bind();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        Framebuffer framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT, 512, 512);
 
         // Set up cubemap to render to and attach to framebuffer
         environmentCubemap = glGenTextures();
@@ -53,7 +57,8 @@ public class EquirectangularMap {
 
         // Set up projection and view matrices
         projection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
-        views = new Matrix4f[]{
+
+        Matrix4f[] views = new Matrix4f[]{
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  0.0f,  1.0f),
@@ -211,8 +216,8 @@ public class EquirectangularMap {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Generate 2D BRDF LUT (512 x 512, 16-bit float)
-        brdfLUTTexture = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+        brdfLUT = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, brdfLUT);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -228,7 +233,7 @@ public class EquirectangularMap {
         // Configure framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, 512, 512);
-        framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture);
+        framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT);
 
         // Render quad
         glViewport(0, 0, 512, 512);
@@ -270,8 +275,8 @@ public class EquirectangularMap {
         return prefilterMap;
     }
 
-    public int getBRDFLUTTexture() {
-        return brdfLUTTexture;
+    public int getBRDFLUT() {
+        return brdfLUT;
     }
 
 }

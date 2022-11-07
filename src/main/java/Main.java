@@ -1,8 +1,11 @@
 import org.joml.Vector3f;
 import org.lwjgl.*;
+import primitives.Cylinder;
+import primitives.Quad;
 import primitives.UVSphere;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -18,13 +21,14 @@ public class Main {
     private SpotLight[] spotLights;
     private Scene scene;
     private GUI gui;
+    private MasterRenderer masterRenderer;
 
     private float deltaTime = 0.0f;
     private float lastFrame = 0.0f;
 
     private double lastX, lastY, lastScrollX, lastScrollY = 0;
-    private List<Integer> lastFrameKeys = new ArrayList<>();
-    private List<Integer> lastFrameButtons = new ArrayList<>();
+    private final List<Integer> lastFrameKeys = new ArrayList<>();
+    private final List<Integer> lastFrameButtons = new ArrayList<>();
 
     private boolean cursorEnabled = false;
 
@@ -46,115 +50,15 @@ public class Main {
         window.create();
 
         renderer = new Renderer();
-        renderer.init(window);
 
         meshes = new ArrayList<>();
 
         camera = new Camera(new Vector3f(0, 0, 15), -90f, 0);
 
-        gui = new GUI(window);
-        gui.init();
+        gui = new GUI();
 
-        float[] skyboxVertices = {
-            // positions
-            -1.0f,  1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f, -1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-            1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            1.0f,  1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-
-            -1.0f, -1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            1.0f, -1.0f,  1.0f,
-            -1.0f, -1.0f,  1.0f,
-
-            -1.0f,  1.0f, -1.0f,
-            1.0f,  1.0f, -1.0f,
-            1.0f,  1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f, -1.0f,
-
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-            1.0f, -1.0f,  1.0f
-        };
-
-        float[] planePositions = {
-            // Positions
-           -1.0f,  1.0f, 0f,  // Top left
-           -1.0f, -1.0f, 0f,  // Bottom left
-            1.0f, -1.0f, 0f,  // Bottom right
-            1.0f,  1.0f, 0f,  // Top right
-        };
-
-        float[] planeNormals = {
-            0.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f
-        };
-
-        float[] planeTangents = {
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f
-        };
-
-        float[] planeTexCoords = {
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f
-        };
-
-        int[] planeIndices = {
-            0, 1, 3,
-            3, 1, 2
-        };
-
-//        Texture planeDiffuse = new Texture("src/main/resources/textures/brickwall.jpg", Texture.Format.SRGBA);
-//        Texture planeNormal = new Texture("src/main/resources/textures/brickwall_normal.jpg", Texture.Format.RGBA);
-//        Material planeMaterial = new Material(planeDiffuse, null, 32, planeNormal);
-//
-//        Mesh planeMesh = new Mesh(
-//            planePositions,
-//            planeNormals,
-//            planeTangents,
-//            planeTexCoords,
-//            planeIndices,
-//            planeMaterial
-//        );
-//
-//        meshes.add(planeMesh);
-//
-//        Entity plane = new Entity(planeMesh, new Vector3f(0, 0, 0), new Vector3f(), 1);
-
-        Texture materialDiffuse = new Texture("src/main/resources/textures/container.png", GL_SRGB_ALPHA);
-        Texture materialSpecular = new Texture("src/main/resources/textures/container_specular.png", GL_RGBA);
-        float materialShininess = 256.0f;
-        Material material = new Material(materialDiffuse, materialSpecular, materialShininess, null);
+        masterRenderer = new MasterRenderer();
+        masterRenderer.init(window, renderer, gui);
 
         PBRMaterial rustedIron = new PBRMaterial(
             new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
@@ -162,10 +66,12 @@ public class Main {
             new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
             null,
+            null,
             null
         );
 
         PBRMaterial red = new PBRMaterial(
+            null,
             null,
             null,
             null,
@@ -179,58 +85,66 @@ public class Main {
             new Texture("src/main/resources/textures/PBR/black_tile/normal.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/black_tile/metallic.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/black_tile/roughness.png", GL_RGBA),
+            null,
             new Texture("src/main/resources/textures/PBR/black_tile/ao.png", GL_RGBA),
             null
         );
 
-        UVSphere uvSphere = new UVSphere(1f, 64, 64);
-
-        float[] sphereNormals = {
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f,
-            2.0f, 0.0f, 0.0f,
-        };
+        UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
         Mesh sphereMesh = new Mesh(
             uvSphere.getPositions(),
             uvSphere.getNormals(),
-            sphereNormals,
             uvSphere.getTexCoords(),
             uvSphere.getIndices(),
             (PBRMaterial) null
         );
         meshes.add(sphereMesh);
 
-        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+        Cylinder cylinder = new Cylinder(1f, 1f, 2f, 16);
+
+        Mesh cylinderMesh = new Mesh(
+            cylinder.getPositions(),
+            cylinder.getNormals(),
+            cylinder.getTexCoords(),
+            cylinder.getIndices(),
+            (PBRMaterial) blackTile
+        );
+
+        Mesh[] helmetMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        meshes.add(backpackMesh[0]);
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
-//        meshes.addAll(Arrays.asList(backpackMesh));
+        meshes.addAll(Arrays.asList(helmetMesh));
 
-        Entity backpack = new Entity(backpackMesh[0], new Vector3f(0, 0, 5), new Vector3f(), 1);
+        Entity helmet = new Entity(helmetMesh[0], new Vector3f(0, 0, 5), new Vector3f(0, 1, 0), 1f);
+//        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
         int numRows = 7;
         int numColumns = 7;
         float spacing = 2.5f;
 
-        Entity[] entities = new Entity[numRows * numColumns + 2];
+        List<Entity> entities = new ArrayList<>();
 
         for (int row = 0; row < numRows; row++) {
             for (int column = 0; column < numColumns; column++) {
                 Entity sphere = new Entity(sphereMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1);
-                entities[row * numColumns + column] = sphere;
+                entities.add(sphere);
             }
         }
 
-        entities[numRows * numColumns] = backpack;
+        entities.add(helmet);
+//        entities.add(backpack);
 
+        entities.add(new Entity(cylinderMesh, new Vector3f(10, 0, 10), new Vector3f(0, 0, 0), 1f));
+
+        Quad quad = new Quad();
         Mesh planeMesh = new Mesh(
-            planePositions,
-            planeNormals,
-            planeTangents,
-            planeTexCoords,
-            planeIndices,
+            quad.getPositions(),
+            quad.getNormals(),
+            quad.getTexCoords(),
+            quad.getIndices(),
             blackTile
         );
 
@@ -239,7 +153,7 @@ public class Main {
         Entity plane = new Entity(planeMesh, new Vector3f(0, -11f, 0), new Vector3f(), 10);
         plane.setRotation(plane.getRotation().add(new Vector3f(0, 0, -90f)));
 
-        entities[numRows * numColumns + 1] = plane;
+        entities.add(plane);
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -304,17 +218,6 @@ public class Main {
             spotLight
         };
 
-        String[] faces = {
-            "src/main/resources/skybox/right.jpg",
-            "src/main/resources/skybox/left.jpg",
-            "src/main/resources/skybox/top.jpg",
-            "src/main/resources/skybox/bottom.jpg",
-            "src/main/resources/skybox/front.jpg",
-            "src/main/resources/skybox/back.jpg"
-        };
-
-        Skybox skybox = new Skybox(faces, skyboxVertices);
-
         Texture backgroundTexture = new Texture(
             "src/main/resources/skybox/HDR/Newport_Loft.hdr",
             org.lwjgl.opengl.GL30.GL_RGB16F,
@@ -348,7 +251,9 @@ public class Main {
         spotLights[0].setPosition(camera.getPosition());
         spotLights[0].setDirection(camera.getFront());
 
-        scene.getEntities()[49].setRotation(scene.getEntities()[49].getRotation().add(new Vector3f(0, 0, 0.1f)));
+        Vector3f temp = scene.getEntities().get(49).getRotation();
+        temp.rotateAxis((float) Math.toRadians(1f), 0.0f, 0.0f, 1.0f);
+        scene.getEntities().get(49).setRotation(temp);
 
         processInput();
     }
@@ -382,12 +287,6 @@ public class Main {
                 renderer.setExposure(renderer.getExposure() - 0.01f);
             if (Input.isKeyDown(GLFW_KEY_E))
                 renderer.setExposure(renderer.getExposure() + 0.01f);
-
-            if (Input.isKeyDown(GLFW_KEY_C)) {
-                renderer.setFOV((float) Math.toRadians(30.0));
-            } else {
-                renderer.setFOV((float) Math.toRadians(60.0));
-            }
 
             if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F)) {  // If F pressed (and wasn't pressed last frame)
                 spotLights[0].setEnabled(!spotLights[0].isEnabled());
@@ -457,7 +356,7 @@ public class Main {
     }
 
     private void render() {
-        renderer.render(camera, scene, gui, window);
+        masterRenderer.render(camera, scene, window);
         window.swapBuffers();
     }
 
