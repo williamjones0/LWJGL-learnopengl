@@ -164,9 +164,7 @@ public class Main {
 
         DirLight dirLight = new DirLight(
             new Vector3f(-0.2f, -1.0f, -0.3f),
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Vector3f(0.0f, 0.0f, 0.0f)
+            new Vector3f(100f, 100f, 100f)
         );
 
         PointLight pointLight1 = new PointLight(
@@ -209,8 +207,6 @@ public class Main {
             (float) Math.cos(Math.toRadians(12.5f)),
             (float) Math.cos(Math.toRadians(15.0f)),
 
-            new Vector3f(0.0f, 0.0f, 0.0f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
             new Vector3f(1.0f, 1.0f, 1.0f)
         );
 

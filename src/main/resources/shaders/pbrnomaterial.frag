@@ -6,6 +6,21 @@ struct PointLight {
     vec3 color;
 };
 
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float cutoff;
+    float outerCutoff;
+
+    bool enabled;
+};
+
+struct DirLight {
+    vec3 direction;
+    vec3 color;
+};
+
 struct PBRValues {
     vec3 albedo;
     float metallic;
@@ -14,6 +29,7 @@ struct PBRValues {
 };
 
 #define NUM_POINT_LIGHTS 4
+#define NUM_SPOT_LIGHTS 1
 #define PI 3.14159265359
 
 in vec2 TexCoords;
@@ -29,22 +45,8 @@ uniform sampler2D brdfLUT;
 uniform PBRValues values;
 
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
-
-//vec3 getNormalFromMap() {
-//    vec3 tangentNormal = texture(material.normal, TexCoords).rgb * 2.0 - 1.0;
-//
-//    vec3 Q1 = dFdx(WorldPos);
-//    vec3 Q2 = dFdy(WorldPos);
-//    vec2 st1 = dFdx(TexCoords);
-//    vec2 st2 = dFdy(TexCoords);
-//
-//    vec3 N = normalize(Normal);
-//    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-//    vec3 B = -normalize(cross(N, T));
-//    mat3 TBN = mat3(T, B, N);
-//
-//    return normalize(TBN * tangentNormal);
-//}
+uniform SpotLight spotLights[NUM_SPOT_LIGHTS];
+uniform DirLight dirLight;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness;
@@ -134,6 +136,69 @@ void main() {
         // Add to outgoing radiance Lo
         // Already multiplied the BRDF by kS, so don't need to multiply again
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+    }
+
+    // Spot lights
+    for (int i = 0; i < NUM_SPOT_LIGHTS; ++i) {
+        if (spotLights[i].enabled) {
+            // Per-light radiance
+            vec3 L = normalize(spotLights[i].position - WorldPos);
+            vec3 H = normalize(V + L);
+
+            float distance = length(spotLights[i].position - WorldPos);
+            float attenuation = 1.0 / (distance * distance);
+
+            float theta = dot(L, normalize(-spotLights[i].direction));
+            float epsilon = spotLights[i].cutoff - spotLights[i].outerCutoff;
+            float intensity = clamp((theta - spotLights[i].outerCutoff) / epsilon, 0.0, 1.0);
+
+            vec3 radiance = spotLights[i].color * attenuation * intensity;
+
+            // Cook-Torrance BRDF
+            float NDF = DistributionGGX(N, H, roughness);
+            float G = GeometrySmith(N, V, L, roughness);
+            vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+
+            vec3 numerator = NDF * G * F;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+            vec3 specular = numerator / denominator;
+
+            // kS is equal to Fresnel
+            vec3 kS = F;
+            // kD is equal to 1 - kS
+            vec3 kD = vec3(1.0) - kS;
+            // Multiply kD by the inverse metalness so that only non-metals have diffuse lighting
+            kD *= 1.0 - metallic;
+
+            // Scale light by NdotL
+            float NdotL = max(dot(N, L), 0.0);
+
+            // Add to outgoing radiance Lo
+            // Already multiplied the BRDF by kS, so don't need to multiply again
+            Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        }
+    }
+
+    // Directional lighting
+    for (int i = 0; i < 1; i++) {
+        vec3 L = normalize(dirLight.direction);
+        vec3 H = normalize(V + L);
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        vec3 specular = numerator / denominator;
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        kD *= 1.0 - metallic;
+
+        float NdotL = max(dot(N, L), 0.0);
+
+        Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
     }
 
     // Ambient lighting

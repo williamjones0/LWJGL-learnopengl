@@ -7,27 +7,23 @@ public class SpotLight {
     private Vector3f position;
     private Vector3f direction;
 
+    private Vector3f color;
+
     private float cutoff;
     private float outerCutoff;
 
-    private Vector3f ambient;
-    private Vector3f diffuse;
-    private Vector3f specular;
-
     private boolean enabled;
 
-    public SpotLight(Mesh mesh, Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f ambient, Vector3f diffuse, Vector3f specular) {
+    public SpotLight(Mesh mesh, Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f color) {
         this.mesh = mesh;
 
         this.position = position;
         this.direction = direction;
 
+        this.color = color;
+
         this.cutoff = cutoff;
         this.outerCutoff = outerCutoff;
-
-        this.ambient = ambient;
-        this.diffuse = diffuse;
-        this.specular = specular;
 
         this.enabled = true;
     }
@@ -52,6 +48,14 @@ public class SpotLight {
         this.direction = direction;
     }
 
+    public Vector3f getColor() {
+        return color;
+    }
+
+    public void setColor(Vector3f color) {
+        this.color = color;
+    }
+
     public float getCutoff() {
         return cutoff;
     }
@@ -66,30 +70,6 @@ public class SpotLight {
 
     public void setOuterCutoff(float outerCutoff) {
         this.outerCutoff = outerCutoff;
-    }
-
-    public Vector3f getAmbient() {
-        return ambient;
-    }
-
-    public void setAmbient(Vector3f ambient) {
-        this.ambient = ambient;
-    }
-
-    public Vector3f getDiffuse() {
-        return diffuse;
-    }
-
-    public void setDiffuse(Vector3f diffuse) {
-        this.diffuse = diffuse;
-    }
-
-    public Vector3f getSpecular() {
-        return specular;
-    }
-
-    public void setSpecular(Vector3f specular) {
-        this.specular = specular;
     }
 
     public boolean isEnabled() {

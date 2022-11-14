@@ -76,11 +76,14 @@ public class Renderer {
         pbrShader.createPBRMaterialUniform("material");
 
         pbrShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        pbrShader.createDirLightUniform("dirLight");
+        pbrShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
         pbrShader.createUniform("irradianceMap");
         pbrShader.createUniform("prefilterMap");
         pbrShader.createUniform("brdfLUT");
 
+        // PBRNoMaterial shader
         pbrNoMaterialShader = new ShaderProgram();
         pbrNoMaterialShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
         pbrNoMaterialShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrnomaterial.frag").toPath(), StandardCharsets.US_ASCII));
@@ -98,6 +101,8 @@ public class Renderer {
         pbrNoMaterialShader.createUniform("values.ao");
 
         pbrNoMaterialShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        pbrNoMaterialShader.createDirLightUniform("dirLight");
+        pbrNoMaterialShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
         pbrNoMaterialShader.createUniform("irradianceMap");
         pbrNoMaterialShader.createUniform("prefilterMap");
@@ -221,6 +226,20 @@ public class Renderer {
             pbrShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
         }
 
+        // Update spotlight uniforms
+        for (int i = 0; i < spotLights.length; i++) {
+            pbrShader.setUniform("spotLights[" + i + "].position",    spotLights[i].getPosition());
+            pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights[i].getDirection());
+            pbrShader.setUniform("spotLights[" + i + "].color",       spotLights[i].getColor());
+            pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights[i].getCutoff());
+            pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
+            pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
+        }
+
+        // Update directional light uniforms
+        pbrShader.setUniform("dirLight.direction", dirLight.getDirection());
+        pbrShader.setUniform("dirLight.color", dirLight.getColor());
+
         // Render entities
         pbrShader.setUniform("irradianceMap", 7);
         glActiveTexture(GL_TEXTURE7);
@@ -258,6 +277,20 @@ public class Renderer {
             pbrNoMaterialShader.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
             pbrNoMaterialShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
         }
+
+        // Update spotlight uniforms
+        for (int i = 0; i < spotLights.length; i++) {
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].position",    spotLights[i].getPosition());
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].direction",   spotLights[i].getDirection());
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].color",       spotLights[i].getColor());
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].cutoff",      spotLights[i].getCutoff());
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
+            pbrNoMaterialShader.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
+        }
+
+        // Update directional light uniforms
+        pbrNoMaterialShader.setUniform("dirLight.direction", dirLight.getDirection());
+        pbrNoMaterialShader.setUniform("dirLight.color", dirLight.getColor());
 
         // Render entities
         pbrNoMaterialShader.setUniform("irradianceMap", 7);
