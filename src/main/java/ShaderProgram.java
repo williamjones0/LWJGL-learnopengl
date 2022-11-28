@@ -48,7 +48,19 @@ class ShaderProgram {
         createUniform(uniformName + ".metallicRoughness");
         createUniform(uniformName + ".ao");
         createUniform(uniformName + ".emissive");
-        createUniform(uniformName + ".combinedMetallicRoughness");
+
+        createUniform(uniformName + ".albedoColor");
+        createUniform(uniformName + ".metallicFactor");
+        createUniform(uniformName + ".roughnessFactor");
+        createUniform(uniformName + ".emissiveColor");
+
+        createUniform(uniformName + ".uses_albedo_map");
+        createUniform(uniformName + ".uses_normal_map");
+        createUniform(uniformName + ".uses_metallic_map");
+        createUniform(uniformName + ".uses_roughness_map");
+        createUniform(uniformName + ".uses_metallicRoughness_map");
+        createUniform(uniformName + ".uses_ao_map");
+        createUniform(uniformName + ".uses_emissive_map");
     }
 
     public void createDirLightUniform(String uniformName) throws Exception {

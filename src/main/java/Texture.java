@@ -23,6 +23,10 @@ public class Texture {
         ID = loadTexture(fileName, internalFormat, pixelFormat, GL_UNSIGNED_BYTE, false);
     }
 
+    public Texture(String fileName, int internalFormat, boolean flip) throws Exception {
+        ID = loadTexture(fileName, internalFormat, GL_RGBA, GL_UNSIGNED_BYTE, flip);
+    }
+
     public Texture(String fileName, int internalFormat) throws Exception {
         ID = loadTexture(fileName, internalFormat, GL_RGBA, GL_UNSIGNED_BYTE, false);
     }

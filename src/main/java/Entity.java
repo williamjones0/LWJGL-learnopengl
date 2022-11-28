@@ -2,21 +2,46 @@ import org.joml.Vector3f;
 
 public class Entity {
 
-    private final Mesh mesh;
+    private final MaterialMesh[] meshes;
 
     private Vector3f position;
     private Vector3f rotation;
     private float scale;
 
-    public Entity(Mesh mesh, Vector3f position, Vector3f rotation, float scale) {
-        this.mesh = mesh;
+    private String name;
+
+    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale) {
+        this.meshes = meshes;
+
         this.position = position;
         this.rotation = rotation;
         this.scale = scale;
+
+        this.name = null;
     }
 
-    public Mesh getMesh() {
-        return mesh;
+    public Entity(MaterialMesh mesh, Vector3f position, Vector3f rotation, float scale) {
+        this(new MaterialMesh[]{mesh}, position, rotation, scale);
+    }
+
+    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name) {
+        this.meshes = meshes;
+
+        this.position = position;
+        this.rotation = rotation;
+        this.scale = scale;
+
+        this.name = name;
+    }
+
+    public void render() {
+        for (MaterialMesh mesh : meshes) {
+            mesh.render();
+        }
+    }
+
+    public MaterialMesh[] getMaterialMeshes() {
+        return meshes;
     }
 
     public Vector3f getPosition() {
@@ -45,5 +70,13 @@ public class Entity {
 
     public void setScale(float scale) {
         this.scale = scale;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

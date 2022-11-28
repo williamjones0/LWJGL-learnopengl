@@ -30,7 +30,18 @@ struct PBRMaterial {
     sampler2D ao;
     sampler2D emissive;
 
-    bool combinedMetallicRoughness;
+    vec3 albedoColor;
+    float metallicFactor;
+    float roughnessFactor;
+    vec3 emissiveColor;
+
+    bool uses_albedo_map;
+    bool uses_normal_map;
+    bool uses_metallic_map;
+    bool uses_roughness_map;
+    bool uses_metallicRoughness_map;
+    bool uses_ao_map;
+    bool uses_emissive_map;
 };
 
 #define NUM_POINT_LIGHTS 4
@@ -111,22 +122,55 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 
 void main() {
     // Material properties
-    vec3 albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
-
+    vec3 albedo;
+    vec3 N;
     float metallic;
     float roughness;
-    if (material.combinedMetallicRoughness) {
-        metallic = texture(material.metallicRoughness, TexCoords).b;
-        roughness = texture(material.metallicRoughness, TexCoords).g;
+    vec3 emissive;
+    float ao;
+
+    if (material.uses_albedo_map) {
+        albedo = texture(material.albedo, TexCoords).rgb;
     } else {
-        metallic = texture(material.metallic, TexCoords).r;
-        roughness = texture(material.roughness, TexCoords).r;
+        albedo = material.albedoColor;
     }
 
-    float ao = texture(material.ao, TexCoords).r;
+    if (material.uses_normal_map) {
+        N = getNormalFromMap();
+    } else {
+        N = normalize(Normal);
+    }
+
+    if (material.uses_metallicRoughness_map) {
+        metallic = texture(material.metallicRoughness, TexCoords).b + texture(material.metallic, TexCoords).b * 0.00001;
+        roughness = texture(material.metallicRoughness, TexCoords).g + texture(material.roughness, TexCoords).b * 0.00001;
+    } else {
+        if (material.uses_metallic_map) {
+            metallic = texture(material.metallic, TexCoords).r;
+        } else {
+            metallic = material.metallicFactor;
+        }
+
+        if (material.uses_roughness_map) {
+            roughness = texture(material.roughness, TexCoords).r;
+        } else {
+            roughness = material.roughnessFactor;
+        }
+    }
+
+    if (material.uses_ao_map) {
+        ao = texture(material.ao, TexCoords).r;
+    } else {
+        ao = 1.0;
+    }
+
+    if (material.uses_emissive_map) {
+        emissive = texture(material.emissive, TexCoords).rgb;
+    } else {
+        emissive = material.emissiveColor;
+    }
 
     // Lighting data input
-    vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - WorldPos);
     vec3 R = reflect(-V, N);
 
@@ -246,7 +290,7 @@ void main() {
     vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
 
     vec3 ambient = (kD * diffuse + specular) * ao;
-    ambient += texture(material.emissive, TexCoords).rgb;
+    ambient += emissive;
 
     vec3 color = ambient + Lo;
 

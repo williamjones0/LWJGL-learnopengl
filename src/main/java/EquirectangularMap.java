@@ -97,8 +97,7 @@ public class EquirectangularMap {
                 cube.getPositions(),
                 cube.getNormals(),
                 cube.getTexCoords(),
-                cube.getIndices(),
-                (Material) null
+                cube.getIndices()
             );
             cubeMesh.render();
         }

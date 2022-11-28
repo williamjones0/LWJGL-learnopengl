@@ -2,6 +2,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 
 import Utils.Maths;
 import org.joml.Matrix4f;
@@ -14,21 +15,21 @@ public class Renderer {
 
     private Framebuffer framebuffer;
 
-    private ShaderProgram shaderProgram;
+    private ShaderProgram phongShader;
     private ShaderProgram pbrShader;
     private ShaderProgram pbrNoMaterialShader;
     private ShaderProgram lightCubeShader;
-    private ShaderProgram skyboxShader;
     private ShaderProgram hdrShader;
 
     private float FOV = (float) Math.toRadians(60.0);
     private float aspectRatio;
     private boolean wireframe;
+    private boolean toneMapping = true;
     private boolean isNormalMapping = false;
     private float exposure = 1.0f;
 
-    private final float Z_NEAR = 0.1f;
-    private final float Z_FAR = 100f;
+    private float zNear = 0.1f;
+    private float zFar = 100f;
     private static final int MAX_POINT_LIGHTS = 4;
     private static final int MAX_SPOT_LIGHTS = 1;
     private Matrix4f projection;
@@ -40,23 +41,23 @@ public class Renderer {
             GL_DEPTH_STENCIL_ATTACHMENT
         );
 
-        shaderProgram = new ShaderProgram();
-        shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment_alt.glsl").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.link();
+        phongShader = new ShaderProgram();
+        phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
+        phongShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment_alt.glsl").toPath(), StandardCharsets.US_ASCII));
+        phongShader.link();
 
-        shaderProgram.createUniform("model");
-        shaderProgram.createUniform("view");
+        phongShader.createUniform("model");
+        phongShader.createUniform("view");
 
         aspectRatio = (float) window.getWidth() / window.getHeight();
-        projection = new Matrix4f().setPerspective(FOV, aspectRatio, Z_NEAR, Z_FAR);
-        shaderProgram.createUniform("projection");
+        projection = new Matrix4f().setPerspective(FOV, aspectRatio, zNear, zFar);
+        phongShader.createUniform("projection");
 
-        shaderProgram.createUniform("viewPos");
-        shaderProgram.createUniform("isNormalMapping");
+        phongShader.createUniform("viewPos");
+        phongShader.createUniform("isNormalMapping");
 
         // Light uniforms
-        shaderProgram.createMaterialUniform("material");
+        phongShader.createMaterialUniform("material");
 //        shaderProgram.createDirLightUniform("dirLight");
 //        shaderProgram.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
 //        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
@@ -120,15 +121,6 @@ public class Renderer {
 
         lightCubeShader.createUniform("colour");
 
-        // Skybox shader
-        skyboxShader = new ShaderProgram();
-        skyboxShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/skybox.vs").toPath(), StandardCharsets.US_ASCII));
-        skyboxShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/skybox.fs").toPath(), StandardCharsets.US_ASCII));
-        skyboxShader.link();
-
-        skyboxShader.createUniform("view");
-        skyboxShader.createUniform("projection");
-
         // HDR shader
         hdrShader = new ShaderProgram();
         hdrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/hdr.vert").toPath(), StandardCharsets.US_ASCII));
@@ -137,6 +129,7 @@ public class Renderer {
 
         hdrShader.createUniform("hdrBuffer");
         hdrShader.createUniform("exposure");
+        hdrShader.createUniform("toneMapping");
     }
 
     public void render(Camera camera, Scene scene, Window window) {
@@ -159,7 +152,7 @@ public class Renderer {
 //        shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
-        projection = new Matrix4f().setPerspective(FOV, aspectRatio, Z_NEAR, Z_FAR);
+        projection = new Matrix4f().setPerspective(FOV, aspectRatio, zNear, zFar);
 //        shaderProgram.setUniform("view", view);
 //        shaderProgram.setUniform("projection", projection);
 //
@@ -312,28 +305,31 @@ public class Renderer {
 //            entity.getMesh().render();
 //        }
 
-        for (int i = 0; i < entities.size(); i++) {
-            Entity entity = entities.get(i);
+        for (Entity entity : entities) {
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+            pbrShader.bind();
+            pbrShader.setUniform("model", model);
 
-            if (entity.getMesh().getPbrMaterial() != null) {
-                pbrShader.bind();
-                pbrShader.setUniform("model", model);
-                pbrShader.setUniform("material.combinedMetallicRoughness", entity.getMesh().getPbrMaterial().isCombinedMetallicRoughness());
-            } else {
-                pbrNoMaterialShader.setUniform("model", model);
+            Map<String, Boolean> usesTextures = entity.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures();
 
-                int row = i / 7;
-                int column = i % 7;
-                pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(1.0f, row * 1.0f, column * 1.0f).normalize());
-                pbrNoMaterialShader.setUniform("values.metallic", (float) row / (float) 7);
-                pbrNoMaterialShader.setUniform("values.roughness", Maths.clamp((float) column / (float) 7, 0.05f, 1.0f));
+            for (Map.Entry<String, Boolean> usesTexture: usesTextures.entrySet()) {
+                System.out.println(usesTexture.getKey() + " " + usesTexture.getValue());
+                pbrShader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
             }
 
-            entity.getMesh().render();
-        }
+            if (!usesTextures.get("albedo")) {
+                System.out.println(entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+                pbrShader.setUniform("material.albedo", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+            }
 
-        pbrNoMaterialShader.unbind();
+            if (!usesTextures.get("metallic"))
+                pbrShader.setUniform("material.metallic", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
+
+            if (!usesTextures.get("roughness"))
+                pbrShader.setUniform("material.roughness", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
+
+            entity.render();
+        }
 
         // Render lights
         lightCubeShader.bind();
@@ -382,21 +378,35 @@ public class Renderer {
         glBindTexture(GL_TEXTURE_2D, framebuffer.getTexture().getID());
         hdrShader.setUniform("hdrBuffer", 0);
         hdrShader.setUniform("exposure", exposure);
+        hdrShader.setUniform("toneMapping", toneMapping);
 
         // Render quad
         Utils.rendering.Quad.render();
     }
 
     public void cleanup() {
-        shaderProgram.cleanup();
+        phongShader.cleanup();
+        pbrShader.cleanup();
+        pbrNoMaterialShader.cleanup();
+        lightCubeShader.cleanup();
+        hdrShader.cleanup();
+        framebuffer.cleanup();
+    }
+
+    public boolean isWireframe() {
+        return wireframe;
     }
 
     public void setWireframe(boolean wireframe) {
         this.wireframe = wireframe;
     }
 
-    public boolean isWireframe() {
-        return wireframe;
+    public void setToneMapping(boolean toneMapping) {
+        this.toneMapping = toneMapping;
+    }
+
+    public boolean isToneMapping() {
+        return toneMapping;
     }
 
     public float getFOV() {
@@ -421,5 +431,21 @@ public class Renderer {
 
     public void setExposure(float exposure) {
         this.exposure = exposure;
+    }
+
+    public float getzNear() {
+        return zNear;
+    }
+
+    public void setzNear(float zNear) {
+        this.zNear = zNear;
+    }
+
+    public float getzFar() {
+        return zFar;
+    }
+
+    public void setzFar(float zFar) {
+        this.zFar = zFar;
     }
 }

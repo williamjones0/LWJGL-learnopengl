@@ -1,17 +1,33 @@
+import org.joml.Vector3f;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.lwjgl.opengl.GL11.GL_RGBA;
 import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class PBRMaterial {
 
+    // Textures or Vector3fs/floats for each of the PBR material properties
     private Texture albedo;
-    private Texture normal;
-    private Texture metallic;
-    private Texture roughness;
-    private Texture metallicRoughness;
-    private Texture ao;
-    private Texture emissive;
+    private Vector3f albedoColor;
 
-    private final boolean combinedMetallicRoughness;
+    private Texture normal;
+
+    private Texture metallic;
+    private float metallicFactor;
+
+    private Texture roughness;
+    private float roughnessFactor;
+
+    private Texture metallicRoughness;
+
+    private Texture ao;
+
+    private Texture emissive;
+    private Vector3f emissiveColor;
+
+    private Map<String, Boolean> usesTextures = new HashMap<>();
 
     public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
         this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
@@ -22,7 +38,29 @@ public class PBRMaterial {
         this.ao = ao != null ? ao : new Texture("src/main/resources/textures/PBR/default_ao.png", GL_RGBA);
         this.emissive = emissive != null ? emissive : new Texture("src/main/resources/textures/PBR/default_emissive.png", GL_RGBA);
 
-        this.combinedMetallicRoughness = metallicRoughness != null;
+        this.usesTextures.put("albedo", albedo != null);
+        this.usesTextures.put("normal", normal != null);
+        this.usesTextures.put("metallic", metallic != null);
+        this.usesTextures.put("roughness", roughness != null);
+        this.usesTextures.put("metallicRoughness", metallicRoughness != null);
+        this.usesTextures.put("ao", ao != null);
+        this.usesTextures.put("emissive", emissive != null);
+    }
+
+    // PBR material without textures
+    public PBRMaterial(Vector3f albedo, float metallic, float roughness, Vector3f emissive) {
+        this.albedoColor = albedo;
+        this.metallicFactor = metallic;
+        this.roughnessFactor = roughness;
+        this.emissiveColor = emissive;
+
+        this.usesTextures.put("albedo", false);
+        this.usesTextures.put("normal", false);
+        this.usesTextures.put("metallic", false);
+        this.usesTextures.put("roughness", false);
+        this.usesTextures.put("metallicRoughness", false);
+        this.usesTextures.put("ao", false);
+        this.usesTextures.put("emissive", false);
     }
 
     public Texture getAlbedo() {
@@ -31,6 +69,14 @@ public class PBRMaterial {
 
     public void setAlbedo(Texture albedo) {
         this.albedo = albedo;
+    }
+
+    public Vector3f getAlbedoColor() {
+        return albedoColor;
+    }
+
+    public void setAlbedoColor(Vector3f albedoColor) {
+        this.albedoColor = albedoColor;
     }
 
     public Texture getNormal() {
@@ -49,12 +95,28 @@ public class PBRMaterial {
         this.metallic = metallic;
     }
 
+    public float getMetallicFactor() {
+        return metallicFactor;
+    }
+
+    public void setMetallicFactor(float metallicFactor) {
+        this.metallicFactor = metallicFactor;
+    }
+
     public Texture getRoughness() {
         return roughness;
     }
 
     public void setRoughness(Texture roughness) {
         this.roughness = roughness;
+    }
+
+    public float getRoughnessFactor() {
+        return roughnessFactor;
+    }
+
+    public void setRoughnessFactor(float roughnessFactor) {
+        this.roughnessFactor = roughnessFactor;
     }
 
     public Texture getMetallicRoughness() {
@@ -81,7 +143,19 @@ public class PBRMaterial {
         this.emissive = emissive;
     }
 
-    public boolean isCombinedMetallicRoughness() {
-        return combinedMetallicRoughness;
+    public Vector3f getEmissiveColor() {
+        return emissiveColor;
+    }
+
+    public void setEmissiveColor(Vector3f emissiveColor) {
+        this.emissiveColor = emissiveColor;
+    }
+
+    public Map<String, Boolean> getUsesTextures() {
+        return usesTextures;
+    }
+
+    public void setUseTexture(String texture, boolean use) {
+        this.usesTextures.put(texture, use);
     }
 }

@@ -6,13 +6,13 @@ public class Material {
     private Texture diffuse;
     private Texture specular;
     private float shininess;
-    private Texture normalMap;
+    private Texture normal;
 
-    public Material(Texture diffuse, Texture specular, float shininess, Texture normalMap) throws Exception {
+    public Material(Texture diffuse, Texture specular, float shininess, Texture normal) throws Exception {
         this.diffuse = diffuse != null ? diffuse : new Texture("src/main/resources/textures/default_diffuse.png", GL_SRGB_ALPHA);
         this.specular = specular != null ? specular : new Texture("src/main/resources/textures/default_specular.png", GL_RGBA);
         this.shininess = shininess;
-        this.normalMap = normalMap != null ? normalMap : new Texture("src/main/resources/textures/default_normal.png",GL_RGBA);
+        this.normal = normal != null ? normal : new Texture("src/main/resources/textures/default_normal.png",GL_RGBA);
     }
 
     public Texture getDiffuse() {
@@ -39,11 +39,11 @@ public class Material {
         this.shininess = shininess;
     }
 
-    public Texture getNormalMap() {
-        return normalMap;
+    public Texture getNormal() {
+        return normal;
     }
 
-    public void setNormalMap(Texture normalMap) {
-        this.normalMap = normalMap;
+    public void setNormal(Texture normal) {
+        this.normal = normal;
     }
 }

@@ -5,6 +5,7 @@ in vec2 TexCoords;
 
 uniform sampler2D hdrBuffer;
 uniform float exposure;
+uniform bool toneMapping;
 
 void main() {
     const float gamma = 2.2;
@@ -15,6 +16,9 @@ void main() {
     // gamma correction
     mapped = pow(mapped, vec3(1.0 / gamma));
 
-    FragColor = vec4(mapped, 1.0);
-//    FragColor = vec4(mapped * 0.000001 + hdrColor, 1.0);
+    if (toneMapping) {
+        FragColor = vec4(mapped, 1.0);
+    } else {
+        FragColor = vec4(hdrColor, 1.0);
+    }
 }

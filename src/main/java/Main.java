@@ -1,3 +1,4 @@
+import Utils.Maths;
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import primitives.Cylinder;
@@ -5,7 +6,6 @@ import primitives.Quad;
 import primitives.UVSphere;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -90,15 +90,25 @@ public class Main {
             null
         );
 
+        PBRMaterial vintageTile = new PBRMaterial(
+            new Texture("src/main/resources/textures/PBR/vintage_tile/albedo.png", GL_SRGB_ALPHA),
+            new Texture("src/main/resources/textures/PBR/vintage_tile/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/vintage_tile/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/vintage_tile/roughness.png", GL_RGBA),
+            null,
+            new Texture("src/main/resources/textures/PBR/vintage_tile/ao.png", GL_RGBA),
+            null
+        );
+
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
         Mesh sphereMesh = new Mesh(
             uvSphere.getPositions(),
             uvSphere.getNormals(),
             uvSphere.getTexCoords(),
-            uvSphere.getIndices(),
-            (PBRMaterial) null
+            uvSphere.getIndices()
         );
+
         meshes.add(sphereMesh);
 
         Cylinder cylinder = new Cylinder(1f, 1f, 2f, 16);
@@ -107,18 +117,20 @@ public class Main {
             cylinder.getPositions(),
             cylinder.getNormals(),
             cylinder.getTexCoords(),
-            cylinder.getIndices(),
-            (PBRMaterial) blackTile
+            cylinder.getIndices()
         );
+        MaterialMesh cylinderMaterialMesh = new MaterialMesh(cylinderMesh, blackTile);
 
-        Mesh[] helmetMesh = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        meshes.add(backpackMesh[0]);
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
-        meshes.addAll(Arrays.asList(helmetMesh));
+        for (MaterialMesh mesh : helmetMaterialMeshes) {
+            meshes.add(mesh.getMesh());
+        }
 
-        Entity helmet = new Entity(helmetMesh[0], new Vector3f(0, 0, 5), new Vector3f(0, 1, 0), 1f);
+        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 0, 5), new Vector3f(0, 1, 0), 1f, "Damaged Helmet");
 //        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
         int numRows = 7;
@@ -129,31 +141,40 @@ public class Main {
 
         for (int row = 0; row < numRows; row++) {
             for (int column = 0; column < numColumns; column++) {
-                Entity sphere = new Entity(sphereMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1);
+                PBRMaterial pbrMaterial = new PBRMaterial(
+                    new Vector3f(1.0f, row * 1.0f, column * 1.0f).normalize(),
+                    (float) row / 7,
+                    Maths.clamp((float) column / (float) 7, 0.05f, 1.0f),
+                    new Vector3f(0.0f, 0.0f, 0.0f)
+                );
+
+                MaterialMesh sphereMaterialMesh = new MaterialMesh(sphereMesh, pbrMaterial);
+                Entity sphere = new Entity(sphereMaterialMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1);
                 entities.add(sphere);
             }
         }
 
-        entities.add(helmet);
+//        entities.add(helmet);
 //        entities.add(backpack);
 
-        entities.add(new Entity(cylinderMesh, new Vector3f(10, 0, 10), new Vector3f(0, 0, 0), 1f));
+//        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
         Quad quad = new Quad();
         Mesh planeMesh = new Mesh(
             quad.getPositions(),
             quad.getNormals(),
             quad.getTexCoords(),
-            quad.getIndices(),
-            blackTile
+            quad.getIndices()
         );
+        MaterialMesh planeMaterialMesh = new MaterialMesh(planeMesh, vintageTile);
 
         meshes.add(planeMesh);
 
-        Entity plane = new Entity(planeMesh, new Vector3f(0, -11f, 0), new Vector3f(), 10);
-        plane.setRotation(plane.getRotation().add(new Vector3f(0, 0, -90f)));
-
-        entities.add(plane);
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10));
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -163,31 +184,31 @@ public class Main {
 //        );
 
         DirLight dirLight = new DirLight(
-            new Vector3f(-0.2f, -1.0f, -0.3f),
-            new Vector3f(100f, 100f, 100f)
+            new Vector3f(-0.2f, 1.0f, -0.3f),
+            new Vector3f(1f, 1f, 1f)
         );
 
         PointLight pointLight1 = new PointLight(
             sphereMesh,
-            new Vector3f(-10.0f,  10.0f, 10.0f),
+            new Vector3f(-8.0f, 8.0f, 8.0f),
             new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight2 = new PointLight(
             sphereMesh,
-            new Vector3f(10.0f,  10.0f, 10.0f),
+            new Vector3f(8.0f, 8.0f, 8.0f),
             new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight3 = new PointLight(
             sphereMesh,
-            new Vector3f(-10.0f,  -10.0f, 10.0f),
+            new Vector3f(-8.0f, -8.0f, 8.0f),
             new Vector3f(150.0f, 150.0f, 150.0f)
         );
 
         PointLight pointLight4 = new PointLight(
             sphereMesh,
-            new Vector3f(10.0f,  -10.0f, 10.0f),
+            new Vector3f(8.0f, -8.0f, 8.0f),
             new Vector3f(150.0f, 0.0f, 0.0f)
         );
 
@@ -229,7 +250,7 @@ public class Main {
         scene = new Scene(entities, dirLight, pointLights, spotLights, equirectangularMap);
     }
 
-    private void loop() {
+    private void loop() throws Exception {
         while ( !window.shouldClose() && !Input.isKeyDown(GLFW_KEY_ESCAPE)) {
             update();
             render();
@@ -238,6 +259,7 @@ public class Main {
 
     private void update() {
         window.update();
+        camera.update();
 
         // Calculate delta time
         float currentFrame = (float) glfwGetTime();
@@ -246,10 +268,10 @@ public class Main {
 
         spotLights[0].setPosition(camera.getPosition());
         spotLights[0].setDirection(camera.getFront());
-
-        Vector3f temp = scene.getEntities().get(49).getRotation();
-        temp.rotateAxis((float) Math.toRadians(1f), 0.0f, 0.0f, 1.0f);
-        scene.getEntities().get(49).setRotation(temp);
+//
+//        Vector3f temp = scene.getEntities().get(49).getRotation();
+//        temp.rotateAxis((float) Math.toRadians(1f), 0.0f, 0.0f, 1.0f);
+//        scene.getEntities().get(49).setRotation(temp);
 
         processInput();
     }
@@ -351,7 +373,7 @@ public class Main {
             lastFrameButtons.remove(Integer.valueOf(GLFW_MOUSE_BUTTON_2));
     }
 
-    private void render() {
+    private void render() throws Exception {
         masterRenderer.render(camera, scene, window);
         window.swapBuffers();
     }

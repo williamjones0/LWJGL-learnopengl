@@ -13,13 +13,13 @@ import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class ModelLoader {
 
-    public static Mesh[] load(String modelPath, String texturesPath) throws Exception {
+    public static MaterialMesh[] load(String modelPath, String texturesPath) throws Exception {
         return load(modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
             | aiProcess_Triangulate | aiProcess_FixInfacingNormals
             | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     }
 
-    public static Mesh[] load(String modelPath, String texturesPath, int flags) throws Exception {
+    public static MaterialMesh[] load(String modelPath, String texturesPath, int flags) throws Exception {
         AIScene aiScene = aiImportFile(modelPath, flags);
         if (aiScene == null) {
             throw new RuntimeException("Failed to load model: " + modelPath);
@@ -47,11 +47,14 @@ public class ModelLoader {
         int numMeshes = aiScene.mNumMeshes();
         System.out.println("Number of meshes: " + numMeshes);
         PointerBuffer aiMeshes = aiScene.mMeshes();
-        Mesh[] meshes = new Mesh[numMeshes];
+        MaterialMesh[] meshes = new MaterialMesh[numMeshes];
         for (int i = 0; i < numMeshes; i++) {
             AIMesh aiMesh = AIMesh.create(aiMeshes.get(i));
 //            meshes[i] = processMesh(aiMesh, materials);
-            meshes[i] = processMesh(aiMesh, pbrMaterials);
+            meshes[i] = new MaterialMesh(
+                processMesh(aiMesh),
+                pbrMaterials.get(aiMesh.mMaterialIndex())
+            );
         }
 
         return meshes;
@@ -187,7 +190,7 @@ public class ModelLoader {
         materials.add(material);
     }
 
-    private static Mesh processMesh(AIMesh aiMesh, List<PBRMaterial> pbrMaterials) throws Exception {
+    private static Mesh processMesh(AIMesh aiMesh) throws Exception {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> tangents = new ArrayList<>();
@@ -252,16 +255,7 @@ public class ModelLoader {
             floatListToArray(vertices),
             floatListToArray(normals),
             floatListToArray(texCoords),
-            intListToArray(indices),
-//            new PBRMaterial(
-//                new Texture("src/main/resources/models/helmet/Default_albedo.jpg", GL_SRGB_ALPHA),
-//                new Texture("src/main/resources/models/helmet/Default_normal.jpg", GL_RGBA),
-//                new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA),
-//                new Texture("src/main/resources/models/helmet/Default_metalRoughness.jpg", GL_RGBA),
-//                new Texture("src/main/resources/models/helmet/Default_AO.jpg", GL_RGBA),
-//                new Texture("src/main/resources/models/helmet/Default_emissive.jpg", GL_SRGB_ALPHA)
-//            )
-            pbrMaterials.get(0)
+            intListToArray(indices)
         );
 
     }

@@ -17,20 +17,8 @@ public class Mesh {
     private int texCoordsVBO;
     private int indicesVBO;
     private int vertexCount;
-    private final Material material;
-    private final PBRMaterial pbrMaterial;
 
-    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices, Material material) {
-        this.material = material;
-        this.pbrMaterial = null;
-
-        init(positions, normals, texCoords, indices);
-    }
-
-    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices, PBRMaterial material) {
-        this.material = null;
-        this.pbrMaterial = material;
-
+    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices) {
         init(positions, normals, texCoords, indices);
     }
 
@@ -87,35 +75,15 @@ public class Mesh {
     }
 
     public void render() {
-        // Activate and bind textures
-        if (pbrMaterial != null) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getAlbedo().getID());
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getNormal().getID());
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getMetallic().getID());
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getRoughness().getID());
-            glActiveTexture(GL_TEXTURE4);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getMetallicRoughness().getID());
-            glActiveTexture(GL_TEXTURE5);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getAo().getID());
-            glActiveTexture(GL_TEXTURE6);
-            glBindTexture(GL_TEXTURE_2D, pbrMaterial.getEmissive().getID());
-        }
-
         glBindVertexArray(VAO);
-
         glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
-
         glBindVertexArray(0);
     }
 
     public void cleanup() {
         glDisableVertexAttribArray(0);
 
-        // Delete the VBO
+        // Delete the VBOs
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDeleteBuffers(positionsVBO);
         glDeleteBuffers(normalsVBO);
@@ -125,13 +93,5 @@ public class Mesh {
         // Delete the VAO
         glBindVertexArray(0);
         glDeleteVertexArrays(0);
-    }
-
-//    public Material getMaterial() {
-//        return material;
-//    }
-
-    public PBRMaterial getPbrMaterial() {
-        return pbrMaterial;
     }
 }
