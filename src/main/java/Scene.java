@@ -4,12 +4,12 @@ public class Scene {
 
     private List<Entity> entities;
     private DirLight dirLight;
-    private PointLight[] pointLights;
-    private SpotLight[] spotLights;
+    private List<PointLight> pointLights;
+    private List<SpotLight> spotLights;
     private Skybox skybox;
     private EquirectangularMap equirectangularMap;
 
-    public Scene(List<Entity> entities, DirLight dirLight, PointLight[] pointLights, SpotLight[] spotLights, EquirectangularMap equirectangularMap) {
+    public Scene(List<Entity> entities, DirLight dirLight, List<PointLight> pointLights, List<SpotLight> spotLights, EquirectangularMap equirectangularMap) {
         this.entities = entities;
         this.dirLight = dirLight;
         this.pointLights = pointLights;
@@ -26,11 +26,11 @@ public class Scene {
         return dirLight;
     }
 
-    public PointLight[] getPointLights() {
+    public List<PointLight> getPointLights() {
         return pointLights;
     }
 
-    public SpotLight[] getSpotLights() {
+    public List<SpotLight> getSpotLights() {
         return spotLights;
     }
 

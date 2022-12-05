@@ -24,6 +24,14 @@ public class Entity {
         this(new MaterialMesh[]{mesh}, position, rotation, scale);
     }
 
+    public Entity(MaterialMesh mesh) {
+        this(mesh, new Vector3f(), new Vector3f(), 1.0f);
+    }
+
+    public Entity(MaterialMesh[] meshes) {
+        this(meshes, new Vector3f(), new Vector3f(), 1.0f);
+    }
+
     public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name) {
         this.meshes = meshes;
 

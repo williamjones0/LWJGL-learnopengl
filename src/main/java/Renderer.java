@@ -6,7 +6,6 @@ import java.util.Map;
 
 import Utils.Maths;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -135,8 +134,8 @@ public class Renderer {
     public void render(Camera camera, Scene scene, Window window) {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
-        PointLight[] pointLights = scene.getPointLights();
-        SpotLight[] spotLights = scene.getSpotLights();
+        List<PointLight> pointLights = scene.getPointLights();
+        List<SpotLight> spotLights = scene.getSpotLights();
         Skybox skybox = scene.getSkybox();
         EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
 
@@ -214,19 +213,19 @@ public class Renderer {
         pbrShader.setUniform("material.emissive", 6);
 
         // Update point light uniforms
-        for (int i = 0; i < pointLights.length; i++) {
-            pbrShader.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
-            pbrShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
+        for (int i = 0; i < pointLights.size(); i++) {
+            pbrShader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
+            pbrShader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
         }
 
         // Update spotlight uniforms
-        for (int i = 0; i < spotLights.length; i++) {
-            pbrShader.setUniform("spotLights[" + i + "].position",    spotLights[i].getPosition());
-            pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights[i].getDirection());
-            pbrShader.setUniform("spotLights[" + i + "].color",       spotLights[i].getColor());
-            pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights[i].getCutoff());
-            pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
-            pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
+        for (int i = 0; i < spotLights.size(); i++) {
+            pbrShader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
+            pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
+            pbrShader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
+            pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
+            pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
+            pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
         }
 
         // Update directional light uniforms
@@ -246,65 +245,6 @@ public class Renderer {
         glActiveTexture(GL_TEXTURE9);
         glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
-//        for (Entity entity : entities) {
-//            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
-//            pbrShader.setUniform("model", model);
-//
-//            entity.getMesh().render();
-//        }
-
-        pbrShader.unbind();
-
-        // PBRNoMaterial shader
-        pbrNoMaterialShader.bind();
-        pbrNoMaterialShader.setUniform("view", view);
-        pbrNoMaterialShader.setUniform("projection", projection);
-
-        pbrNoMaterialShader.setUniform("camPos", camera.getPosition());
-
-        pbrNoMaterialShader.setUniform("values.albedo", new Vector3f(1.0f, 1.0f, 1.0f));
-        pbrNoMaterialShader.setUniform("values.ao", 1.0f);
-
-        // Update point light uniforms
-        for (int i = 0; i < pointLights.length; i++) {
-            pbrNoMaterialShader.setUniform("pointLights[" + i + "].position", pointLights[i].getPosition());
-            pbrNoMaterialShader.setUniform("pointLights[" + i + "].color", pointLights[i].getColor());
-        }
-
-        // Update spotlight uniforms
-        for (int i = 0; i < spotLights.length; i++) {
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].position",    spotLights[i].getPosition());
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].direction",   spotLights[i].getDirection());
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].color",       spotLights[i].getColor());
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].cutoff",      spotLights[i].getCutoff());
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights[i].getOuterCutoff());
-            pbrNoMaterialShader.setUniform("spotLights[" + i + "].enabled",     spotLights[i].isEnabled());
-        }
-
-        // Update directional light uniforms
-        pbrNoMaterialShader.setUniform("dirLight.direction", dirLight.getDirection());
-        pbrNoMaterialShader.setUniform("dirLight.color", dirLight.getColor());
-
-        // Render entities
-        pbrNoMaterialShader.setUniform("irradianceMap", 7);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
-
-        pbrNoMaterialShader.setUniform("prefilterMap", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
-
-        pbrNoMaterialShader.setUniform("brdfLUT", 9);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
-
-//        for (Entity entity : entities) {
-//            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
-//            pbrShader.setUniform("model", model);
-//
-//            entity.getMesh().render();
-//        }
-
         for (Entity entity : entities) {
             Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
             pbrShader.bind();
@@ -319,14 +259,14 @@ public class Renderer {
 
             if (!usesTextures.get("albedo")) {
                 System.out.println(entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
-                pbrShader.setUniform("material.albedo", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+                pbrShader.setUniform("material.albedoColor", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
             }
 
             if (!usesTextures.get("metallic"))
-                pbrShader.setUniform("material.metallic", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
+                pbrShader.setUniform("material.metallicFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
 
             if (!usesTextures.get("roughness"))
-                pbrShader.setUniform("material.roughness", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
+                pbrShader.setUniform("material.roughnessFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
 
             entity.render();
         }

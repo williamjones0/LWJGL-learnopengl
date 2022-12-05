@@ -13,7 +13,7 @@ public class MasterRenderer {
 
     public void render(Camera camera, Scene scene, Window window) throws Exception {
         renderer.render(camera, scene, window);
-        gui.render(scene, camera, renderer);
+        gui.render(scene, camera, renderer, window);
     }
 
 }

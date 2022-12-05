@@ -130,7 +130,7 @@ void main() {
     float ao;
 
     if (material.uses_albedo_map) {
-        albedo = texture(material.albedo, TexCoords).rgb;
+        albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
     } else {
         albedo = material.albedoColor;
     }

@@ -9,7 +9,7 @@ public class MaterialMesh {
 
     public MaterialMesh(Mesh mesh, PBRMaterial pbrMaterial) {
         this.mesh = mesh;
-        this.pbrMaterial = pbrMaterial;
+        this.pbrMaterial = pbrMaterial == null ? new PBRMaterial() : pbrMaterial;
     }
 
     public void render() {
@@ -33,7 +33,7 @@ public class MaterialMesh {
             }
             if (pbrMaterial.getMetallicRoughness() != null) {
                 glActiveTexture(GL_TEXTURE4);
-                glBindTexture(GL_TEXTURE_2D, pbrMaterial.getAo().getID());
+                glBindTexture(GL_TEXTURE_2D, pbrMaterial.getMetallicRoughness().getID());
             }
             if (pbrMaterial.getAo() != null) {
                 glActiveTexture(GL_TEXTURE5);

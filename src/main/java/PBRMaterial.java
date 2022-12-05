@@ -10,22 +10,22 @@ public class PBRMaterial {
 
     // Textures or Vector3fs/floats for each of the PBR material properties
     private Texture albedo;
-    private Vector3f albedoColor;
+    private Vector3f albedoColor = new Vector3f(1.0f, 1.0f, 1.0f);
 
     private Texture normal;
 
     private Texture metallic;
-    private float metallicFactor;
+    private float metallicFactor = 0.0f;
 
     private Texture roughness;
-    private float roughnessFactor;
+    private float roughnessFactor = 0.0f;
 
     private Texture metallicRoughness;
 
     private Texture ao;
 
     private Texture emissive;
-    private Vector3f emissiveColor;
+    private Vector3f emissiveColor = new Vector3f(0, 0, 0);
 
     private Map<String, Boolean> usesTextures = new HashMap<>();
 
@@ -61,6 +61,10 @@ public class PBRMaterial {
         this.usesTextures.put("metallicRoughness", false);
         this.usesTextures.put("ao", false);
         this.usesTextures.put("emissive", false);
+    }
+
+    public PBRMaterial() {
+        this(new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
     }
 
     public Texture getAlbedo() {

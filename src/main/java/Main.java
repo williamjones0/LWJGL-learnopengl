@@ -18,7 +18,7 @@ public class Main {
     private Renderer renderer;
     private List<Mesh> meshes;
     private Camera camera;
-    private SpotLight[] spotLights;
+    private List<SpotLight> spotLights;
     private Scene scene;
     private GUI gui;
     private MasterRenderer masterRenderer;
@@ -154,7 +154,7 @@ public class Main {
             }
         }
 
-//        entities.add(helmet);
+        entities.add(helmet);
 //        entities.add(backpack);
 
 //        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
@@ -170,11 +170,11 @@ public class Main {
 
         meshes.add(planeMesh);
 
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10));
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10));
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10));
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10));
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10));
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -212,12 +212,11 @@ public class Main {
             new Vector3f(150.0f, 0.0f, 0.0f)
         );
 
-        PointLight[] pointLights = new PointLight[]{
-            pointLight1,
-            pointLight2,
-            pointLight3,
-            pointLight4
-        };
+        List<PointLight> pointLights = new ArrayList<>();
+        pointLights.add(pointLight1);
+        pointLights.add(pointLight2);
+        pointLights.add(pointLight3);
+        pointLights.add(pointLight4);
 
         SpotLight spotLight = new SpotLight(
             sphereMesh,
@@ -231,9 +230,8 @@ public class Main {
             new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
-        spotLights = new SpotLight[] {
-            spotLight
-        };
+        spotLights = new ArrayList<>();
+        spotLights.add(spotLight);
 
         Texture backgroundTexture = new Texture(
             "src/main/resources/skybox/HDR/Newport_Loft.hdr",
@@ -266,8 +264,8 @@ public class Main {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        spotLights[0].setPosition(camera.getPosition());
-        spotLights[0].setDirection(camera.getFront());
+        spotLights.get(0).setPosition(camera.getPosition());
+        spotLights.get(0).setDirection(camera.getFront());
 //
 //        Vector3f temp = scene.getEntities().get(49).getRotation();
 //        temp.rotateAxis((float) Math.toRadians(1f), 0.0f, 0.0f, 1.0f);
@@ -292,22 +290,13 @@ public class Main {
             if (Input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
                 camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
 
-            if (Input.isKeyDown(GLFW_KEY_I))
-                scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0, 0.01f, 0)));
-            if (Input.isKeyDown(GLFW_KEY_K))
-                scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0, -0.01f, 0)));
-            if (Input.isKeyDown(GLFW_KEY_J))
-                scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(-0.01f, 0, 0)));
-            if (Input.isKeyDown(GLFW_KEY_L))
-                scene.getPointLights()[0].setPosition(scene.getPointLights()[0].getPosition().add(new Vector3f(0.01f, 0, 0)));
-
             if (Input.isKeyDown(GLFW_KEY_Q) && renderer.getExposure() > 0.0f)
                 renderer.setExposure(renderer.getExposure() - 0.01f);
             if (Input.isKeyDown(GLFW_KEY_E))
                 renderer.setExposure(renderer.getExposure() + 0.01f);
 
             if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F)) {  // If F pressed (and wasn't pressed last frame)
-                spotLights[0].setEnabled(!spotLights[0].isEnabled());
+                spotLights.get(0).setEnabled(!spotLights.get(0).isEnabled());
             }
 
             if (Input.isKeyDown(GLFW_KEY_T) && !lastFrameKeys.contains(GLFW_KEY_T)) {  // If T pressed (and wasn't pressed last frame)
