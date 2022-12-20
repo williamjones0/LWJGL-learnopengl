@@ -116,6 +116,11 @@ public class UVSphere {
         indices = intListToArray(indicesList);
     }
 
+    public void update() {
+        generateVertices();
+        generateTriangles();
+    }
+
     public float getRadius() {
         return radius;
     }

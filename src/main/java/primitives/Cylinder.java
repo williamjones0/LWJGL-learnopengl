@@ -157,6 +157,43 @@ public class Cylinder {
         indices = intListToArray(indicesList);
     }
 
+    public void update() {
+        generateVertices();
+        generateTriangles();
+    }
+
+    public float getTopRadius() {
+        return topRadius;
+    }
+
+    public void setTopRadius(float topRadius) {
+        this.topRadius = topRadius;
+    }
+
+    public float getBottomRadius() {
+        return bottomRadius;
+    }
+
+    public void setBottomRadius(float bottomRadius) {
+        this.bottomRadius = bottomRadius;
+    }
+
+    public float getHeight() {
+        return height;
+    }
+
+    public void setHeight(float height) {
+        this.height = height;
+    }
+
+    public int getSectors() {
+        return sectors;
+    }
+
+    public void setSectors(int sectors) {
+        this.sectors = sectors;
+    }
+
     public float[] getPositions() {
         return positions;
     }

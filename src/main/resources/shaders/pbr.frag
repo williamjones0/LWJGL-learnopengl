@@ -4,12 +4,14 @@ out vec4 FragColor;
 struct PointLight {
     vec3 position;
     vec3 color;
+    float intensity;
 };
 
 struct SpotLight {
     vec3 position;
     vec3 direction;
     vec3 color;
+    float intensity;
     float cutoff;
     float outerCutoff;
 
@@ -44,8 +46,8 @@ struct PBRMaterial {
     bool uses_emissive_map;
 };
 
-#define NUM_POINT_LIGHTS 4
-#define NUM_SPOT_LIGHTS 1
+#define NUM_POINT_LIGHTS 8
+#define NUM_SPOT_LIGHTS 4
 #define PI 3.14159265359
 
 in vec2 TexCoords;
@@ -186,7 +188,7 @@ void main() {
 
         float distance = length(pointLights[i].position - WorldPos);
         float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = pointLights[i].color * attenuation;
+        vec3 radiance = pointLights[i].color * pointLights[i].intensity * attenuation;
 
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);
@@ -226,7 +228,7 @@ void main() {
             float epsilon = spotLights[i].cutoff - spotLights[i].outerCutoff;
             float intensity = clamp((theta - spotLights[i].outerCutoff) / epsilon, 0.0, 1.0);
 
-            vec3 radiance = spotLights[i].color * attenuation * intensity;
+            vec3 radiance = spotLights[i].color * spotLights[i].intensity * attenuation * intensity;
 
             // Cook-Torrance BRDF
             float NDF = DistributionGGX(N, H, roughness);

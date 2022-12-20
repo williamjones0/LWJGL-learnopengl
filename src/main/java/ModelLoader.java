@@ -190,7 +190,7 @@ public class ModelLoader {
         materials.add(material);
     }
 
-    private static Mesh processMesh(AIMesh aiMesh) throws Exception {
+    private static Mesh processMesh(AIMesh aiMesh) {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> tangents = new ArrayList<>();

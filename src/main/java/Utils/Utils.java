@@ -30,4 +30,8 @@ public class Utils {
         };
     }
 
+    public static Vector3f arrayToVector3f(float[] array) {
+        return new Vector3f(array[0], array[1], array[2]);
+    }
+
 }

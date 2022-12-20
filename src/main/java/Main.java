@@ -130,7 +130,7 @@ public class Main {
             meshes.add(mesh.getMesh());
         }
 
-        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 0, 5), new Vector3f(0, 1, 0), 1f, "Damaged Helmet");
+        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 0, 5), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
 //        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
         int numRows = 7;
@@ -138,6 +138,12 @@ public class Main {
         float spacing = 2.5f;
 
         List<Entity> entities = new ArrayList<>();
+
+        Entity cubeParent = new Entity(new Vector3f(0, 0, 0), "Cube Parent");
+        entities.add(cubeParent);
+
+        Entity sphereParent = new Entity(new Vector3f(0, 0, 0), "Spheres", cubeParent);
+        entities.add(sphereParent);
 
         for (int row = 0; row < numRows; row++) {
             for (int column = 0; column < numColumns; column++) {
@@ -149,15 +155,15 @@ public class Main {
                 );
 
                 MaterialMesh sphereMaterialMesh = new MaterialMesh(sphereMesh, pbrMaterial);
-                Entity sphere = new Entity(sphereMaterialMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1);
-                entities.add(sphere);
+                Entity sphere = new Entity(sphereMaterialMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1, sphereParent);
+//                entities.add(sphere);
             }
         }
 
         entities.add(helmet);
 //        entities.add(backpack);
 
-//        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
+        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
         Quad quad = new Quad();
         Mesh planeMesh = new Mesh(
@@ -170,11 +176,11 @@ public class Main {
 
         meshes.add(planeMesh);
 
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10, cubeParent));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10, cubeParent));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10, cubeParent));
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -189,27 +195,27 @@ public class Main {
         );
 
         PointLight pointLight1 = new PointLight(
-            sphereMesh,
             new Vector3f(-8.0f, 8.0f, 8.0f),
-            new Vector3f(150.0f, 150.0f, 150.0f)
+            new Vector3f(1.0f, 1.0f, 1.0f),
+            150.0f
         );
 
         PointLight pointLight2 = new PointLight(
-            sphereMesh,
             new Vector3f(8.0f, 8.0f, 8.0f),
-            new Vector3f(150.0f, 150.0f, 150.0f)
+            new Vector3f(1.0f, 1.0f, 1.0f),
+            150.0f
         );
 
         PointLight pointLight3 = new PointLight(
-            sphereMesh,
             new Vector3f(-8.0f, -8.0f, 8.0f),
-            new Vector3f(150.0f, 150.0f, 150.0f)
+            new Vector3f(1.0f, 1.0f, 1.0f),
+            150.0f
         );
 
         PointLight pointLight4 = new PointLight(
-            sphereMesh,
             new Vector3f(8.0f, -8.0f, 8.0f),
-            new Vector3f(150.0f, 0.0f, 0.0f)
+            new Vector3f(1.0f, 0.0f, 0.0f),
+            150.0f
         );
 
         List<PointLight> pointLights = new ArrayList<>();
@@ -230,8 +236,20 @@ public class Main {
             new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
+        SpotLight spotLight2 = new SpotLight(
+            new Vector3f(0, 0, 12),
+            new Vector3f(0, 0, -1),
+
+            (float) Math.cos(Math.toRadians(12.5f)),
+            (float) Math.cos(Math.toRadians(15.0f)),
+
+            new Vector3f(0.0f, 1.0f, 1.0f),
+            500
+        );
+
         spotLights = new ArrayList<>();
         spotLights.add(spotLight);
+        spotLights.add(spotLight2);
 
         Texture backgroundTexture = new Texture(
             "src/main/resources/skybox/HDR/Newport_Loft.hdr",
@@ -249,13 +267,24 @@ public class Main {
     }
 
     private void loop() throws Exception {
-        while ( !window.shouldClose() && !Input.isKeyDown(GLFW_KEY_ESCAPE)) {
+        while (!window.shouldClose() && !Input.isKeyDown(GLFW_KEY_ESCAPE)) {
             update();
             render();
         }
     }
 
     private void update() {
+        for (int i = 0; i < scene.getEntities().size(); i++) {
+            Entity entity = scene.getEntities().get(i);
+            if (entity.getName() == null) {
+                entity.setName("Entity " + i);
+            }
+
+            if (entity.getParent() != null && !entity.getParent().getChildren().contains(entity)) {
+                entity.getParent().addChild(entity);
+            }
+        }
+
         window.update();
         camera.update();
 

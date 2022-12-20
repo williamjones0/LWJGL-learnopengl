@@ -2,9 +2,12 @@ import Utils.Utils;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.flag.ImGuiCond;
+import imgui.flag.ImGuiTreeNodeFlags;
+import imgui.flag.ImGuiWindowFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImBoolean;
+import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import org.joml.Vector3f;
@@ -34,14 +37,54 @@ public class GUI {
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
     private final Map<String, Integer> selected = new HashMap<>();
+    private Entity selectedEntity;
     private boolean showMaterialWindow = false;
+    private boolean showEntityWindow = false;
+    private String newEntityType = "";
+    private boolean showPointLightWindow = false;
+    private boolean showSpotLightWindow = false;
+
+    private PointLight newPointLight = new PointLight(
+        new Vector3f(0, 0, 0),
+        new Vector3f(1, 1, 1),
+        1
+    );
+
+    private SpotLight newSpotLight = new SpotLight(
+        new Vector3f(0, 0, 0),
+        new Vector3f(1, 0, 0),
+        (float) Math.cos(Math.toRadians(12.5f)),
+        (float) Math.cos(Math.toRadians(15.0f)),
+        new Vector3f(1, 1, 1),
+        1
+    );
+
+    private Entity newEntity = new Entity(
+        new Vector3f(0, 0, 0),
+        new Vector3f(0, 0, 0),
+        1,
+        ""
+    );
+
+    private Cylinder newCylinder = new Cylinder(
+        1f,
+        1f,
+        1f,
+        32
+    );
+
+    private UVSphere newSphere = new UVSphere(
+        1f,
+        32,
+        32
+    );
 
     // GUI configuration
     private final float PADDING = 20;
     private final float HIERARCHY_WIDTH = 200;
     private final float HIERARCHY_HEIGHT = 800;
     private final float INSPECTOR_WIDTH = 300;
-    private final float INSPECTOR_HEIGHT = 420;
+    private final float INSPECTOR_HEIGHT = 500;
     private final float MATERIAL_WIDTH = 480;
     private final float MATERIAL_HEIGHT = 400;
 
@@ -54,11 +97,14 @@ public class GUI {
         io.setIniFilename(null);
         io.setConfigFlags(NoMouse);
 
+        selectedEntity = null;
+
         selected.put("entity", -1);
         selected.put("pointLight", -1);
         selected.put("spotLight", -1);
         selected.put("dirLight", -1);
         selected.put("camera", -1);
+        selected.put("skybox", -1);
     }
 
     public void render(Scene scene, Camera camera, Renderer renderer, Window window) throws Exception {
@@ -79,10 +125,10 @@ public class GUI {
         ImGui.beginMainMenuBar();
 
         if (ImGui.beginMenu("File")) {
-            if (ImGui.menuItem("New")) {
+            if (ImGui.menuItem("New", "Ctrl+N")) {
 
             }
-            if (ImGui.menuItem("Open")) {
+            if (ImGui.menuItem("Open", "Ctrl+O")) {
 
             }
             if (ImGui.menuItem("Save")) {
@@ -91,49 +137,34 @@ public class GUI {
             if (ImGui.menuItem("Save As")) {
 
             }
-            if (ImGui.menuItem("Exit")) {
+            if (ImGui.menuItem("Exit", "Ctrl+Q")) {
                 System.exit(0);
             }
             ImGui.endMenu();
         }
 
-        if (ImGui.beginMenu("Entities")) {
+        if (ImGui.beginMenu("Add")) {
             if (ImGui.menuItem("Empty")) {
-
+                int count = 0;
+                for (Entity entity : entities) {
+                    if (entity.getName().startsWith("Entity")) {
+                        count++;
+                    }
+                }
+                entities.add(new Entity(new Vector3f(0, 0, 0), "Entity " + count));
             }
             if (ImGui.beginMenu("3D Primitives")) {
                 if (ImGui.menuItem("Cube")) {
-                    Cube cube = new Cube();
-                    Mesh cubeMesh = new Mesh(
-                        cube.getPositions(),
-                        cube.getNormals(),
-                        cube.getTexCoords(),
-                        cube.getIndices()
-                    );
-
-                    entities.add(new Entity(new MaterialMesh(cubeMesh, null)));
+                    showEntityWindow = true;
+                    newEntityType = "Cube";
                 }
                 if (ImGui.menuItem("Cylinder")) {
-                    Cylinder cylinder = new Cylinder(1, 1, 1, 32);
-                    Mesh cylinderMesh = new Mesh(
-                        cylinder.getPositions(),
-                        cylinder.getNormals(),
-                        cylinder.getTexCoords(),
-                        cylinder.getIndices()
-                    );
-
-                    entities.add(new Entity(new MaterialMesh(cylinderMesh, null)));
+                    showEntityWindow = true;
+                    newEntityType = "Cylinder";
                 }
                 if (ImGui.menuItem("Sphere")) {
-                    UVSphere sphere = new UVSphere(1, 32, 32);
-                    Mesh sphereMesh = new Mesh(
-                        sphere.getPositions(),
-                        sphere.getNormals(),
-                        sphere.getTexCoords(),
-                        sphere.getIndices()
-                    );
-
-                    entities.add(new Entity(new MaterialMesh(sphereMesh, null)));
+                    showEntityWindow = true;
+                    newEntityType = "Sphere";
                 }
                 ImGui.endMenu();
             }
@@ -164,36 +195,22 @@ public class GUI {
             }
 
             if (ImGui.beginMenu("Lights")) {
-                if (ImGui.menuItem("Point Light")) {
-                    UVSphere sphere = new UVSphere(0.1f, 32, 32);
-                    Mesh sphereMesh = new Mesh(
-                        sphere.getPositions(),
-                        sphere.getNormals(),
-                        sphere.getTexCoords(),
-                        sphere.getIndices()
-                    );
-                    pointLights.add(new PointLight(sphereMesh, new Vector3f(0, 0, 0), new Vector3f(1, 1, 1)));
+                if (pointLights.size() < 8) {
+                    if (ImGui.menuItem("Point Light")) {
+                        showPointLightWindow = true;
+                    }
+                } else {
+                    ImGui.menuItem("Point Light", null, false, false);
                 }
-                if (ImGui.menuItem("Spot Light")) {
-                    UVSphere sphere = new UVSphere(0.1f, 32, 32);
-                    Mesh sphereMesh = new Mesh(
-                        sphere.getPositions(),
-                        sphere.getNormals(),
-                        sphere.getTexCoords(),
-                        sphere.getIndices()
-                    );
-                    spotLights.add(new SpotLight(
-                        sphereMesh,
 
-                        new Vector3f(0, 0, 0),
-                        new Vector3f(0, 0, 1),
-
-                        (float) Math.cos(Math.toRadians(12.5f)),
-                        (float) Math.cos(Math.toRadians(15.0f)),
-
-                        new Vector3f(1, 1, 1))
-                    );
+                if (spotLights.size() < 4) {
+                    if (ImGui.menuItem("Spot Light")) {
+                        showSpotLightWindow = true;
+                    }
+                } else {
+                    ImGui.menuItem("Spot Light", null, false, false);
                 }
+
                 ImGui.endMenu();
             }
 
@@ -202,21 +219,261 @@ public class GUI {
 
         ImGui.endMainMenuBar();
 
+        if (showEntityWindow) {
+            ImGui.begin("New Entity", ImGuiWindowFlags.AlwaysAutoResize);
+
+            float[] position = Utils.vector3fToArray(newEntity.getPosition());
+            float[] rotation = Utils.vector3fToArray(newEntity.getRotation());
+            ImFloat scale = new ImFloat(newEntity.getScale());
+
+            // Generate default name
+            if (Objects.equals(newEntityType, "Cube")) {
+                int count = 0;
+                for (Entity entity : entities) {
+                    if (entity.getName().startsWith("Cube") && entity.getMaterialMeshes() != null) {
+                        count++;
+                    }
+                }
+                newEntity.setName("Cube " + count);
+            }
+            if (Objects.equals(newEntityType, "Cylinder")) {
+                int count = 0;
+                for (Entity entity : entities) {
+                    if (entity.getName().startsWith("Cylinder") && entity.getMaterialMeshes() != null) {
+                        count++;
+                    }
+                }
+                newEntity.setName("Cylinder " + count);
+            }
+            if (Objects.equals(newEntityType, "Sphere")) {
+                int count = 0;
+                for (Entity entity : entities) {
+                    if (entity.getName().startsWith("Sphere") && entity.getMaterialMeshes() != null) {
+                        count++;
+                    }
+                }
+                newEntity.setName("Sphere " + count);
+            }
+
+            ImString name = new ImString(newEntity.getName());
+
+            ImGui.inputText("Name", name);
+            ImGui.inputFloat3("Position", position);
+            ImGui.inputFloat3("Rotation", rotation);
+            ImGui.inputFloat("Scale", scale);
+
+            newEntity.setPosition(Utils.arrayToVector3f(position));
+            newEntity.setRotation(Utils.arrayToVector3f(rotation));
+            newEntity.setScale(scale.get());
+            newEntity.setName(name.get());
+
+            if (Objects.equals(newEntityType, "Cylinder")) {
+                ImFloat topRadius = new ImFloat(newCylinder.getTopRadius());
+                ImFloat bottomRadius = new ImFloat(newCylinder.getBottomRadius());
+                ImFloat height = new ImFloat(newCylinder.getHeight());
+                ImInt sectors = new ImInt(newCylinder.getSectors());
+
+                ImGui.separator();
+                ImGui.inputFloat("Top Radius", topRadius);
+                ImGui.inputFloat("Bottom Radius", bottomRadius);
+                ImGui.inputFloat("Height", height);
+                ImGui.inputInt("Sectors", sectors);
+
+                newCylinder.setTopRadius(topRadius.get());
+                newCylinder.setBottomRadius(bottomRadius.get());
+                newCylinder.setHeight(height.get());
+                newCylinder.setSectors(sectors.get());
+            } else if (Objects.equals(newEntityType, "Sphere")) {
+                ImFloat radius = new ImFloat(newSphere.getRadius());
+                ImInt sectors = new ImInt(newSphere.getSectors());
+                ImInt stacks = new ImInt(newSphere.getStacks());
+
+                ImGui.separator();
+                ImGui.inputFloat("Radius", radius);
+                ImGui.inputInt("Sectors", sectors);
+                ImGui.inputInt("Stacks", stacks);
+
+                newSphere.setRadius(radius.get());
+                newSphere.setSectors(sectors.get());
+                newSphere.setStacks(stacks.get());
+            }
+
+            if (ImGui.button("Add", 120, 0)) {
+                if (Objects.equals(newEntityType, "Cube")) {
+                    Cube cube = new Cube();
+                    Mesh cubeMesh = new Mesh(
+                        cube.getPositions(),
+                        cube.getNormals(),
+                        cube.getTexCoords(),
+                        cube.getIndices()
+                    );
+
+                    entities.add(new Entity(
+                        new MaterialMesh(cubeMesh, null),
+                        Utils.arrayToVector3f(position),
+                        Utils.arrayToVector3f(rotation),
+                        scale.get(),
+                        name.get()
+                    ));
+                } else if (Objects.equals(newEntityType, "Cylinder")) {
+                    newCylinder.update();
+                    Mesh cylinderMesh = new Mesh(
+                        newCylinder.getPositions(),
+                        newCylinder.getNormals(),
+                        newCylinder.getTexCoords(),
+                        newCylinder.getIndices()
+                    );
+
+                    entities.add(new Entity(
+                        new MaterialMesh(cylinderMesh, null),
+                        Utils.arrayToVector3f(position),
+                        Utils.arrayToVector3f(rotation),
+                        scale.get(),
+                        name.get()
+                    ));
+                } else if (Objects.equals(newEntityType, "Sphere")) {
+                    newSphere.update();
+                    Mesh sphereMesh = new Mesh(
+                        newSphere.getPositions(),
+                        newSphere.getNormals(),
+                        newSphere.getTexCoords(),
+                        newSphere.getIndices()
+                    );
+
+                    entities.add(new Entity(
+                        new MaterialMesh(sphereMesh, null),
+                        Utils.arrayToVector3f(position),
+                        Utils.arrayToVector3f(rotation),
+                        scale.get(),
+                        name.get()
+                    ));
+                }
+
+                showEntityWindow = false;
+
+                newEntity = new Entity(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(0, 0, 0),
+                    1,
+                    ""
+                );
+                newCylinder = new Cylinder(1, 1, 1, 32);
+                newSphere = new UVSphere(1, 32, 32);
+            }
+
+            if (ImGui.button("Cancel", 120, 0)) {
+                showEntityWindow = false;
+                newEntity = new Entity(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(0, 0, 0),
+                    1,
+                    ""
+                );
+                newCylinder = new Cylinder(1, 1, 1, 32);
+                newSphere = new UVSphere(1, 32, 32);
+            }
+
+            ImGui.end();
+        }
+
+        if (showPointLightWindow) {
+            ImGui.begin("Point Light", ImGuiWindowFlags.AlwaysAutoResize);
+
+            float[] position = Utils.vector3fToArray(newPointLight.getPosition());
+            float[] color = Utils.vector3fToArray(newPointLight.getColor());
+            float[] intensity = new float[] { newPointLight.getIntensity() };
+
+            ImGui.dragFloat3("Position", position, 0.1f);
+            ImGui.colorPicker3("Color: ", color);
+            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
+
+            newPointLight.setPosition(Utils.arrayToVector3f(position));
+            newPointLight.setColor(Utils.arrayToVector3f(color));
+            newPointLight.setIntensity(intensity[0]);
+
+            if (ImGui.button("Add", 120, 0)) {
+                pointLights.add(new PointLight(newPointLight.getPosition(), newPointLight.getColor(), newPointLight.getIntensity()));
+                showPointLightWindow = false;
+                newPointLight = new PointLight(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(1, 1, 1),
+                    1
+                );
+            }
+
+            if (ImGui.button("Cancel", 120, 0)) {
+                showPointLightWindow = false;
+                newPointLight = new PointLight(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(1, 1, 1),
+                    1
+                );
+            }
+
+            ImGui.end();
+        }
+
+        if (showSpotLightWindow) {
+            ImGui.begin("Spot Light", ImGuiWindowFlags.AlwaysAutoResize);
+
+            float[] position = Utils.vector3fToArray(newSpotLight.getPosition());
+            float[] direction = Utils.vector3fToArray(newSpotLight.getDirection());
+            float[] cutoff = new float[] { newSpotLight.getCutoff() };
+            float[] outerCutoff = new float[] { newSpotLight.getOuterCutoff() };
+            float[] color = Utils.vector3fToArray(newSpotLight.getColor());
+            float[] intensity = new float[] { newSpotLight.getIntensity() };
+
+            ImGui.dragFloat3("Position", position, 0.1f);
+            ImGui.dragFloat3("Direction", direction, 0.1f, -1, 1);
+            ImGui.colorPicker3("Color: ", color);
+            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
+            ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 90f);
+            ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 90f);
+
+            newSpotLight.setPosition(Utils.arrayToVector3f(position));
+            newSpotLight.setDirection(Utils.arrayToVector3f(direction));
+            newSpotLight.setColor(Utils.arrayToVector3f(color));
+            newSpotLight.setIntensity(intensity[0]);
+            newSpotLight.setCutoff(cutoff[0]);
+            newSpotLight.setOuterCutoff(outerCutoff[0]);
+
+            if (ImGui.button("Add", 120, 0)) {
+                spotLights.add(new SpotLight(newSpotLight.getPosition(), newSpotLight.getDirection(), newSpotLight.getCutoff(), newSpotLight.getOuterCutoff(), newSpotLight.getColor(), newSpotLight.getIntensity()));
+                showSpotLightWindow = false;
+                newSpotLight = new SpotLight(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(1, 0, 0),
+                    (float) Math.cos(Math.toRadians(12.5f)),
+                    (float) Math.cos(Math.toRadians(15.0f)),
+                    new Vector3f(1, 1, 1),
+                    1
+                );
+            }
+
+            if (ImGui.button("Cancel", 120, 0)) {
+                showSpotLightWindow = false;
+                newSpotLight = new SpotLight(
+                    new Vector3f(0, 0, 0),
+                    new Vector3f(1, 0, 0),
+                    (float) Math.cos(Math.toRadians(12.5f)),
+                    (float) Math.cos(Math.toRadians(15.0f)),
+                    new Vector3f(1, 1, 1),
+                    1
+                );
+            }
+
+            ImGui.end();
+        }
+
         // Hierarchy window
         ImGui.setNextWindowPos(PADDING, 2 * PADDING, ImGuiCond.FirstUseEver);
         ImGui.setNextWindowSize(HIERARCHY_WIDTH, HIERARCHY_HEIGHT, ImGuiCond.FirstUseEver);
         ImGui.begin("Hierarchy");
 
         if (ImGui.treeNode("Entities")) {
-            for (int i = 0; i < entities.size(); i++) {
-                if (entities.get(i).getName() != null && !Objects.equals(entities.get(i).getName(), "null")) {
-                    if (ImGui.selectable(entities.get(i).getName(), selected.get("entity") == i)) {
-                        setSelected("entity", i);
-                    }
-                } else {
-                    if (ImGui.selectable("Entity " + (i + 1), selected.get("entity") == i)) {
-                        setSelected("entity", i);
-                    }
+            for (Entity entity : entities) {
+                if (entity.getParent() == null) {
+                    drawTree(entity);
                 }
             }
             ImGui.treePop();
@@ -243,6 +500,10 @@ public class GUI {
             setSelected("camera", 0);
         }
 
+        if (ImGui.selectable("Skybox", selected.get("skybox") == 0)) {
+            setSelected("skybox", 0);
+        }
+
         ImGui.end();
 
         // Inspector window
@@ -250,43 +511,65 @@ public class GUI {
         ImGui.setNextWindowSize(INSPECTOR_WIDTH, INSPECTOR_HEIGHT, ImGuiCond.FirstUseEver);
         ImGui.begin("Inspector");
 
-        if (selected.get("entity") != -1) {
-            Entity entity = entities.get(selected.get("entity"));
+        if (selectedEntity != null && selected.get("entity") != -1) {
+            Entity entity = selectedEntity;
 
-            float[] position = Utils.vector3fToArray(entity.getPosition());
-            float[] rotation = Utils.vector3fToArray(entity.getRotation());
-            float[] scale = new float[] { entity.getScale() };
-            ImString name = new ImString(entity.getName(), 128);
-            ImBoolean focused = new ImBoolean(camera.getFocus() == entity);
+            if (entity.getMaterialMeshes() == null) {
+                // Placeholder parent entity
+                float[] position = Utils.vector3fToArray(entity.getPosition());
+                ImString name = new ImString(entity.getName(), 128);
 
-            PBRMaterial pbrMaterial = entity.getMaterialMeshes()[0].getPbrMaterial();
-
-            if (entity.getName() != null && !Objects.equals(entity.getName(), "null")) {
-                ImGui.text(entity.getName());
-            } else {
-                ImGui.text("Entity " + (selected.get("entity") + 1));
-            }
-
-            ImGui.separator();
-            ImGui.dragFloat3("Position: ", position, 0.1f);
-            ImGui.dragFloat3("Rotation: ", rotation, 0.1f);
-            ImGui.dragFloat("Scale: ", scale, 0.1f);
-            ImGui.inputText("Name: ", name);
-            ImGui.checkbox("Focused: ", focused);
-            if (pbrMaterial != null) {
-                if (ImGui.button("Change material")) {
-                    showMaterialWindow = true;
+                if (entity.getName() != null && !Objects.equals(entity.getName(), "null")) {
+                    ImGui.text(entity.getName());
+                } else {
+                    ImGui.text("Entity " + (selected.get("entity") + 1));
                 }
-            }
 
-            entity.setPosition(new Vector3f(position[0], position[1], position[2]));
-            entity.setRotation(new Vector3f(rotation[0], rotation[1], rotation[2]));
-            entity.setScale(scale[0]);
-            entity.setName(name.get());
-            if (focused.get()) {
-                camera.setFocus(entity);
+                ImGui.separator();
+                if (ImGui.dragFloat3("Position", position, 0.1f)) {
+                    entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                }
+                if (ImGui.inputText("Name", name)) {
+                    entity.setName(name.get());
+                }
+
             } else {
-                camera.setFocus(null);
+                float[] position = Utils.vector3fToArray(entity.getPosition());
+                float[] rotation = Utils.vector3fToArray(entity.getRotation());
+                float[] scale = new float[]{entity.getScale()};
+                ImString name = new ImString(entity.getName(), 128);
+                ImBoolean focused = new ImBoolean(camera.getFocus() == entity);
+
+                PBRMaterial pbrMaterial = entity.getMaterialMeshes()[0].getPbrMaterial();
+
+                if (entity.getName() != null && !Objects.equals(entity.getName(), "null")) {
+                    ImGui.text(entity.getName());
+                } else {
+                    ImGui.text("Entity " + (selected.get("entity") + 1));
+                }
+
+                ImGui.separator();
+                ImGui.dragFloat3("Position: ", position, 0.1f);
+                ImGui.dragFloat3("Rotation: ", rotation, 0.1f);
+                ImGui.dragFloat("Scale: ", scale, 0.1f);
+                ImGui.inputText("Name: ", name);
+                ImGui.checkbox("Focused: ", focused);
+
+                if (pbrMaterial != null) {
+                    if (ImGui.button("Change material")) {
+                        showMaterialWindow = true;
+                    }
+                }
+
+                entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                entity.setRotation(new Vector3f(rotation[0], rotation[1], rotation[2]));
+                entity.setScale(scale[0]);
+                entity.setName(name.get());
+                if (focused.get()) {
+                    camera.setFocus(entity);
+                } else {
+                    camera.setFocus(null);
+                }
             }
         }
 
@@ -295,13 +578,18 @@ public class GUI {
 
             float[] position = Utils.vector3fToArray(light.getPosition());
             float[] color = Utils.vector3fToArray(light.getColor());
+            float[] intensity = new float[] { light.getIntensity() };
 
             ImGui.text("Point Light " + (selected.get("pointLight") + 1));
             ImGui.dragFloat3("Position: ", position, 0.1f);
+            if (ImGui.button("Set to camera position"))
+                position = Utils.vector3fToArray(camera.getPosition());
             ImGui.colorPicker3("Color: ", color);
+            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
 
             light.setPosition(new Vector3f(position[0], position[1], position[2]));
             light.setColor(new Vector3f(color[0], color[1], color[2]));
+            light.setIntensity(intensity[0]);
         }
 
         if (selected.get("spotLight") != -1) {
@@ -309,22 +597,31 @@ public class GUI {
 
             float[] position = Utils.vector3fToArray(light.getPosition());
             float[] direction = Utils.vector3fToArray(light.getDirection());
+            float[] azimuth = new float[] { light.getAzimuth() };
+            float[] elevation = new float[] { light.getElevation() };
             float[] color = Utils.vector3fToArray(light.getColor());
+            float[] intensity = new float[] { light.getIntensity() };
             float[] cutoff = new float[] { light.getCutoff() };
             float[] outerCutoff = new float[] { light.getOuterCutoff() };
             ImBoolean enabled = new ImBoolean(light.isEnabled());
 
             ImGui.text("Spot Light " + (selected.get("spotLight") + 1));
             ImGui.dragFloat3("Position: ", position, 0.1f);
-            ImGui.dragFloat3("Direction: ", direction, 0.1f);
+            ImGui.dragFloat3("Direction: ", direction, 0.01f, -1f, 1f);
+            ImGui.dragFloat("Azimuth: ", azimuth, 0.2f, 0f, 360f);
+            ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f);
             ImGui.colorPicker3("Color: ", color);
+            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
             ImGui.dragFloat("Cutoff: ", cutoff, 0.01f, 0.1f, 10f);
             ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.01f, 0.1f, 10f);
             ImGui.checkbox("Enabled: ", enabled);
 
             light.setPosition(new Vector3f(position[0], position[1], position[2]));
             light.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+            light.setAzimuth(azimuth[0]);
+            light.setElevation(elevation[0]);
             light.setColor(new Vector3f(color[0], color[1], color[2]));
+            light.setIntensity(intensity[0]);
             light.setCutoff(cutoff[0]);
             light.setOuterCutoff(outerCutoff[0]);
             light.setEnabled(enabled.get());
@@ -343,7 +640,6 @@ public class GUI {
         }
 
         if (selected.get("camera") != -1) {
-            // Initialise attribute arrays
             float[] position = Utils.vector3fToArray(camera.getPosition());
             float[] FOV = new float[] {(float) Math.toDegrees(renderer.getFOV())};
             float[] exposure = new float[] { renderer.getExposure() };
@@ -390,6 +686,24 @@ public class GUI {
             renderer.setToneMapping(toneMapping.get());
         }
 
+        if (selected.get("skybox") != -1) {
+            ImGui.image(equirectangularMap.getEnvironmentCubemap(), 256, 256);
+            if (ImGui.button("Change environment map")) {
+                String albedoPath = openSingle("hdr");
+                if (albedoPath != null) {
+                    Texture backgroundTexture = new Texture(
+                        albedoPath,
+                        org.lwjgl.opengl.GL30.GL_RGB16F,
+                        org.lwjgl.opengl.GL30.GL_RGBA,
+                        org.lwjgl.opengl.GL30.GL_FLOAT,
+                        true
+                    );
+                    equirectangularMap.updateTexture(backgroundTexture);
+                }
+            }
+
+        }
+
         ImGui.end();
 
         // Material editor window
@@ -398,8 +712,8 @@ public class GUI {
             ImGui.setNextWindowSize(MATERIAL_WIDTH, MATERIAL_HEIGHT, ImGuiCond.FirstUseEver);
             ImGui.begin("Material Editor");
 
-            if (selected.get("entity") != -1) {
-                Entity entity = entities.get(selected.get("entity"));
+            if (selectedEntity != null) {
+                Entity entity = selectedEntity;
                 PBRMaterial pbrMaterial = entity.getMaterialMeshes()[0].getPbrMaterial();
                 ImBoolean useAlbedoTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("albedo"));
                 ImBoolean useNormalTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("normal"));
@@ -423,9 +737,6 @@ public class GUI {
                 float[] albedo = new float[] { pbrMaterial.getAlbedoColor().x, pbrMaterial.getAlbedoColor().y, pbrMaterial.getAlbedoColor().z };
                 ImGui.colorPicker3("Albedo color: ", albedo);
                 pbrMaterial.setAlbedoColor(new Vector3f(albedo[0], albedo[1], albedo[2]));
-                System.out.println("Albedo color: " + pbrMaterial.getAlbedoColor());
-                System.out.println("Albedo texture: " + pbrMaterial.getAlbedo());
-                System.out.println("Albedo uses texture: " + pbrMaterial.getUsesTextures().get("albedo"));
 
                 if (ImGui.checkbox("Use texture##Albedo", useAlbedoTexture) && pbrMaterial.getAlbedo() != null) {
                     pbrMaterial.setUseTexture("albedo", useAlbedoTexture.get());
@@ -540,6 +851,66 @@ public class GUI {
 
         ImGui.render();
         imGuiGl3.renderDrawData(ImGui.getDrawData());
+    }
+
+    private void drawTree(Entity root) {
+        int flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.OpenOnDoubleClick;
+
+        String label = root.getName();
+
+        if (root == selectedEntity) {
+            flags |= ImGuiTreeNodeFlags.Selected;
+        }
+
+        if (root.getChildren().size() > 0) {
+            boolean nodeOpen = ImGui.treeNodeEx(label, flags);
+            if (ImGui.isItemClicked()) {
+                selectedEntity = root;
+                setSelected("entity", 0);
+            }
+            if (ImGui.beginDragDropSource()) {
+                ImGui.setDragDropPayload("entity", root);
+                ImGui.text(root.getName());
+                ImGui.endDragDropSource();
+            }
+            if (ImGui.beginDragDropTarget()) {
+                Entity payload = ImGui.acceptDragDropPayload("entity", Entity.class);
+                if (payload != null) {
+                    if (payload.getParent() != null) {
+                        payload.getParent().removeChild(payload);
+                    }
+                    payload.setParent(root);
+                }
+            }
+
+            if (nodeOpen) {
+                for (int j = 0; j < root.getChildren().size(); j++) {
+                    drawTree(root.getChildren().get(j));
+                }
+                ImGui.treePop();
+            }
+        } else {
+            // Need to use a default label string if the label is null, as if it is null the program will crash
+            ImGui.treeNodeEx(label != null ? label : "default", flags | ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen);
+            if (ImGui.isItemClicked()) {
+                selectedEntity = root;
+                setSelected("entity", 0);
+            }
+            if (ImGui.beginDragDropSource()) {
+                ImGui.setDragDropPayload("entity", root);
+                ImGui.text(root.getName());
+                ImGui.endDragDropSource();
+            }
+            if (ImGui.beginDragDropTarget()) {
+                Entity payload = ImGui.acceptDragDropPayload("entity", Entity.class);
+                if (payload != null) {
+                    if (payload.getParent() != null) {
+                        payload.getParent().removeChild(payload);
+                    }
+                    payload.setParent(root);
+                }
+            }
+        }
     }
 
     public void setCursorEnabled(boolean enabled) {

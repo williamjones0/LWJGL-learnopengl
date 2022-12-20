@@ -77,6 +77,7 @@ class ShaderProgram {
     public void createPointLightUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".position");
         createUniform(uniformName + ".color");
+        createUniform(uniformName + ".intensity");
     }
 
     public void createSpotLightListUniform(String uniformName, int size) throws Exception {
@@ -89,6 +90,7 @@ class ShaderProgram {
         createUniform(uniformName + ".position");
         createUniform(uniformName + ".direction");
         createUniform(uniformName + ".color");
+        createUniform(uniformName + ".intensity");
         createUniform(uniformName + ".cutoff");
         createUniform(uniformName + ".outerCutoff");
         createUniform(uniformName + ".enabled");

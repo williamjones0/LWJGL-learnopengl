@@ -1,4 +1,5 @@
 import org.joml.Vector3f;
+import primitives.UVSphere;
 
 public class PointLight {
 
@@ -8,12 +9,50 @@ public class PointLight {
 
     private Vector3f color;
 
+    private float intensity;
+
     public PointLight(Mesh mesh, Vector3f position, Vector3f color) {
         this.mesh = mesh;
 
         this.position = position;
 
         this.color = color;
+
+        this.intensity = 1f;
+    }
+
+    public PointLight(Vector3f position, Vector3f color, float intensity) {
+        UVSphere uvSphere = new UVSphere(0.5f, 32, 32);
+
+        this.mesh = new Mesh(
+            uvSphere.getPositions(),
+            uvSphere.getNormals(),
+            uvSphere.getTexCoords(),
+            uvSphere.getIndices()
+        );
+
+        this.position = position;
+
+        this.color = color;
+
+        this.intensity = intensity;
+    }
+
+    public PointLight(Vector3f position, Vector3f color) {
+        UVSphere uvSphere = new UVSphere(0.5f, 32, 32);
+
+        this.mesh = new Mesh(
+            uvSphere.getPositions(),
+            uvSphere.getNormals(),
+            uvSphere.getTexCoords(),
+            uvSphere.getIndices()
+        );
+
+        this.position = position;
+
+        this.color = color;
+
+        this.intensity = 1f;
     }
 
     public Mesh getMesh() {
@@ -38,5 +77,17 @@ public class PointLight {
 
     public void setColor(Vector3f color) {
         this.color = color;
+    }
+
+    public void setColor(float r, float g, float b) {
+        this.color = new Vector3f(r, g, b);
+    }
+
+    public float getIntensity() {
+        return intensity;
+    }
+
+    public void setIntensity(float intensity) {
+        this.intensity = intensity;
     }
 }

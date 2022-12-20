@@ -6,6 +6,8 @@ import java.util.Map;
 
 import Utils.Maths;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -16,8 +18,7 @@ public class Renderer {
 
     private ShaderProgram phongShader;
     private ShaderProgram pbrShader;
-    private ShaderProgram pbrNoMaterialShader;
-    private ShaderProgram lightCubeShader;
+    private ShaderProgram lightShader;
     private ShaderProgram hdrShader;
 
     private float FOV = (float) Math.toRadians(60.0);
@@ -29,8 +30,8 @@ public class Renderer {
 
     private float zNear = 0.1f;
     private float zFar = 100f;
-    private static final int MAX_POINT_LIGHTS = 4;
-    private static final int MAX_SPOT_LIGHTS = 1;
+    private static final int MAX_POINT_LIGHTS = 8;
+    private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
 
     public void init(Window window) throws Exception {
@@ -83,42 +84,17 @@ public class Renderer {
         pbrShader.createUniform("prefilterMap");
         pbrShader.createUniform("brdfLUT");
 
-        // PBRNoMaterial shader
-        pbrNoMaterialShader = new ShaderProgram();
-        pbrNoMaterialShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
-        pbrNoMaterialShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrnomaterial.frag").toPath(), StandardCharsets.US_ASCII));
-        pbrNoMaterialShader.link();
+        // Light shader
+        lightShader = new ShaderProgram();
+        lightShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
+        lightShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
+        lightShader.link();
 
-        pbrNoMaterialShader.createUniform("model");
-        pbrNoMaterialShader.createUniform("view");
-        pbrNoMaterialShader.createUniform("projection");
+        lightShader.createUniform("model");
+        lightShader.createUniform("view");
+        lightShader.createUniform("projection");
 
-        pbrNoMaterialShader.createUniform("camPos");
-
-        pbrNoMaterialShader.createUniform("values.albedo");
-        pbrNoMaterialShader.createUniform("values.metallic");
-        pbrNoMaterialShader.createUniform("values.roughness");
-        pbrNoMaterialShader.createUniform("values.ao");
-
-        pbrNoMaterialShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
-        pbrNoMaterialShader.createDirLightUniform("dirLight");
-        pbrNoMaterialShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
-
-        pbrNoMaterialShader.createUniform("irradianceMap");
-        pbrNoMaterialShader.createUniform("prefilterMap");
-        pbrNoMaterialShader.createUniform("brdfLUT");
-
-        // Light cube shader
-        lightCubeShader = new ShaderProgram();
-        lightCubeShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
-        lightCubeShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
-        lightCubeShader.link();
-
-        lightCubeShader.createUniform("model");
-        lightCubeShader.createUniform("view");
-        lightCubeShader.createUniform("projection");
-
-        lightCubeShader.createUniform("colour");
+        lightShader.createUniform("colour");
 
         // HDR shader
         hdrShader = new ShaderProgram();
@@ -213,19 +189,37 @@ public class Renderer {
         pbrShader.setUniform("material.emissive", 6);
 
         // Update point light uniforms
-        for (int i = 0; i < pointLights.size(); i++) {
-            pbrShader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
-            pbrShader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
+        for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+            if (i < pointLights.size()) {
+                pbrShader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
+                pbrShader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
+                pbrShader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
+            } else {
+                pbrShader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
+                pbrShader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
+                pbrShader.setUniform("pointLights[" + i + "].intensity", 0.0f);
+            }
         }
 
         // Update spotlight uniforms
-        for (int i = 0; i < spotLights.size(); i++) {
-            pbrShader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
-            pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
-            pbrShader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
-            pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
-            pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
-            pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
+        for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
+            if (i < spotLights.size()) {
+                pbrShader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
+                pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
+                pbrShader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
+                pbrShader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
+                pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
+                pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
+                pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
+            } else {
+                pbrShader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
+                pbrShader.setUniform("spotLights[" + i + "].direction",   new Vector3f(0.0f));
+                pbrShader.setUniform("spotLights[" + i + "].color",       new Vector3f(0.0f));
+                pbrShader.setUniform("spotLights[" + i + "].intensity",   0.0f);
+                pbrShader.setUniform("spotLights[" + i + "].cutoff",      0.0f);
+                pbrShader.setUniform("spotLights[" + i + "].outerCutoff", 0.0f);
+                pbrShader.setUniform("spotLights[" + i + "].enabled",     false);
+            }
         }
 
         // Update directional light uniforms
@@ -246,21 +240,22 @@ public class Renderer {
         glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
         for (Entity entity : entities) {
-            Matrix4f model = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+            if (entity.getMaterialMeshes() == null) {
+                continue;
+            }
+
+            Matrix4f model = Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale());
             pbrShader.bind();
             pbrShader.setUniform("model", model);
 
             Map<String, Boolean> usesTextures = entity.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures();
 
             for (Map.Entry<String, Boolean> usesTexture: usesTextures.entrySet()) {
-                System.out.println(usesTexture.getKey() + " " + usesTexture.getValue());
                 pbrShader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
             }
 
-            if (!usesTextures.get("albedo")) {
-                System.out.println(entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+            if (!usesTextures.get("albedo"))
                 pbrShader.setUniform("material.albedoColor", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
-            }
 
             if (!usesTextures.get("metallic"))
                 pbrShader.setUniform("material.metallicFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
@@ -272,23 +267,39 @@ public class Renderer {
         }
 
         // Render lights
-        lightCubeShader.bind();
-        lightCubeShader.setUniform("view", view);
-        lightCubeShader.setUniform("projection", projection);
-        lightCubeShader.setUniform("view", view);
+        lightShader.bind();
+        lightShader.setUniform("view", view);
+        lightShader.setUniform("projection", projection);
+        lightShader.setUniform("view", view);
 
         for (PointLight light : pointLights) {
             Matrix4f model = new Matrix4f();
             model.translate(light.getPosition());
-            model.scale(0.5f);
-            lightCubeShader.setUniform("model", model);
+            lightShader.setUniform("model", model);
 
-            lightCubeShader.setUniform("colour", light.getColor());
+            Vector3f temp = new Vector3f(light.getColor());
+            temp.mul(light.getIntensity());
+            lightShader.setUniform("colour", temp);
 
             light.getMesh().render();
         }
 
-        lightCubeShader.unbind();
+        for (SpotLight light : spotLights) {
+            if (spotLights.indexOf(light) == 0)
+                continue;
+            Matrix4f model = Maths.calculateModelMatrix(light.getPosition(), new Vector3f(0, 0, 0), 1);
+            // This doesn't work but it's not important enough to bother fixing
+            model.rotate(new Quaternionf().lookAlong(new Vector3f(-light.getDirection().x, light.getDirection().y, light.getDirection().z) , new Vector3f(0.0f, 1.0f, 0.0f)));
+            lightShader.setUniform("model", model);
+
+            Vector3f temp = new Vector3f(light.getColor());
+            temp.mul(light.getIntensity());
+            lightShader.setUniform("colour", temp);
+
+            light.getMesh().render();
+        }
+
+        lightShader.unbind();
 
 //        // Render skybox
 //        view = new Matrix4f(new Matrix3f(camera.getView()));  // Remove translation from view matrix
@@ -301,7 +312,7 @@ public class Renderer {
 //        skyboxShader.unbind();
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        equirectangularMap.render(camera);
+        equirectangularMap.render(camera, projection);
 
         // Second pass: render floating point framebuffer to default framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -327,8 +338,7 @@ public class Renderer {
     public void cleanup() {
         phongShader.cleanup();
         pbrShader.cleanup();
-        pbrNoMaterialShader.cleanup();
-        lightCubeShader.cleanup();
+        lightShader.cleanup();
         hdrShader.cleanup();
         framebuffer.cleanup();
     }

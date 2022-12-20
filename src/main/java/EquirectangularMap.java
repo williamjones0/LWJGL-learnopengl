@@ -13,22 +13,26 @@ import static org.lwjgl.opengl.GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS;
 
 public class EquirectangularMap {
 
-    private final Matrix4f projection;
+    private Matrix4f captureProjection;
 
-    private final ShaderProgram equirectangularToCubemapShader;
-    private final ShaderProgram irradianceShader;
-    private final ShaderProgram prefilterShader;
-    private final ShaderProgram brdfShader;
-    private final ShaderProgram backgroundShader;
+    private ShaderProgram equirectangularToCubemapShader;
+    private ShaderProgram irradianceShader;
+    private ShaderProgram prefilterShader;
+    private ShaderProgram brdfShader;
+    private ShaderProgram backgroundShader;
 
-    private final int environmentCubemap;
-    private final int irradianceMap;
-    private final int prefilterMap;
-    private final int brdfLUT;
+    private int environmentCubemap;
+    private int irradianceMap;
+    private int prefilterMap;
+    private int brdfLUT;
 
     private Mesh cubeMesh;
 
     public EquirectangularMap(Texture texture) throws Exception {
+        init(texture);
+    }
+
+    private void init(Texture texture) throws Exception {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         glDepthFunc(GL_LEQUAL);
@@ -56,7 +60,7 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Set up projection and view matrices
-        projection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+        captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
         Matrix4f[] views = new Matrix4f[]{
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
@@ -79,7 +83,7 @@ public class EquirectangularMap {
 
         equirectangularToCubemapShader.bind();
         equirectangularToCubemapShader.setUniform("equirectangularMap", 0);
-        equirectangularToCubemapShader.setUniform("projection", projection);
+        equirectangularToCubemapShader.setUniform("projection", captureProjection);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.getID());
@@ -139,7 +143,7 @@ public class EquirectangularMap {
 
         irradianceShader.bind();
         irradianceShader.setUniform("environmentMap", 0);
-        irradianceShader.setUniform("projection", projection);
+        irradianceShader.setUniform("projection", captureProjection);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
@@ -186,7 +190,7 @@ public class EquirectangularMap {
 
         prefilterShader.bind();
         prefilterShader.setUniform("environmentMap", 0);
-        prefilterShader.setUniform("projection", projection);
+        prefilterShader.setUniform("projection", captureProjection);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
@@ -256,7 +260,7 @@ public class EquirectangularMap {
         backgroundShader.setUniform("environmentMap", 0);
     }
 
-    public void render(Camera camera) {
+    public void render(Camera camera, Matrix4f projection) {
         // Set up uniforms
         backgroundShader.bind();
         backgroundShader.setUniform("projection", projection);
@@ -264,6 +268,14 @@ public class EquirectangularMap {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
         cubeMesh.render();
+    }
+
+    public void updateTexture(Texture texture) throws Exception {
+        init(texture);
+    }
+
+    public int getEnvironmentCubemap() {
+        return environmentCubemap;
     }
 
     public int getIrradianceMap() {

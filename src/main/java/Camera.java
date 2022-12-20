@@ -4,7 +4,7 @@ import org.joml.Vector3f;
 public class Camera {
 
     private Vector3f position;
-    private Vector3f dVelocity;
+    private Vector3f velocity;
     private Vector3f front;
     private Vector3f up;
     private Vector3f right;
@@ -37,7 +37,7 @@ public class Camera {
 
     public Camera(Vector3f position, float yaw, float pitch) {
         this.position = position;
-        this.dVelocity = new Vector3f();
+        this.velocity = new Vector3f();
         up = new Vector3f();
         right = new Vector3f();
 
@@ -50,8 +50,8 @@ public class Camera {
     }
 
     public void update() {
-        position.add(dVelocity);
-        dVelocity.mul(deceleration);
+        position.add(velocity);
+        velocity.mul(deceleration);
         updateCameraVectors();
     }
 
@@ -75,17 +75,17 @@ public class Camera {
 
         if (movementMode == MovementMode.SMOOTH) {
             if (direction == Movement.FORWARD)
-                dVelocity.add(front.mul(velocity, new Vector3f()));
+                this.velocity.add(front.mul(velocity, new Vector3f()));
             if (direction == Movement.BACKWARD)
-                dVelocity.sub(front.mul(velocity, new Vector3f()));
+                this.velocity.sub(front.mul(velocity, new Vector3f()));
             if (direction == Movement.LEFT)
-                dVelocity.sub(right.mul(velocity, new Vector3f()));
+                this.velocity.sub(right.mul(velocity, new Vector3f()));
             if (direction == Movement.RIGHT)
-                dVelocity.add(right.mul(velocity, new Vector3f()));
+                this.velocity.add(right.mul(velocity, new Vector3f()));
             if (direction == Movement.UP)
-                dVelocity.add(worldUp.mul(velocity, new Vector3f()));
+                this.velocity.add(worldUp.mul(velocity, new Vector3f()));
             if (direction == Movement.DOWN)
-                dVelocity.sub(worldUp.mul(velocity, new Vector3f()));
+                this.velocity.sub(worldUp.mul(velocity, new Vector3f()));
         }
     }
 
