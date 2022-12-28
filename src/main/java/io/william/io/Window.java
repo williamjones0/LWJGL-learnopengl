@@ -23,6 +23,7 @@ public class Window {
     private long windowHandle;
     private int frames;
     private long time;
+    private int FPS;
 
     private final Input input;
 
@@ -98,7 +99,8 @@ public class Window {
         // FPS tracker
         frames++;
         if (System.currentTimeMillis() > time + 1000) {
-            GLFW.glfwSetWindowTitle(windowHandle, title + " | FPS: " + frames);
+            FPS = frames;
+            GLFW.glfwSetWindowTitle(windowHandle, title + " | FPS: " + FPS);
             time = System.currentTimeMillis();
             frames = 0;
         }
@@ -146,6 +148,10 @@ public class Window {
 
     public long getWindowHandle() {
         return windowHandle;
+    }
+
+    public int getFPS() {
+        return FPS;
     }
 
     public boolean shouldClose() {

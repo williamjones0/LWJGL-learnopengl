@@ -15,7 +15,9 @@ public class Camera {
     private float yaw;
     private float pitch;
 
-    private float movementSpeed = 2f;
+    private float FOV = (float) Math.toRadians(60.0);
+
+    private float movementSpeed = 500f;
     private float mouseSensitivity = 0.02f;
     private float deceleration = 0.95f;
 
@@ -51,8 +53,8 @@ public class Camera {
         focus = null;
     }
 
-    public void update() {
-        position.add(velocity);
+    public void update(float deltaTime) {
+        position.add(velocity.mul(deltaTime, new Vector3f()));
         velocity.mul(deceleration);
         updateCameraVectors();
     }
@@ -91,35 +93,43 @@ public class Camera {
         }
     }
 
-    public void processMouse(float xoffset, float yoffset) {
-        xoffset *= mouseSensitivity;
-        yoffset *= mouseSensitivity;
+    public void processMouse(float xoffset, float yoffset, float scrollyoffset) {
+        if (focus == null) {
+            xoffset *= mouseSensitivity;
+            yoffset *= mouseSensitivity;
 
-        yaw += xoffset;
-        pitch += yoffset;
+            yaw += xoffset;
+            pitch += yoffset;
 
-        if (pitch > 90.0f)
-            pitch = 90.0f;
-        if (pitch < -90.0f)
-            pitch = -90.0f;
+            if (pitch > 89.9f)
+                pitch = 89.9f;
+            if (pitch < -89.9f)
+                pitch = -89.9f;
 
-        updateCameraVectors();
+            updateCameraVectors();
+        }
+
+        FOV -= Math.toRadians(scrollyoffset);
+        if (FOV < (float) Math.toRadians(10.0))
+            FOV = (float) Math.toRadians(10.0);
+        if (FOV > (float) Math.toRadians(180.0))
+            FOV = (float) Math.toRadians(180.0);
     }
 
     public Matrix4f calculateViewMatrix() {
         if (focus == null) {
-            return new Matrix4f().lookAt(position, new Vector3f(position).add(front), up);
+            return new Matrix4f().lookAt(position, new Vector3f(position).add(front), worldUp);
         } else {
-            return new Matrix4f().lookAt(position, focus.getPosition(), up);
+            return new Matrix4f().lookAt(position, focus.getPosition(), worldUp);
         }
     }
 
     private void updateCameraVectors() {
         // Calculate the new front vector
         front = new Vector3f(
-            (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch))),
+            (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch))),
             (float) Math.sin(Math.toRadians(pitch)),
-            (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)))
+            (float) (-Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)))
         );
         // Calculate the right and up vectors
         front.cross(worldUp, right);
@@ -154,6 +164,14 @@ public class Camera {
 
     public void setPitch(float pitch) {
         this.pitch = pitch;
+    }
+
+    public float getFOV() {
+        return FOV;
+    }
+
+    public void setFOV(float FOV) {
+        this.FOV = FOV;
     }
 
     public float getMovementSpeed() {

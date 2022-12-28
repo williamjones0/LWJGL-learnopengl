@@ -1,7 +1,7 @@
 package io.william.renderer;
 
 import org.joml.Vector3f;
-import io.william.renderer.primitives.UVSphere;
+import io.william.renderer.primitive.UVSphere;
 
 public class PointLight {
 

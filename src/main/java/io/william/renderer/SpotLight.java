@@ -1,7 +1,7 @@
 package io.william.renderer;
 
 import org.joml.Vector3f;
-import io.william.renderer.primitives.Cylinder;
+import io.william.renderer.primitive.Cylinder;
 
 public class SpotLight {
 
@@ -115,9 +115,9 @@ public class SpotLight {
     public void setAzimuth(float azimuth) {
         this.azimuth = azimuth;
         this.direction = new Vector3f(
-            (float) (Math.cos(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation))),
+            (float) (Math.sin(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation))),
             (float) Math.sin(Math.toRadians(elevation)),
-            (float) (Math.sin(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation)))
+            (float) (-Math.cos(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation)))
         ).normalize();
     }
 
@@ -128,9 +128,9 @@ public class SpotLight {
     public void setElevation(float elevation) {
         this.elevation = elevation;
         this.direction = new Vector3f(
-            (float) (Math.cos(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation))),
+            (float) (Math.sin(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation))),
             (float) Math.sin(Math.toRadians(elevation)),
-            (float) (Math.sin(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation)))
+            (float) (-Math.cos(Math.toRadians(azimuth)) * Math.cos(Math.toRadians(elevation)))
         ).normalize();
     }
 

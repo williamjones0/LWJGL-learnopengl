@@ -1,7 +1,7 @@
 package io.william.renderer;
 
 import org.joml.Matrix4f;
-import io.william.renderer.primitives.Cube;
+import io.william.renderer.primitive.Cube;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -244,7 +244,7 @@ public class EquirectangularMap {
         glViewport(0, 0, 512, 512);
         brdfShader.bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        io.william.util.rendering.Quad.render();
+        io.william.util.renderer.Quad.render();
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

@@ -1,5 +1,6 @@
 package io.william.renderer;
 
+import io.william.game.component.Movement;
 import io.william.io.ModelLoader;
 import io.william.util.Utils;
 import imgui.ImGui;
@@ -17,16 +18,13 @@ import io.william.io.Window;
 import org.joml.Vector3f;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryUtil;
-import io.william.renderer.primitives.Cube;
-import io.william.renderer.primitives.Cylinder;
-import io.william.renderer.primitives.Quad;
-import io.william.renderer.primitives.UVSphere;
+import io.william.renderer.primitive.Cube;
+import io.william.renderer.primitive.Cylinder;
+import io.william.renderer.primitive.Quad;
+import io.william.renderer.primitive.UVSphere;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static imgui.flag.ImGuiConfigFlags.NoMouse;
 import static imgui.flag.ImGuiConfigFlags.None;
@@ -157,21 +155,6 @@ public class GUI {
                 }
                 entities.add(new Entity(new Vector3f(0, 0, 0), "Entity " + count));
             }
-            if (ImGui.beginMenu("3D Primitives")) {
-                if (ImGui.menuItem("Cube")) {
-                    showEntityWindow = true;
-                    newEntityType = "Cube";
-                }
-                if (ImGui.menuItem("Cylinder")) {
-                    showEntityWindow = true;
-                    newEntityType = "Cylinder";
-                }
-                if (ImGui.menuItem("Sphere")) {
-                    showEntityWindow = true;
-                    newEntityType = "Sphere";
-                }
-                ImGui.endMenu();
-            }
 
             if (ImGui.beginMenu("2D Primitives")) {
                 if (ImGui.menuItem("Quad")) {
@@ -184,6 +167,22 @@ public class GUI {
                     );
 
                     entities.add(new Entity(new MaterialMesh(quadMesh, null)));
+                }
+                ImGui.endMenu();
+            }
+
+            if (ImGui.beginMenu("3D Primitives")) {
+                if (ImGui.menuItem("Cube")) {
+                    showEntityWindow = true;
+                    newEntityType = "Cube";
+                }
+                if (ImGui.menuItem("Cylinder")) {
+                    showEntityWindow = true;
+                    newEntityType = "Cylinder";
+                }
+                if (ImGui.menuItem("Sphere")) {
+                    showEntityWindow = true;
+                    newEntityType = "Sphere";
                 }
                 ImGui.endMenu();
             }
@@ -220,6 +219,9 @@ public class GUI {
 
             ImGui.endMenu();
         }
+
+        ImGui.sameLine(ImGui.getWindowSize().x - 70);
+        ImGui.text("FPS: " + window.getFPS());
 
         ImGui.endMainMenuBar();
 
@@ -387,13 +389,9 @@ public class GUI {
             float[] color = Utils.vector3fToArray(newPointLight.getColor());
             float[] intensity = new float[] { newPointLight.getIntensity() };
 
-            ImGui.dragFloat3("Position", position, 0.1f);
-            ImGui.colorPicker3("Color: ", color);
-            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
-
-            newPointLight.setPosition(Utils.arrayToVector3f(position));
-            newPointLight.setColor(Utils.arrayToVector3f(color));
-            newPointLight.setIntensity(intensity[0]);
+            if (ImGui.dragFloat3("Position", position, 0.1f)) newPointLight.setPosition(Utils.arrayToVector3f(position));
+            if (ImGui.colorPicker3("Color: ", color)) newPointLight.setColor(Utils.arrayToVector3f(color));
+            if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) newPointLight.setIntensity(intensity[0]);
 
             if (ImGui.button("Add", 120, 0)) {
                 pointLights.add(new PointLight(newPointLight.getPosition(), newPointLight.getColor(), newPointLight.getIntensity()));
@@ -427,19 +425,12 @@ public class GUI {
             float[] color = Utils.vector3fToArray(newSpotLight.getColor());
             float[] intensity = new float[] { newSpotLight.getIntensity() };
 
-            ImGui.dragFloat3("Position", position, 0.1f);
-            ImGui.dragFloat3("Direction", direction, 0.1f, -1, 1);
-            ImGui.colorPicker3("Color: ", color);
-            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
-            ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 90f);
-            ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 90f);
-
-            newSpotLight.setPosition(Utils.arrayToVector3f(position));
-            newSpotLight.setDirection(Utils.arrayToVector3f(direction));
-            newSpotLight.setColor(Utils.arrayToVector3f(color));
-            newSpotLight.setIntensity(intensity[0]);
-            newSpotLight.setCutoff(cutoff[0]);
-            newSpotLight.setOuterCutoff(outerCutoff[0]);
+            if (ImGui.dragFloat3("Position", position, 0.1f)) newSpotLight.setPosition(Utils.arrayToVector3f(position));
+            if (ImGui.dragFloat3("Direction", direction, 0.1f, -1, 1)) newSpotLight.setDirection(Utils.arrayToVector3f(direction));
+            if (ImGui.colorPicker3("Color: ", color)) newSpotLight.setColor(Utils.arrayToVector3f(color));
+            if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) newSpotLight.setIntensity(intensity[0]);
+            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 90f)) newSpotLight.setCutoff(cutoff[0]);
+            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 90f)) newSpotLight.setOuterCutoff(outerCutoff[0]);
 
             if (ImGui.button("Add", 120, 0)) {
                 spotLights.add(new SpotLight(newSpotLight.getPosition(), newSpotLight.getDirection(), newSpotLight.getCutoff(), newSpotLight.getOuterCutoff(), newSpotLight.getColor(), newSpotLight.getIntensity()));
@@ -485,28 +476,18 @@ public class GUI {
 
         if (ImGui.treeNode("Lights")) {
             for (int i = 0; i < pointLights.size(); i++) {
-                if (ImGui.selectable("Point Light " + (i + 1), selected.get("pointLight") == i)) {
-                    setSelected("pointLight", i);
-                }
+                if (ImGui.selectable("Point Light " + (i + 1), selected.get("pointLight") == i)) setSelected("pointLight", i);
             }
             for (int i = 0; i < spotLights.size(); i++) {
-                if (ImGui.selectable("Spot Light " + (i + 1), selected.get("spotLight") == i)) {
-                    setSelected("spotLight", i);
-                }
+                if (ImGui.selectable("Spot Light " + (i + 1), selected.get("spotLight") == i)) setSelected("spotLight", i);
             }
-            if (ImGui.selectable("Directional Light", selected.get("dirLight") == 0)) {
-                setSelected("dirLight", 0);
-            }
+            if (ImGui.selectable("Directional Light", selected.get("dirLight") == 0)) setSelected("dirLight", 0);
             ImGui.treePop();
         }
 
-        if (ImGui.selectable("Camera", selected.get("camera") == 0)) {
-            setSelected("camera", 0);
-        }
+        if (ImGui.selectable("Camera", selected.get("camera") == 0)) setSelected("camera", 0);
 
-        if (ImGui.selectable("Skybox", selected.get("skybox") == 0)) {
-            setSelected("skybox", 0);
-        }
+        if (ImGui.selectable("Skybox", selected.get("skybox") == 0)) setSelected("skybox", 0);
 
         ImGui.end();
 
@@ -530,17 +511,12 @@ public class GUI {
                 }
 
                 ImGui.separator();
-                if (ImGui.dragFloat3("Position", position, 0.1f)) {
-                    entity.setPosition(new Vector3f(position[0], position[1], position[2]));
-                }
-                if (ImGui.inputText("Name", name)) {
-                    entity.setName(name.get());
-                }
-
+                if (ImGui.dragFloat3("Position", position, 0.1f)) entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                if (ImGui.inputText("Name", name)) entity.setName(name.get());
             } else {
                 float[] position = Utils.vector3fToArray(entity.getPosition());
                 float[] rotation = Utils.vector3fToArray(entity.getRotation());
-                float[] scale = new float[]{entity.getScale()};
+                float[] scale = new float[] {entity.getScale()};
                 ImString name = new ImString(entity.getName(), 128);
                 ImBoolean focused = new ImBoolean(camera.getFocus() == entity);
 
@@ -553,27 +529,158 @@ public class GUI {
                 }
 
                 ImGui.separator();
-                ImGui.dragFloat3("Position: ", position, 0.1f);
-                ImGui.dragFloat3("Rotation: ", rotation, 0.1f);
-                ImGui.dragFloat("Scale: ", scale, 0.1f);
-                ImGui.inputText("Name: ", name);
-                ImGui.checkbox("Focused: ", focused);
+                if (ImGui.dragFloat3("Position: ", position, 0.1f)) entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                ImGui.sameLine();
+                if (ImGui.button("Reset##Position")) entity.setPosition(new Vector3f(0, 0, 0));
+                if (ImGui.dragFloat3("Rotation: ", rotation, 0.1f)) entity.setRotation(new Vector3f(rotation[0], rotation[1], rotation[2]));
+                ImGui.sameLine();
+                if (ImGui.button("Reset##Rotation")) entity.setRotation(new Vector3f(0, 0, 0));
+                if (ImGui.dragFloat("Scale: ", scale, 0.1f)) entity.setScale(scale[0]);
+                if (ImGui.inputText("Name: ", name)) entity.setName(name.get());
+                if (ImGui.checkbox("Focused: ", focused)) camera.setFocus(focused.get() ? entity : null);
 
                 if (pbrMaterial != null) {
                     if (ImGui.button("Change material")) {
                         showMaterialWindow = true;
                     }
                 }
+            }
 
-                entity.setPosition(new Vector3f(position[0], position[1], position[2]));
-                entity.setRotation(new Vector3f(rotation[0], rotation[1], rotation[2]));
-                entity.setScale(scale[0]);
-                entity.setName(name.get());
-                if (focused.get()) {
-                    camera.setFocus(entity);
-                } else {
-                    camera.setFocus(null);
+            // Components
+            ImGui.separator();
+            ImGui.text("Components");
+            ImGui.separator();
+
+            Movement movement = entity.getMovement();
+            if (movement != null) {
+                ImInt currentItem = new ImInt(entity.getMovement().getType().ordinal());
+                String[] items = { "None", "Orbit", "Direction", "Points", "Keyboard" };
+                if (ImGui.beginCombo("Movement type", items[currentItem.get()])) {
+                    for (int i = 0; i < items.length; i++) {
+                        boolean isSelected = currentItem.get() == i;
+                        if (ImGui.selectable(items[i], isSelected)) {
+                            currentItem.set(i);
+                            switch (i) {
+                                case 0 -> movement.setType(Movement.Type.NONE);  // Preserve the movement attributes
+                                case 1 -> {
+                                    movement.setType(Movement.Type.ORBIT);
+                                    if (movement.getCenter() == null) movement.setCenter(new Vector3f(0, 0, 0));
+                                    if (movement.getAxis() == null) movement.setAxis(new Vector3f(0, 1, 0));
+                                    if (movement.getRadius() == 0) movement.setRadius(1);
+                                    if (movement.getAnglePerSecond() == 0) movement.setAnglePerSecond((float) Math.toRadians(90.0f));
+                                }
+                                case 2 -> {
+                                    movement.setType(Movement.Type.DIRECTION);
+                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
+                                    if (movement.getOrigin() == null) movement.setOrigin(new Vector3f(0, 0, 0));
+                                    if (movement.getDirection() == null) movement.setDirection(new Vector3f(0, 0, 1));
+                                    if (movement.getDistance() == 0) movement.setDistance(0);
+                                }
+                                case 3 -> {
+                                    movement.setType(Movement.Type.POINTS);
+                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
+                                    if (movement.getPoints() == null) movement.setPoints(new ArrayList<>() {});
+                                }
+                                case 4 -> {
+                                    movement.setType(Movement.Type.KEYBOARD);
+                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
+                                    if (movement.getDeceleration() == 0) movement.setDeceleration(0.95f);
+                                }
+                            }
+                        }
+                        if (isSelected) {
+                            ImGui.setScrollHereY();
+                        }
+                    }
+                    ImGui.endCombo();
                 }
+
+                if (movement.getType() == Movement.Type.ORBIT) {
+                    float[] center = Utils.vector3fToArray(movement.getCenter());
+                    float[] axis = Utils.vector3fToArray(movement.getAxis());
+                    float[] radius = new float[] { movement.getRadius() };
+                    float[] speed = new float[] { movement.getSpeed() };
+                    float[] anglePerSecond = new float[] { (float) Math.toDegrees(movement.getAnglePerSecond()) };
+                    ImBoolean pointTowardsCenter = new ImBoolean(movement.isPointTowardsCenter());
+
+                    if (ImGui.dragFloat3("Center: ", center, 0.1f)) movement.setCenter(new Vector3f(center[0], center[1], center[2]));
+                    if (ImGui.dragFloat3("Axis: ", axis, 0.1f)) movement.setAxis(new Vector3f(axis[0], axis[1], axis[2]));
+                    if (ImGui.dragFloat("Radius: ", radius, 0.1f, 0.01f, Float.MAX_VALUE)) movement.setRadius(radius[0]);
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f, 0.01f, Float.MAX_VALUE)) movement.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Angle per second: ", anglePerSecond, 0.1f)) movement.setAnglePerSecond((float) Math.toRadians(anglePerSecond[0]));
+                    if (ImGui.checkbox("Point towards center: ", pointTowardsCenter)) movement.setPointTowardsCenter(pointTowardsCenter.get());
+                } else if (movement.getType() == Movement.Type.DIRECTION) {
+                    ImInt currentMode = new ImInt(entity.getMovement().getMode().ordinal());
+                    String[] modes = { "Constant", "Acceleration", "Deceleration" };
+                    if (ImGui.beginCombo("Movement mode", modes[currentMode.get()])) {
+                        for (int i = 0; i < modes.length; i++) {
+                            boolean isSelected = currentMode.get() == i;
+                            if (ImGui.selectable(modes[i], isSelected)) {
+                                currentMode.set(i);
+                                switch (i) {
+                                    case 0 -> movement.setMode(Movement.Mode.CONSTANT);
+                                    case 1 -> movement.setMode(Movement.Mode.ACCELERATION);
+                                    case 2 -> movement.setMode(Movement.Mode.DECELERATION);
+                                }
+                            }
+                            if (isSelected) {
+                                ImGui.setScrollHereY();
+                            }
+                        }
+                        ImGui.endCombo();
+                    }
+
+                    float[] origin = Utils.vector3fToArray(movement.getOrigin());
+                    float[] direction = Utils.vector3fToArray(movement.getDirection());
+                    float[] speed = new float[] { movement.getSpeed() };
+                    float[] acceleration = new float[] { movement.getAcceleration() };
+                    float[] distance = new float[] { movement.getDistance() };
+                    ImBoolean noMaxDistance = new ImBoolean(movement.isNoMaxDistance());
+                    ImBoolean stopAtZeroSpeed = new ImBoolean(movement.isStopAtZeroSpeed());
+
+                    if (ImGui.dragFloat3("Origin: ", origin, 0.1f)) movement.setOrigin(new Vector3f(origin[0], origin[1], origin[2]));
+                    if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) movement.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
+                    if (movement.getMode() == Movement.Mode.ACCELERATION) {
+                        if (ImGui.dragFloat("Acceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
+                    } else if (movement.getMode() == Movement.Mode.DECELERATION) {
+                        if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
+                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                    }
+                    if (!movement.isNoMaxDistance()) {
+                        if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movement.setDistance(distance[0]);
+                    }
+                    if (ImGui.checkbox("No max distance: ", noMaxDistance)) movement.setNoMaxDistance(noMaxDistance.get());
+                    if (ImGui.button("Reset##Origin", 60, 0)) entity.setPosition(new Vector3f(movement.getOrigin()));
+                } else if (movement.getType() == Movement.Type.POINTS) {
+                    float[] speed = new float[] { movement.getSpeed() };
+                    List<Vector3f> points = movement.getPoints();
+
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
+
+                    ImGui.text("Points");
+                    for (int i = 0; i < points.size(); i++) {
+                        float[] point = Utils.vector3fToArray(points.get(i));
+                        if (ImGui.dragFloat3("Point " + (i + 1), point, 0.1f)) movement.setPoint(i, new Vector3f(point[0], point[1], point[2]));
+                        ImGui.sameLine();
+                        if (ImGui.button("Remove")) movement.removePoint(i);
+                    }
+
+                    if (ImGui.button("Add point")) {
+                        movement.addPoint(new Vector3f(0, 0, 0));
+                    }
+                } else if (movement.getType() == Movement.Type.KEYBOARD) {
+                    float[] speed = new float[] { movement.getSpeed() };
+                    float[] deceleration = new float[] { movement.getDeceleration() };
+
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Deceleration: ", deceleration, 0.1f)) movement.setDeceleration(deceleration[0]);
+                }
+            }
+
+            ImGui.separator();
+            if (ImGui.button("Add component")) {
+                entity.setMovement(Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 1, (float) Math.toRadians(90.0f)));
             }
         }
 
@@ -585,15 +692,10 @@ public class GUI {
             float[] intensity = new float[] { light.getIntensity() };
 
             ImGui.text("Point Light " + (selected.get("pointLight") + 1));
-            ImGui.dragFloat3("Position: ", position, 0.1f);
-            if (ImGui.button("Set to camera position"))
-                position = Utils.vector3fToArray(camera.getPosition());
-            ImGui.colorPicker3("Color: ", color);
-            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
-
-            light.setPosition(new Vector3f(position[0], position[1], position[2]));
-            light.setColor(new Vector3f(color[0], color[1], color[2]));
-            light.setIntensity(intensity[0]);
+            if (ImGui.dragFloat3("Position: ", position, 0.1f)) light.setPosition(new Vector3f(position[0], position[1], position[2]));
+            if (ImGui.button("Set to camera position")) light.setPosition(camera.getPosition());
+            if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
+            if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
         }
 
         if (selected.get("spotLight") != -1) {
@@ -610,25 +712,17 @@ public class GUI {
             ImBoolean enabled = new ImBoolean(light.isEnabled());
 
             ImGui.text("Spot Light " + (selected.get("spotLight") + 1));
-            ImGui.dragFloat3("Position: ", position, 0.1f);
-            ImGui.dragFloat3("Direction: ", direction, 0.01f, -1f, 1f);
-            ImGui.dragFloat("Azimuth: ", azimuth, 0.2f, 0f, 360f);
-            ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f);
-            ImGui.colorPicker3("Color: ", color);
-            ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE);
-            ImGui.dragFloat("Cutoff: ", cutoff, 0.01f, 0.1f, 10f);
-            ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.01f, 0.1f, 10f);
-            ImGui.checkbox("Enabled: ", enabled);
-
-            light.setPosition(new Vector3f(position[0], position[1], position[2]));
-            light.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
-            light.setAzimuth(azimuth[0]);
-            light.setElevation(elevation[0]);
-            light.setColor(new Vector3f(color[0], color[1], color[2]));
-            light.setIntensity(intensity[0]);
-            light.setCutoff(cutoff[0]);
-            light.setOuterCutoff(outerCutoff[0]);
-            light.setEnabled(enabled.get());
+            if (ImGui.dragFloat3("Position: ", position, 0.1f)) light.setPosition(new Vector3f(position[0], position[1], position[2]));
+            if (ImGui.button("Set to camera position")) light.setPosition(camera.getPosition());
+            if (ImGui.dragFloat3("Direction: ", direction, 0.01f, -1f, 1f))  light.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+            if (ImGui.button("Set to camera direction")) light.setDirection(camera.getFront());
+            if (ImGui.dragFloat("Azimuth: ", azimuth, 0.2f, 0f, 360f)) light.setAzimuth(azimuth[0]);
+            if (ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f)) light.setElevation(elevation[0]);
+            if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
+            if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
+            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.01f, 0.1f, 10f)) light.setCutoff(cutoff[0]);
+            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.01f, 0.1f, 10f)) light.setOuterCutoff(outerCutoff[0]);
+            if (ImGui.checkbox("Enabled: ", enabled)) light.setEnabled(enabled.get());
         }
 
         if (selected.get("dirLight") != -1) {
@@ -636,58 +730,39 @@ public class GUI {
             float[] color = Utils.vector3fToArray(dirLight.getColor());
 
             ImGui.text("Directional Light");
-            ImGui.dragFloat3("Direction: ", direction, 0.1f);
-            ImGui.colorPicker3("Color: ", color);
-
-            dirLight.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
-            dirLight.setColor(new Vector3f(color[0], color[1], color[2]));
+            if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) dirLight.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+            if (ImGui.colorPicker3("Color: ", color)) dirLight.setColor(new Vector3f(color[0], color[1], color[2]));
         }
 
         if (selected.get("camera") != -1) {
             float[] position = Utils.vector3fToArray(camera.getPosition());
-            float[] FOV = new float[] {(float) Math.toDegrees(renderer.getFOV())};
+            float[] FOV = new float[] {(float) Math.toDegrees(camera.getFOV())};
             float[] exposure = new float[] { renderer.getExposure() };
             float[] yaw = new float[] { camera.getYaw() };
             float[] pitch = new float[] { camera.getPitch() };
             float[] movementSpeed = new float[] { camera.getMovementSpeed() };
             float[] mouseSensitivity = new float[] { camera.getMouseSensitivity() };
             float[] deceleration = new float[] { camera.getDeceleration() };
-            ImInt movementMode = new ImInt(camera.getMovementMode() == Camera.MovementMode.CONSTANT ? 0 : 1);
             float[] zNear = new float[] { renderer.getzNear() };
             float[] zFar = new float[] { renderer.getzFar() };
             ImBoolean wireframe = new ImBoolean(renderer.isWireframe());
             ImBoolean toneMapping = new ImBoolean(renderer.isToneMapping());
 
             ImGui.text("Camera");
-            ImGui.dragFloat3("Position: ", position, 0.1f);
-            ImGui.dragFloat("FOV: ", FOV, 0.1f, 20.0f, 180f);
-            ImGui.dragFloat("Exposure: ", exposure, 0.01f, 0.0f, 10.0f);
-            ImGui.dragFloat("Yaw: ", yaw, 0.1f);
-            ImGui.dragFloat("Pitch: ", pitch, 0.1f);
-            ImGui.dragFloat("Movement Speed: ", movementSpeed, 0.01f, 0.0f, 10.0f);
-            ImGui.dragFloat("Mouse Sensitivity: ", mouseSensitivity, 0.0001f, 0.0f, 0.1f);
-            ImGui.dragFloat("Deceleration: ", deceleration, 0.001f, 0.0f, 1.0f);
-            ImGui.radioButton("Constant Movement: ", movementMode, 0);
-            ImGui.radioButton("Smooth Movement: ", movementMode, 1);
-            ImGui.newLine();
-            ImGui.dragFloat("zNear: ", zNear, 0.1f, 0.1f, 1000f);
-            ImGui.dragFloat("zFar: ", zFar, 10f, 0.1f, 100000f);
-            ImGui.checkbox("Wireframe: ", wireframe);
-            ImGui.checkbox("Tone mapping: ", toneMapping);
-
-            camera.setPosition(new Vector3f(position[0], position[1], position[2]));
-            renderer.setFOV((float) Math.toRadians(FOV[0]));
-            renderer.setExposure(exposure[0]);
-            camera.setYaw(yaw[0]);
-            camera.setPitch(pitch[0]);
-            camera.setMovementSpeed(movementSpeed[0]);
-            camera.setMouseSensitivity(mouseSensitivity[0]);
-            camera.setDeceleration(deceleration[0]);
-            camera.setMovementMode(movementMode.get() == 0 ? Camera.MovementMode.CONSTANT : Camera.MovementMode.SMOOTH);
-            renderer.setzNear(zNear[0]);
-            renderer.setzFar(zFar[0]);
-            renderer.setWireframe(wireframe.get());
-            renderer.setToneMapping(toneMapping.get());
+            if (ImGui.dragFloat3("Position: ", position, 0.1f)) camera.setPosition(new Vector3f(position[0], position[1], position[2]));
+            if (ImGui.dragFloat("FOV: ", FOV, 0.1f, 10.0f, 180f)) camera.setFOV((float) Math.toRadians(FOV[0]));
+            if (ImGui.dragFloat("Exposure: ", exposure, 0.01f, 0.0f, 10.0f)) renderer.setExposure(exposure[0]);
+            if (ImGui.dragFloat("Yaw: ", yaw, 0.1f)) camera.setYaw(yaw[0]);
+            if (ImGui.dragFloat("Pitch: ", pitch, 0.1f)) camera.setPitch(pitch[0]);
+            if (ImGui.dragFloat("Movement Speed: ", movementSpeed, 0.01f, 0.0f, 10.0f)) camera.setMovementSpeed(movementSpeed[0]);
+            if (ImGui.dragFloat("Mouse Sensitivity: ", mouseSensitivity, 0.0001f, 0.0f, 0.1f)) camera.setMouseSensitivity(mouseSensitivity[0]);
+            if (ImGui.dragFloat("Deceleration: ", deceleration, 0.001f, 0.0f, 1.0f)) camera.setDeceleration(deceleration[0]);
+            if (ImGui.radioButton("Constant Movement: ", camera.getMovementMode() == Camera.MovementMode.CONSTANT)) camera.setMovementMode(Camera.MovementMode.CONSTANT);
+            if (ImGui.radioButton("Smooth Movement: ", camera.getMovementMode() == Camera.MovementMode.SMOOTH)) camera.setMovementMode(Camera.MovementMode.SMOOTH);
+            if (ImGui.dragFloat("zNear: ", zNear, 0.1f, 0.1f, 1000f)) renderer.setzNear(zNear[0]);
+            if (ImGui.dragFloat("zFar: ", zFar, 10f, 0.1f, 100000f)) renderer.setzFar(zFar[0]);
+            if (ImGui.checkbox("Wireframe: ", wireframe)) renderer.setWireframe(wireframe.get());
+            if (ImGui.checkbox("Tone mapping: ", toneMapping)) renderer.setToneMapping(toneMapping.get());
         }
 
         if (selected.get("skybox") != -1) {
@@ -775,12 +850,9 @@ public class GUI {
                     }
                 }
                 float[] metallic = new float[] { pbrMaterial.getMetallicFactor() };
-                ImGui.dragFloat("Metallic factor: ", metallic, 0.001f, 0.0f, 1.0f);
-                if (ImGui.checkbox("Use texture##Metallic", useMetallicTexture) && pbrMaterial.getMetallic() != null) {
-                    pbrMaterial.setUseTexture("metallic", useMetallicTexture.get());
-                } else {
-                    pbrMaterial.setMetallicFactor(metallic[0]);
-                }
+                if (ImGui.dragFloat("Metallic factor: ", metallic, 0.001f, 0.0f, 1.0f)) pbrMaterial.setMetallicFactor(metallic[0]);
+
+                if (ImGui.checkbox("Use texture##Metallic", useMetallicTexture) && pbrMaterial.getMetallic() != null) pbrMaterial.setUseTexture("metallic", useMetallicTexture.get());
                 ImGui.newLine();
 
                 // Roughness
@@ -794,11 +866,10 @@ public class GUI {
                     }
                 }
                 float[] roughness = new float[] { pbrMaterial.getRoughnessFactor() };
-                ImGui.dragFloat("Roughness factor: ", roughness, 0.001f, 0.0f, 1.0f);
+                if (ImGui.dragFloat("Roughness factor: ", roughness, 0.001f, 0.0f, 1.0f)) pbrMaterial.setRoughnessFactor(roughness[0]);
+
                 if (ImGui.checkbox("Use texture##Roughness", useRoughnessTexture) && pbrMaterial.getRoughness() != null) {
                     pbrMaterial.setUseTexture("roughness", useRoughnessTexture.get());
-                } else {
-                    pbrMaterial.setRoughnessFactor(roughness[0]);
                 }
                 ImGui.newLine();
 

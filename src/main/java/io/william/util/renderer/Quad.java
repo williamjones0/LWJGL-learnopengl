@@ -1,4 +1,4 @@
-package io.william.util.rendering;
+package io.william.util.renderer;
 
 import org.lwjgl.system.MemoryUtil;
 
@@ -14,7 +14,7 @@ public class Quad {
 
     public static void render() {
         if (VAO == 0) {
-            io.william.renderer.primitives.Quad quad = new io.william.renderer.primitives.Quad();
+            io.william.renderer.primitive.Quad quad = new io.william.renderer.primitive.Quad();
 
             FloatBuffer positionsBuffer = MemoryUtil.memAllocFloat(quad.getPositions().length);
             positionsBuffer.put(quad.getPositions()).flip();

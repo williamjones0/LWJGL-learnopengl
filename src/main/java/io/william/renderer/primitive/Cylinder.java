@@ -1,4 +1,4 @@
-package io.william.renderer.primitives;
+package io.william.renderer.primitive;
 
 import org.joml.Vector2f;
 

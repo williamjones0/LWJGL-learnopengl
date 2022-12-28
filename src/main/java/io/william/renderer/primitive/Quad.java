@@ -1,4 +1,4 @@
-package io.william.renderer.primitives;
+package io.william.renderer.primitive;
 
 public class Quad {
 

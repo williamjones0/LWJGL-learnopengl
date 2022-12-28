@@ -24,7 +24,6 @@ public class Renderer {
     private ShaderProgram lightShader;
     private ShaderProgram hdrShader;
 
-    private float FOV = (float) Math.toRadians(60.0);
     private float aspectRatio;
     private boolean wireframe;
     private boolean toneMapping = true;
@@ -37,7 +36,7 @@ public class Renderer {
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
 
-    public void init(Window window) throws Exception {
+    public void init(Window window, Camera camera) throws Exception {
         framebuffer = new Framebuffer(
             new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
             GL_DEPTH24_STENCIL8,
@@ -53,7 +52,7 @@ public class Renderer {
         phongShader.createUniform("view");
 
         aspectRatio = (float) window.getWidth() / window.getHeight();
-        projection = new Matrix4f().setPerspective(FOV, aspectRatio, zNear, zFar);
+        projection = new Matrix4f().setPerspective(camera.getFOV(), aspectRatio, zNear, zFar);
         phongShader.createUniform("projection");
 
         phongShader.createUniform("viewPos");
@@ -130,7 +129,7 @@ public class Renderer {
 //        shaderProgram.bind();
 
         Matrix4f view = camera.calculateViewMatrix();
-        projection = new Matrix4f().setPerspective(FOV, aspectRatio, zNear, zFar);
+        projection = new Matrix4f().setPerspective(camera.getFOV(), aspectRatio, zNear, zFar);
 //        shaderProgram.setUniform("view", view);
 //        shaderProgram.setUniform("projection", projection);
 //
@@ -267,6 +266,21 @@ public class Renderer {
                 pbrShader.setUniform("material.roughnessFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
 
             entity.render();
+
+            if (entity.getMovement() != null) {
+                for (Entity point : entity.getMovement().getPointEntities()) {
+                    model = Maths.calculateModelMatrix(point.getWorldPosition(), point.getRotation(), point.getScale());
+                    pbrShader.setUniform("model", model);
+
+                    for (Map.Entry<String, Boolean> usesTexture: point.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures().entrySet()) {
+                        pbrShader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
+                    }
+                    pbrShader.setUniform("material.albedoColor", point.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+                    pbrShader.setUniform("material.metallicFactor", point.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
+                    pbrShader.setUniform("material.roughnessFactor", point.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
+                    point.render();
+                }
+            }
         }
 
         // Render lights
@@ -335,7 +349,7 @@ public class Renderer {
         hdrShader.setUniform("toneMapping", toneMapping);
 
         // Render quad
-        io.william.util.rendering.Quad.render();
+        io.william.util.renderer.Quad.render();
     }
 
     public void cleanup() {
@@ -360,14 +374,6 @@ public class Renderer {
 
     public boolean isToneMapping() {
         return toneMapping;
-    }
-
-    public float getFOV() {
-        return FOV;
-    }
-
-    public void setFOV(float FOV) {
-        this.FOV = FOV;
     }
 
     public boolean isNormalMapping() {

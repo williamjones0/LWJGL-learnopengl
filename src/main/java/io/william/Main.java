@@ -1,5 +1,6 @@
 package io.william;
 
+import io.william.game.component.Movement;
 import io.william.io.ModelLoader;
 import io.william.renderer.*;
 import io.william.util.Maths;
@@ -7,9 +8,9 @@ import io.william.io.Input;
 import io.william.io.Window;
 import org.joml.Vector3f;
 import org.lwjgl.*;
-import io.william.renderer.primitives.Cylinder;
-import io.william.renderer.primitives.Quad;
-import io.william.renderer.primitives.UVSphere;
+import io.william.renderer.primitive.Cylinder;
+import io.william.renderer.primitive.Quad;
+import io.william.renderer.primitive.UVSphere;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ public class Main {
     private float deltaTime = 0.0f;
     private float lastFrame = 0.0f;
 
+    private boolean firstMouse = true;
     private double lastX, lastY, lastScrollX, lastScrollY = 0;
     private final List<Integer> lastFrameKeys = new ArrayList<>();
     private final List<Integer> lastFrameButtons = new ArrayList<>();
@@ -59,12 +61,12 @@ public class Main {
 
         meshes = new ArrayList<>();
 
-        camera = new Camera(new Vector3f(0, 0, 15), -90f, 0);
+        camera = new Camera(new Vector3f(0, 0, 15), 0, 0);
 
         gui = new GUI();
 
         masterRenderer = new MasterRenderer();
-        masterRenderer.init(window, renderer, gui);
+        masterRenderer.init(window, renderer, camera, gui);
 
         PBRMaterial rustedIron = new PBRMaterial(
             new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
@@ -136,7 +138,7 @@ public class Main {
             meshes.add(mesh.getMesh());
         }
 
-        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 0, 5), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
+        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 4, 12), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
 //        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
         int numRows = 7;
@@ -166,6 +168,9 @@ public class Main {
             }
         }
 
+        Movement movement = Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(-8, 8, 8), new Vector3f(0, 1, 0), 5, (float) Math.toRadians(90.0f));
+        helmet.setMovement(movement);
+
         entities.add(helmet);
 //        entities.add(backpack);
 
@@ -182,11 +187,11 @@ public class Main {
 
         meshes.add(planeMesh);
 
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10, cubeParent));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10, cubeParent));
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10, cubeParent));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10, cubeParent));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10, cubeParent));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 10, 0), new Vector3f(90, 0, 0), 10, cubeParent));
 
 //        DirLight dirLight = new DirLight(
 //            new Vector3f(-0.2f, -1.0f, -0.3f),
@@ -280,20 +285,6 @@ public class Main {
     }
 
     private void update() {
-        for (int i = 0; i < scene.getEntities().size(); i++) {
-            Entity entity = scene.getEntities().get(i);
-            if (entity.getName() == null) {
-                entity.setName("Entity " + i);
-            }
-
-            if (entity.getParent() != null && !entity.getParent().getChildren().contains(entity)) {
-                entity.getParent().addChild(entity);
-            }
-        }
-
-        window.update();
-        camera.update();
-
         // Calculate delta time
         float currentFrame = (float) glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -301,10 +292,27 @@ public class Main {
 
         spotLights.get(0).setPosition(camera.getPosition());
         spotLights.get(0).setDirection(camera.getFront());
-//
-//        Vector3f temp = scene.getEntities().get(49).getRotation();
-//        temp.rotateAxis((float) Math.toRadians(1f), 0.0f, 0.0f, 1.0f);
-//        scene.getEntities().get(49).setRotation(temp);
+
+        for (int i = 0; i < scene.getEntities().size(); i++) {
+            Entity entity = scene.getEntities().get(i);
+            // Update names
+            if (entity.getName() == null) {
+                entity.setName("Entity " + i);
+            }
+
+            // Update children
+            if (entity.getParent() != null && !entity.getParent().getChildren().contains(entity)) {
+                entity.getParent().addChild(entity);
+            }
+
+            // Update transformations
+            if (entity.getMovement() != null) {
+                entity.update(deltaTime);
+            }
+        }
+
+        window.update();
+        camera.update(deltaTime);
 
         processInput();
     }
@@ -365,6 +373,12 @@ public class Main {
         double xpos = Input.getMouseX();
         double ypos = Input.getMouseY();
 
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
         double xoffset = xpos - lastX;
         double yoffset = lastY - ypos;  // reversed since y-coordinates go from bottom to top
 
@@ -382,7 +396,7 @@ public class Main {
         lastScrollY = scrollypos;
 
         if (!cursorEnabled)
-            camera.processMouse((float) xoffset, (float) yoffset);
+            camera.processMouse((float) xoffset, (float) yoffset, (float) scrollyoffset);
 
         if (Input.isButtonDown(GLFW_MOUSE_BUTTON_2) && !lastFrameButtons.contains(GLFW_MOUSE_BUTTON_2)) {
             cursorEnabled = !cursorEnabled;

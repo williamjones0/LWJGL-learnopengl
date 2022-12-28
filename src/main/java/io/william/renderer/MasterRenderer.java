@@ -7,11 +7,11 @@ public class MasterRenderer {
     private Renderer renderer;
     private GUI gui;
 
-    public void init(Window window, Renderer renderer, GUI gui) throws Exception {
+    public void init(Window window, Renderer renderer, Camera camera, GUI gui) throws Exception {
         this.renderer = renderer;
         this.gui = gui;
 
-        renderer.init(window);
+        renderer.init(window, camera);
         gui.init(window.getWindowHandle());
     }
 

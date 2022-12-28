@@ -1,5 +1,6 @@
 package io.william.renderer;
 
+import io.william.game.component.Movement;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ public class Entity {
 
     private Entity parent;
     private List<Entity> children;
+
+    private Movement movement;
 
     public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name, Entity parent) {
         this.meshes = meshes;
@@ -155,6 +158,16 @@ public class Entity {
         this.children = new ArrayList<>();
     }
 
+    public void update(float deltaTime) {
+        if (movement != null) {
+            switch (movement.getType()) {
+                case ORBIT -> movement.orbitUpdate(this, deltaTime);
+                case DIRECTION -> movement.directionUpdate(this, deltaTime);
+                case POINTS -> movement.pointUpdate(this, deltaTime);
+            }
+        }
+    }
+
     public void render() {
         for (MaterialMesh mesh : meshes) {
             mesh.render();
@@ -227,5 +240,13 @@ public class Entity {
 
     public void removeChild(Entity child) {
         children.remove(child);
+    }
+
+    public Movement getMovement() {
+        return movement;
+    }
+
+    public void setMovement(Movement movement) {
+        this.movement = movement;
     }
 }
