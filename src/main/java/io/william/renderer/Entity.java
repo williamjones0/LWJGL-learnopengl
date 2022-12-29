@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import io.william.game.component.Movement;
+import io.william.game.component.RotationController;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -17,9 +18,10 @@ public class Entity {
     private String name;
 
     private Entity parent;
-    private List<Entity> children;
+    private final List<Entity> children;
 
     private Movement movement;
+    private RotationController rotationController;
 
     public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name, Entity parent) {
         this.meshes = meshes;
@@ -166,6 +168,10 @@ public class Entity {
                 case POINTS -> movement.pointUpdate(this, deltaTime);
             }
         }
+
+        if (rotationController != null) {
+            rotationController.update(this, deltaTime);
+        }
     }
 
     public void render() {
@@ -248,5 +254,13 @@ public class Entity {
 
     public void setMovement(Movement movement) {
         this.movement = movement;
+    }
+
+    public RotationController getRotationController() {
+        return rotationController;
+    }
+
+    public void setRotationController(RotationController rotationController) {
+        this.rotationController = rotationController;
     }
 }

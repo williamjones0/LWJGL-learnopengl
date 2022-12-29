@@ -1,6 +1,7 @@
 package io.william;
 
 import io.william.game.component.Movement;
+import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
 import io.william.renderer.*;
 import io.william.util.Maths;
@@ -170,6 +171,9 @@ public class Main {
 
         Movement movement = Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(-8, 8, 8), new Vector3f(0, 1, 0), 5, (float) Math.toRadians(90.0f));
         helmet.setMovement(movement);
+
+        RotationController rotationController = new RotationController();
+        helmet.setRotationController(rotationController);
 
         entities.add(helmet);
 //        entities.add(backpack);

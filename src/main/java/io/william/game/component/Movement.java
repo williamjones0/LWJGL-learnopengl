@@ -187,9 +187,15 @@ public class Movement {
         Vector3f position = entity.getPosition();
         if (noMaxDistance || position.distance(origin) < distance) {
             switch (mode) {
-                case ACCELERATION -> speed += acceleration * deltaTime;
+                case ACCELERATION -> {
+                    if (stopAtZeroSpeed && speed + acceleration * deltaTime <= 0) {
+                        speed = 0;
+                    } else {
+                        speed += acceleration * deltaTime;
+                    }
+                }
                 case DECELERATION -> {
-                    if (stopAtZeroSpeed && speed - acceleration * deltaTime < 0) {
+                    if (stopAtZeroSpeed && speed - acceleration * deltaTime <= 0) {
                         speed = 0;
                     } else {
                         speed -= acceleration * deltaTime;
@@ -215,7 +221,7 @@ public class Movement {
 
         Vector3f direction = target.sub(position, new Vector3f());
 
-        if (direction.length() < 0.01f) {
+        if (direction.length() < 0.01f * speed) {
             currentPoint++;
             return;
         }

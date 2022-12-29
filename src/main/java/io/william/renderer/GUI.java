@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import io.william.game.component.Movement;
+import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
 import io.william.util.Utils;
 import imgui.ImGui;
@@ -85,8 +86,8 @@ public class GUI {
     private final float PADDING = 20;
     private final float HIERARCHY_WIDTH = 200;
     private final float HIERARCHY_HEIGHT = 800;
-    private final float INSPECTOR_WIDTH = 300;
-    private final float INSPECTOR_HEIGHT = 500;
+    private final float INSPECTOR_WIDTH = 400;
+    private final float INSPECTOR_HEIGHT = 600;
     private final float MATERIAL_WIDTH = 480;
     private final float MATERIAL_HEIGHT = 400;
 
@@ -494,7 +495,7 @@ public class GUI {
         // Inspector window
         ImGui.setNextWindowPos(window.getWidth() - INSPECTOR_WIDTH - PADDING, 2 * PADDING, ImGuiCond.FirstUseEver);
         ImGui.setNextWindowSize(INSPECTOR_WIDTH, INSPECTOR_HEIGHT, ImGuiCond.FirstUseEver);
-        ImGui.begin("Inspector");
+        ImGui.begin("Inspector", ImGuiWindowFlags.AlwaysAutoResize);
 
         if (selectedEntity != null && selected.get("entity") != -1) {
             Entity entity = selectedEntity;
@@ -553,6 +554,8 @@ public class GUI {
 
             Movement movement = entity.getMovement();
             if (movement != null) {
+                ImGui.text("Movement");
+
                 ImInt currentItem = new ImInt(entity.getMovement().getType().ordinal());
                 String[] items = { "None", "Orbit", "Direction", "Points", "Keyboard" };
                 if (ImGui.beginCombo("Movement type", items[currentItem.get()])) {
@@ -645,8 +648,8 @@ public class GUI {
                         if (ImGui.dragFloat("Acceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
                     } else if (movement.getMode() == Movement.Mode.DECELERATION) {
                         if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
-                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
                     }
+                    if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
                     if (!movement.isNoMaxDistance()) {
                         if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movement.setDistance(distance[0]);
                     }
@@ -678,9 +681,66 @@ public class GUI {
                 }
             }
 
+            RotationController rotationController = entity.getRotationController();
+            if (rotationController != null) {
+                ImGui.separator();
+                ImGui.text("Rotation");
+                ImGui.separator();
+
+                ImInt currentMode = new ImInt(rotationController.getMode().ordinal());
+                String[] modes = { "None", "Constant", "Acceleration", "Deceleration" };
+                if (ImGui.beginCombo("Rotation mode", modes[currentMode.get()])) {
+                    for (int i = 0; i < modes.length; i++) {
+                        boolean isSelected = currentMode.get() == i;
+                        if (ImGui.selectable(modes[i], isSelected)) {
+                            currentMode.set(i);
+                            switch (i) {
+                                case 0 -> rotationController.setMode(RotationController.Mode.NONE);
+                                case 1 -> rotationController.setMode(RotationController.Mode.CONSTANT);
+                                case 2 -> rotationController.setMode(RotationController.Mode.ACCELERATION);
+                                case 3 -> rotationController.setMode(RotationController.Mode.DECELERATION);
+                            }
+                        }
+                        if (isSelected) {
+                            ImGui.setScrollHereY();
+                        }
+                    }
+                    ImGui.endCombo();
+                }
+
+                if (rotationController.getMode() == RotationController.Mode.CONSTANT) {
+                    float[] speed = Utils.vector3fToArray(rotationController.getSpeed());
+                    if (ImGui.dragFloat3("Speed: ", speed, 0.1f)) rotationController.setSpeed(new Vector3f(speed[0], speed[1], speed[2]));
+                } else if (rotationController.getMode() == RotationController.Mode.ACCELERATION) {
+                    float[] speed = Utils.vector3fToArray(rotationController.getSpeed());
+                    float[] acceleration = Utils.vector3fToArray(rotationController.getAcceleration());
+                    ImBoolean stopAtZeroSpeed = new ImBoolean(rotationController.isStopAtZeroSpeed());
+                    if (ImGui.dragFloat3("Speed: ", speed, 0.1f)) rotationController.setSpeed(new Vector3f(speed[0], speed[1], speed[2]));
+                    if (ImGui.dragFloat3("Acceleration: ", acceleration, 0.1f)) rotationController.setAcceleration(new Vector3f(acceleration[0], acceleration[1], acceleration[2]));
+                    if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) rotationController.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                } else if (rotationController.getMode() == RotationController.Mode.DECELERATION) {
+                    float[] speed = Utils.vector3fToArray(rotationController.getSpeed());
+                    float[] acceleration = Utils.vector3fToArray(rotationController.getAcceleration());
+                    ImBoolean stopAtZeroSpeed = new ImBoolean(rotationController.isStopAtZeroSpeed());
+                    if (ImGui.dragFloat3("Speed: ", speed, 0.1f)) rotationController.setSpeed(new Vector3f(speed[0], speed[1], speed[2]));
+                    if (ImGui.dragFloat3("Deceleration: ", acceleration, 0.1f)) rotationController.setAcceleration(new Vector3f(acceleration[0], acceleration[1], acceleration[2]));
+                    if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) rotationController.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                }
+            }
+
             ImGui.separator();
             if (ImGui.button("Add component")) {
-                entity.setMovement(Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(0, 0, 0), new Vector3f(0, 1, 0), 1, (float) Math.toRadians(90.0f)));
+                ImGui.openPopup("Add component");
+            }
+
+            if (ImGui.beginPopup("Add component")) {
+                if (ImGui.menuItem("Movement")) {
+                    entity.setMovement(Movement.none());
+                }
+                if (ImGui.menuItem("Rotation")) {
+                    entity.setRotationController(new RotationController());
+                }
+                ImGui.endPopup();
             }
         }
 
