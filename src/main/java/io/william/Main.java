@@ -1,12 +1,9 @@
 package io.william;
 
-import io.william.game.component.Movement;
-import io.william.game.component.RotationController;
-import io.william.io.ModelLoader;
 import io.william.renderer.*;
-import io.william.util.Maths;
 import io.william.io.Input;
 import io.william.io.Window;
+import io.william.renderer.shadow.ShadowRenderer;
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import io.william.renderer.primitive.Cylinder;
@@ -17,8 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.GL_RGBA;
-import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class Main {
 
@@ -28,6 +23,7 @@ public class Main {
     private Camera camera;
     private List<SpotLight> spotLights;
     private Scene scene;
+    private ShadowRenderer shadowRenderer;
     private GUI gui;
     private MasterRenderer masterRenderer;
 
@@ -64,50 +60,52 @@ public class Main {
 
         camera = new Camera(new Vector3f(0, 0, 15), 0, 0);
 
+        shadowRenderer = new ShadowRenderer();
+
         gui = new GUI();
 
         masterRenderer = new MasterRenderer();
-        masterRenderer.init(window, renderer, camera, gui);
+        masterRenderer.init(window, renderer, camera, shadowRenderer, gui);
 
-        PBRMaterial rustedIron = new PBRMaterial(
-            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
-            null,
-            null,
-            null
-        );
+//        PBRMaterial rustedIron = new PBRMaterial(
+//            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
+//            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
+//            null,
+//            null,
+//            null
+//        );
+//
+//        PBRMaterial red = new PBRMaterial(
+//            null,
+//            null,
+//            null,
+//            null,
+//            null,
+//            null,
+//            null
+//        );
 
-        PBRMaterial red = new PBRMaterial(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        );
+//        PBRMaterial blackTile = new PBRMaterial(
+//            new Texture("src/main/resources/textures/PBR/black_tile/albedo.png", GL_SRGB_ALPHA),
+//            new Texture("src/main/resources/textures/PBR/black_tile/normal.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/black_tile/metallic.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/black_tile/roughness.png", GL_RGBA),
+//            null,
+//            new Texture("src/main/resources/textures/PBR/black_tile/ao.png", GL_RGBA),
+//            null
+//        );
 
-        PBRMaterial blackTile = new PBRMaterial(
-            new Texture("src/main/resources/textures/PBR/black_tile/albedo.png", GL_SRGB_ALPHA),
-            new Texture("src/main/resources/textures/PBR/black_tile/normal.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/black_tile/metallic.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/black_tile/roughness.png", GL_RGBA),
-            null,
-            new Texture("src/main/resources/textures/PBR/black_tile/ao.png", GL_RGBA),
-            null
-        );
-
-        PBRMaterial vintageTile = new PBRMaterial(
-            new Texture("src/main/resources/textures/PBR/vintage_tile/albedo.png", GL_SRGB_ALPHA),
-            new Texture("src/main/resources/textures/PBR/vintage_tile/normal.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/vintage_tile/metallic.png", GL_RGBA),
-            new Texture("src/main/resources/textures/PBR/vintage_tile/roughness.png", GL_RGBA),
-            null,
-            new Texture("src/main/resources/textures/PBR/vintage_tile/ao.png", GL_RGBA),
-            null
-        );
+//        PBRMaterial vintageTile = new PBRMaterial(
+//            new Texture("src/main/resources/textures/PBR/vintage_tile/albedo.png", GL_SRGB_ALPHA),
+//            new Texture("src/main/resources/textures/PBR/vintage_tile/normal.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/vintage_tile/metallic.png", GL_RGBA),
+//            new Texture("src/main/resources/textures/PBR/vintage_tile/roughness.png", GL_RGBA),
+//            null,
+//            new Texture("src/main/resources/textures/PBR/vintage_tile/ao.png", GL_RGBA),
+//            null
+//        );
 
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
@@ -128,56 +126,56 @@ public class Main {
             cylinder.getTexCoords(),
             cylinder.getIndices()
         );
-        MaterialMesh cylinderMaterialMesh = new MaterialMesh(cylinderMesh, blackTile);
+        MaterialMesh cylinderMaterialMesh = new MaterialMesh(cylinderMesh, new PBRMaterial());
 
-        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        meshes.add(backpackMesh[0]);
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
-        for (MaterialMesh mesh : helmetMaterialMeshes) {
-            meshes.add(mesh.getMesh());
-        }
+//        for (MaterialMesh mesh : helmetMaterialMeshes) {
+//            meshes.add(mesh.getMesh());
+//        }
 
-        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 4, 12), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
+//        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 4, 12), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
 //        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
-        int numRows = 7;
-        int numColumns = 7;
-        float spacing = 2.5f;
-
+//        int numRows = 7;
+//        int numColumns = 7;
+//        float spacing = 2.5f;
+//
         List<Entity> entities = new ArrayList<>();
-
-        Entity cubeParent = new Entity(new Vector3f(0, 0, 0), "Cube Parent");
-        entities.add(cubeParent);
-
-        Entity sphereParent = new Entity(new Vector3f(0, 0, 0), "Spheres", cubeParent);
-        entities.add(sphereParent);
-
-        for (int row = 0; row < numRows; row++) {
-            for (int column = 0; column < numColumns; column++) {
-                PBRMaterial pbrMaterial = new PBRMaterial(
-                    new Vector3f(1.0f, row * 1.0f, column * 1.0f).normalize(),
-                    (float) row / 7,
-                    Maths.clamp((float) column / (float) 7, 0.05f, 1.0f),
-                    new Vector3f(0.0f, 0.0f, 0.0f)
-                );
-
-                MaterialMesh sphereMaterialMesh = new MaterialMesh(sphereMesh, pbrMaterial);
-                Entity sphere = new Entity(sphereMaterialMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1, sphereParent);
+//
+//        Entity cubeParent = new Entity(new Vector3f(0, 0, 0), "Cube Parent");
+//        entities.add(cubeParent);
+//
+//        Entity sphereParent = new Entity(new Vector3f(0, 0, 0), "Spheres", cubeParent);
+//        entities.add(sphereParent);
+//
+//        for (int row = 0; row < numRows; row++) {
+//            for (int column = 0; column < numColumns; column++) {
+//                PBRMaterial pbrMaterial = new PBRMaterial(
+//                    new Vector3f(1.0f, row * 1.0f, column * 1.0f).normalize(),
+//                    (float) row / 7,
+//                    Maths.clamp((float) column / (float) 7, 0.05f, 1.0f),
+//                    new Vector3f(0.0f, 0.0f, 0.0f)
+//                );
+//
+//                MaterialMesh sphereMaterialMesh = new MaterialMesh(sphereMesh, pbrMaterial);
+//                Entity sphere = new Entity(sphereMaterialMesh, new Vector3f((column - (float) (numColumns / 2)) * spacing, (row - (float) (numRows / 2)) * spacing, 0), new Vector3f(0, 90, 0), 1, sphereParent);
 //                entities.add(sphere);
-            }
-        }
+//            }
+//        }
 
-        Movement movement = Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(-8, 8, 8), new Vector3f(0, 1, 0), 5, (float) Math.toRadians(90.0f));
-        helmet.setMovement(movement);
-
-        RotationController rotationController = new RotationController();
-        helmet.setRotationController(rotationController);
-
-        entities.add(helmet);
+//        Movement movement = Movement.orbit(Movement.Mode.CONSTANT, new Vector3f(-8, 8, 8), new Vector3f(0, 1, 0), 5, (float) Math.toRadians(90.0f));
+//        helmet.setMovement(movement);
+//
+//        RotationController rotationController = new RotationController();
+//        helmet.setRotationController(rotationController);
+//
+//        entities.add(helmet);
 //        entities.add(backpack);
-
+//
         entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
         Quad quad = new Quad();
@@ -187,11 +185,11 @@ public class Main {
             quad.getTexCoords(),
             quad.getIndices()
         );
-        MaterialMesh planeMaterialMesh = new MaterialMesh(planeMesh, vintageTile);
+        MaterialMesh planeMaterialMesh = new MaterialMesh(planeMesh, new PBRMaterial());
 
         meshes.add(planeMesh);
 
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 5));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10, cubeParent));
@@ -205,7 +203,7 @@ public class Main {
 //        );
 
         DirLight dirLight = new DirLight(
-            new Vector3f(-0.2f, 1.0f, -0.3f),
+            new Vector3f(2f, 5f, 2f).normalize(),
             new Vector3f(1f, 1f, 1f)
         );
 
@@ -310,9 +308,7 @@ public class Main {
             }
 
             // Update transformations
-            if (entity.getMovement() != null) {
-                entity.update(deltaTime);
-            }
+            entity.update(deltaTime);
         }
 
         window.update();

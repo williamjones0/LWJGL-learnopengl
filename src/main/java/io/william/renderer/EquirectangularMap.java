@@ -45,7 +45,7 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        Framebuffer framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT, 512, 512);
+        Framebuffer framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, 512, 512);
 
         // Set up cubemap to render to and attach to framebuffer
         environmentCubemap = glGenTextures();
@@ -94,7 +94,7 @@ public class EquirectangularMap {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         for (int i = 0; i < 6; i++) {
             equirectangularToCubemapShader.setUniform("view", views[i]);
-            framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environmentCubemap);
+            framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, environmentCubemap);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             // Render cube
@@ -154,7 +154,7 @@ public class EquirectangularMap {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         for (int i = 0; i < 6; i++) {
             irradianceShader.setUniform("view", views[i]);
-            framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap);
+            framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             cubeMesh.render();
@@ -211,7 +211,7 @@ public class EquirectangularMap {
 
             for (int i = 0; i < 6; i++) {
                 prefilterShader.setUniform("view", views[i]);
-                framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+                framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 cubeMesh.render();
@@ -238,7 +238,7 @@ public class EquirectangularMap {
         // Configure framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, 512, 512);
-        framebuffer.attachTexture(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT);
+        framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT);
 
         // Render quad
         glViewport(0, 0, 512, 512);

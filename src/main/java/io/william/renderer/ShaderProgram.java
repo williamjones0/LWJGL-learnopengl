@@ -10,12 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL32.GL_GEOMETRY_SHADER;
 
-class ShaderProgram {
+public class ShaderProgram {
 
     private final int programID;
     private int vertexShaderID;
     private int fragmentShaderID;
+    private int geometryShaderID;
     private final Map<String, Integer> uniforms;
 
     public ShaderProgram() {
@@ -98,6 +100,11 @@ class ShaderProgram {
         createUniform(uniformName + ".enabled");
     }
 
+    public void createSettingsUniform(String uniformName) throws Exception {
+        createUniform(uniformName + ".specularOcclusion");
+        createUniform(uniformName + ".horizonSpecularOcclusion");
+    }
+
     public void setUniform(String uniformName, Vector3f value) {
         // Dump the vector into a float buffer
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -145,6 +152,10 @@ class ShaderProgram {
         fragmentShaderID = createShader(source, GL_FRAGMENT_SHADER);
     }
 
+    public void createGeometryShader(String source) {
+        geometryShaderID = createShader(source, GL_GEOMETRY_SHADER);
+    }
+
     private int createShader(String source, int shaderType) {
         int shaderID = glCreateShader(shaderType);
         if (shaderID == 0) {
@@ -170,6 +181,7 @@ class ShaderProgram {
 
         glDetachShader(programID, vertexShaderID);
         glDetachShader(programID, fragmentShaderID);
+        glDetachShader(programID, geometryShaderID);
 
         glValidateProgram(programID);
         if (glGetProgrami(programID, GL_VALIDATE_STATUS) == 0) {

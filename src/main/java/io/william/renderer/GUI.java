@@ -3,6 +3,7 @@ package io.william.renderer;
 import io.william.game.component.Movement;
 import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
+import io.william.renderer.shadow.ShadowRenderer;
 import io.william.util.Utils;
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -46,6 +47,9 @@ public class GUI {
     private String newEntityType = "";
     private boolean showPointLightWindow = false;
     private boolean showSpotLightWindow = false;
+    private boolean showSettingsWindow = false;
+
+    private ImInt debugTextureID = new ImInt(1);
 
     private PointLight newPointLight = new PointLight(
         new Vector3f(0, 0, 0),
@@ -110,7 +114,7 @@ public class GUI {
         selected.put("skybox", -1);
     }
 
-    public void render(Scene scene, Camera camera, Renderer renderer, Window window) throws Exception {
+    public void render(Scene scene, Camera camera, Renderer renderer, ShadowRenderer shadowRenderer, Window window) throws Exception {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
@@ -219,6 +223,10 @@ public class GUI {
             }
 
             ImGui.endMenu();
+        }
+
+        if (ImGui.menuItem("Settings")) {
+            showSettingsWindow = true;
         }
 
         ImGui.sameLine(ImGui.getWindowSize().x - 70);
@@ -461,6 +469,78 @@ public class GUI {
             ImGui.end();
         }
 
+        if (showSettingsWindow) {
+            ImGui.begin("Settings", ImGuiWindowFlags.AlwaysAutoResize);
+
+            if (ImGui.beginTabBar("SettingsTabBar")) {
+                if (ImGui.beginTabItem("General")) {
+                    ImGui.text("General settings");
+                    ImGui.endTabItem();
+                }
+
+                if (ImGui.beginTabItem("Graphics")) {
+                    ImGui.text("Shaders");
+
+                    // Shader selection
+                    String[] shaders = { "LearnOpenGL", "Filament", "Frostbite" };
+                    int[] currentShader = new int[] { renderer.getCurrentShader().ordinal() };
+                    if (ImGui.beginCombo("Shader", shaders[currentShader[0]])) {
+                        for (int i = 0; i < shaders.length; i++) {
+                            boolean isSelected = currentShader[0] == i;
+                            if (ImGui.selectable(shaders[i], isSelected)) {
+                                currentShader[0] = i;
+                                renderer.setCurrentShader(Renderer.Shader.values()[i]);
+                            }
+
+                            if (isSelected) ImGui.setItemDefaultFocus();
+                        }
+                        ImGui.endCombo();
+                    }
+
+                    // Settings
+                    ImGui.text("Settings");
+
+                    // Occlusion
+                    ImBoolean specularOcclusion = new ImBoolean(renderer.getShaderSetting("specularOcclusion"));
+                    if (ImGui.checkbox("Specular Occlusion", specularOcclusion)) {
+                        renderer.setShaderSetting("specularOcclusion", specularOcclusion.get());
+                    }
+
+                    ImBoolean horizonSpecularOcclusion = new ImBoolean(renderer.getShaderSetting("horizonSpecularOcclusion"));
+                    if (ImGui.checkbox("Horizon Specular Occlusion", horizonSpecularOcclusion)) {
+                        renderer.setShaderSetting("horizonSpecularOcclusion", horizonSpecularOcclusion.get());
+                    }
+
+                    // Shadow mapping
+                    ImGui.separator();
+                    ImGui.text("Shadow mapping");
+                    float[] nearPlane = new float[] {shadowRenderer.getNearPlane()};
+                    float[] farPlane = new float[] {shadowRenderer.getFarPlane()};
+                    float[] size = new float[] {shadowRenderer.getSize()};
+
+                    if (ImGui.dragFloat("Near plane", nearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                        shadowRenderer.setNearPlane(nearPlane[0]);
+                    }
+                    if (ImGui.dragFloat("Far plane", farPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                        shadowRenderer.setFarPlane(farPlane[0]);
+                    }
+                    if (ImGui.dragFloat("Size", size, 0.1f, 0f, Float.MAX_VALUE)) {
+                        shadowRenderer.setSize(size[0]);
+                    }
+
+                    ImGui.endTabItem();
+                }
+
+                ImGui.endTabBar();
+            }
+
+            if (ImGui.button("Close", 120, 0)) {
+                showSettingsWindow = false;
+            }
+
+            ImGui.end();
+        }
+
         // Hierarchy window
         ImGui.setNextWindowPos(PADDING, 2 * PADDING, ImGuiCond.FirstUseEver);
         ImGui.setNextWindowSize(HIERARCHY_WIDTH, HIERARCHY_HEIGHT, ImGuiCond.FirstUseEver);
@@ -649,7 +729,9 @@ public class GUI {
                     } else if (movement.getMode() == Movement.Mode.DECELERATION) {
                         if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
                     }
-                    if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                    if (movement.getMode() != Movement.Mode.CONSTANT) {
+                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                    }
                     if (!movement.isNoMaxDistance()) {
                         if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movement.setDistance(distance[0]);
                     }
@@ -983,6 +1065,14 @@ public class GUI {
 
             ImGui.end();
         }
+
+        // Debug window
+        ImGui.setNextWindowPos(window.getWidth() - 256 - PADDING, window.getHeight() - 300 - PADDING, ImGuiCond.FirstUseEver);
+        ImGui.begin("Debug");
+
+        ImGui.inputInt("ID", debugTextureID);
+        ImGui.image(debugTextureID.get(), 256, 256, 0, 1, 1, 0);
+        ImGui.end();
 
         ImGui.render();
         imGuiGl3.renderDrawData(ImGui.getDrawData());

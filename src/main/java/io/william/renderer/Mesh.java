@@ -18,14 +18,14 @@ public class Mesh {
     private int normalsVBO;
     private int texCoordsVBO;
     private int indicesVBO;
-    private int vertexCount;
+    private int indexCount;
 
     public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices) {
         init(positions, normals, texCoords, indices);
     }
 
     private void init(float[] positions, float[] normals, float[] texCoords, int[] indices) {
-        vertexCount = indices.length;
+        indexCount = indices.length;
 
         // Create VAO and bind it
         VAO = glGenVertexArrays();
@@ -78,7 +78,7 @@ public class Mesh {
 
     public void render() {
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
 

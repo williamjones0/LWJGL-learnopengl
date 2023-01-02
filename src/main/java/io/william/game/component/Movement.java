@@ -143,8 +143,7 @@ public class Movement {
         // If entity is not in the orbit plane, move it to the orbit plane
         if (Math.abs(v.dot(k)) > threshold) {
             System.out.println("Entity is not in orbit plane");
-            Vector3f v2 = new Vector3f(v).cross(k);
-            v2.cross(k, v);
+            v.cross(k);
             v.normalize().mul(radius);
         }
 
@@ -161,12 +160,12 @@ public class Movement {
 //        Vector3f t3 = k.mul(k.dot(v) * (1 - (float) Math.cos(angle)), new Vector3f());
 //        Vector3f rotated = t1.add(t2).add(t3);
         v.rotateAxis(angle, k.x, k.y, k.z);
-
+//        v = new Vector3f(rotated);
         entity.setPosition(new Vector3f(center).add(v));
 
         // Update rotation (z doesn't work at the moment)
         if (pointTowardsCenter) {
-            Vector3f direction = new Vector3f(center).sub(entity.getPosition()).normalize();
+            Vector3f direction = new Vector3f(v).negate();
             // (0, 0, 1) is the default direction of the entity and is equivalent to (0, 0, 0) rotation
             // A direction of (1, 0, 0) is equivalent to (0, 90, 0) rotation
             // A direction of (0, 0, -1) is equivalent to (0, 180, 0) rotation
@@ -202,7 +201,7 @@ public class Movement {
                     }
                 }
             }
-            position.add(new Vector3f(direction).normalize().mul(speed * deltaTime, new Vector3f()));
+            position.add(new Vector3f(direction).normalize().mul(speed * deltaTime));
         }
     }
 
@@ -219,16 +218,14 @@ public class Movement {
 
         Vector3f target = points.get(currentPoint);
 
-        Vector3f direction = target.sub(position, new Vector3f());
+        Vector3f direction = new Vector3f(target).sub(position);
 
         if (direction.length() < 0.01f * speed) {
             currentPoint++;
             return;
         }
 
-        direction.normalize();
-
-        position.add(direction.mul(speed * deltaTime, new Vector3f()));
+        position.add(direction.normalize().mul(speed * deltaTime));
 
         entity.setPosition(position);
 

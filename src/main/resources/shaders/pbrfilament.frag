@@ -46,6 +46,7 @@ struct PBRMaterial {
     bool uses_emissive_map;
 };
 
+
 struct Settings {
     bool specularOcclusion;
     bool horizonSpecularOcclusion;
@@ -93,16 +94,12 @@ vec3 getNormalFromMap() {
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
+    float a = NdotH * roughness;
 
-    float num  = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
+    float k = roughness / (1.0 - NdotH * NdotH + a * a);
 
-    return num / denom;
+    return k * k * (1.0 / PI);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -118,10 +115,22 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    float a2 = roughness * roughness;
+    float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - a2) + a2);
+    float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - a2) + a2);
 
-    return ggx1 * ggx2;
+    return 0.5 / (GGXV + GGXL);
+}
+
+float GeometrySmithFast(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float a = roughness;
+
+    float GGXV = NdotL * (NdotV * (1.0 - a) + a);
+    float GGXL = NdotV * (NdotL * (1.0 - a) + a);
+
+    return 0.5 / (GGXV + GGXL);
 }
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
@@ -130,6 +139,21 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+float Fd_Lambert() {
+    return 1.0 / PI;
+}
+
+float F_Schlick(float u, float f0, float f90) {
+    return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
+}
+
+float Fd_Burley(float NoV, float NoL, float LoH, float roughness) {
+    float f90 = 0.5 + 2.0 * roughness * LoH * LoH;
+    float lightScatter = F_Schlick(NoL, 1.0, f90);
+    float viewScatter = F_Schlick(NoV, 1.0, f90);
+    return lightScatter * viewScatter * (1.0 / PI);
 }
 
 float computeSpecularAO(float NdotV, float ao, float roughness) {
@@ -161,7 +185,7 @@ float shadowCalculation(vec4 fragPosLightSpace) {
     }
     shadow /= 9.0;
 
-//    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    //    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -254,7 +278,11 @@ void main() {
 
         // Add to outgoing radiance Lo
         // Already multiplied the BRDF by kS, so don't need to multiply again
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        vec3 diffuseColor = kD * albedo;
+//        vec3 Fd = diffuseColor * Fd_Lambert();
+        vec3 Fd = diffuseColor * Fd_Burley(max(dot(N, V), 0.0), NdotL, max(dot(L, H), 0.0), roughness);
+
+        Lo += (Fd + specular) * radiance * NdotL;
     }
 
     // Spot lights
@@ -294,7 +322,11 @@ void main() {
 
             // Add to outgoing radiance Lo
             // Already multiplied the BRDF by kS, so don't need to multiply again
-            Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+            vec3 diffuseColor = kD * albedo;
+//            vec3 Fd = diffuseColor * Fd_Lambert();
+            vec3 Fd = diffuseColor * Fd_Burley(max(dot(N, V), 0.0), NdotL, max(dot(L, H), 0.0), roughness);
+
+            Lo += (Fd + specular) * radiance * NdotL;
         }
     }
 
@@ -317,7 +349,13 @@ void main() {
 
         float NdotL = max(dot(N, L), 0.0);
 
-        Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
+        // Add to outgoing radiance Lo
+        // Already multiplied the BRDF by kS, so don't need to multiply again
+        vec3 diffuseColor = kD * albedo;
+//        vec3 Fd = diffuseColor * Fd_Lambert();
+        vec3 Fd = diffuseColor * Fd_Burley(max(dot(N, V), 0.0), NdotL, max(dot(L, H), 0.0), roughness);
+
+        Lo += (Fd + specular) * dirLight.color * NdotL;
     }
 
     // Ambient lighting
@@ -340,7 +378,6 @@ void main() {
         float horizon = min(1.0 + dot(R, N), 1.0);
         prefilteredColor *= horizon * horizon;
     }
-
     vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
 

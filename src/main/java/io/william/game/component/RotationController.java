@@ -43,19 +43,19 @@ public class RotationController {
             case ACCELERATION -> {
                 if (stopAtZeroSpeed) {
                     if (speed.x < 0) {
-                        speed.x = Math.min(speed.x + acceleration.x * deltaTime, 0);
+                        speed.x = Math.min(speed.x - acceleration.x * deltaTime, 0);
                     } else {
-                        speed.x = Math.max(speed.x - acceleration.x * deltaTime, 0);
+                        speed.x = Math.max(speed.x + acceleration.x * deltaTime, 0);
                     }
                     if (speed.y < 0) {
-                        speed.y = Math.min(speed.y + acceleration.y * deltaTime, 0);
+                        speed.y = Math.min(speed.y - acceleration.y * deltaTime, 0);
                     } else {
-                        speed.y = Math.max(speed.y - acceleration.y * deltaTime, 0);
+                        speed.y = Math.max(speed.y + acceleration.y * deltaTime, 0);
                     }
                     if (speed.z < 0) {
-                        speed.z = Math.min(speed.z + acceleration.z * deltaTime, 0);
+                        speed.z = Math.min(speed.z - acceleration.z * deltaTime, 0);
                     } else {
-                        speed.z = Math.max(speed.z - acceleration.z * deltaTime, 0);
+                        speed.z = Math.max(speed.z + acceleration.z * deltaTime, 0);
                     }
                 } else {
                     speed.x += acceleration.x * deltaTime;

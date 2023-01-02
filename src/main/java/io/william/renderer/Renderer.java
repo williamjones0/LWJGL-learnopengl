@@ -3,9 +3,11 @@ package io.william.renderer;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.william.renderer.shadow.ShadowRenderer;
 import io.william.util.Maths;
 import io.william.io.Window;
 import org.joml.Matrix4f;
@@ -21,8 +23,21 @@ public class Renderer {
 
     private ShaderProgram phongShader;
     private ShaderProgram pbrShader;
+    private ShaderProgram filamentShader;
+    private ShaderProgram frostbiteShader;
+
     private ShaderProgram lightShader;
     private ShaderProgram hdrShader;
+
+    public enum Shader {
+        PBR,
+        FILAMENT,
+        FROSTBITE
+    }
+
+    private Shader currentShader = Shader.PBR;
+
+    private Map<String, Boolean> shaderSettings = new HashMap<>();
 
     private float aspectRatio;
     private boolean wireframe;
@@ -31,7 +46,7 @@ public class Renderer {
     private float exposure = 1.0f;
 
     private float zNear = 0.1f;
-    private float zFar = 100f;
+    private float zFar = 500f;
     private static final int MAX_POINT_LIGHTS = 8;
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
@@ -40,8 +55,12 @@ public class Renderer {
         framebuffer = new Framebuffer(
             new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
             GL_DEPTH24_STENCIL8,
+            GL_COLOR_ATTACHMENT0,
             GL_DEPTH_STENCIL_ATTACHMENT
         );
+
+        shaderSettings.put("specularOcclusion", true);
+        shaderSettings.put("horizonSpecularOcclusion", true);
 
         phongShader = new ShaderProgram();
         phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
@@ -86,6 +105,65 @@ public class Renderer {
         pbrShader.createUniform("prefilterMap");
         pbrShader.createUniform("brdfLUT");
 
+        pbrShader.createSettingsUniform("settings");
+
+        pbrShader.createUniform("lightSpaceMatrix");
+        pbrShader.createUniform("shadowMap");
+
+        // Filament shader
+        filamentShader = new ShaderProgram();
+        filamentShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
+        filamentShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrfilament.frag").toPath(), StandardCharsets.US_ASCII));
+        filamentShader.link();
+
+        filamentShader.createUniform("model");
+        filamentShader.createUniform("view");
+        filamentShader.createUniform("projection");
+
+        filamentShader.createUniform("camPos");
+
+        filamentShader.createPBRMaterialUniform("material");
+
+        filamentShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        filamentShader.createDirLightUniform("dirLight");
+        filamentShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
+
+        filamentShader.createUniform("irradianceMap");
+        filamentShader.createUniform("prefilterMap");
+        filamentShader.createUniform("brdfLUT");
+
+        filamentShader.createSettingsUniform("settings");
+
+        filamentShader.createUniform("lightSpaceMatrix");
+        filamentShader.createUniform("shadowMap");
+
+        // Frostbite shader
+        frostbiteShader = new ShaderProgram();
+        frostbiteShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
+        frostbiteShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/frostbite.frag").toPath(), StandardCharsets.US_ASCII));
+        frostbiteShader.link();
+
+        frostbiteShader.createUniform("model");
+        frostbiteShader.createUniform("view");
+        frostbiteShader.createUniform("projection");
+
+        frostbiteShader.createUniform("camPos");
+
+        frostbiteShader.createPBRMaterialUniform("material");
+
+        frostbiteShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        frostbiteShader.createDirLightUniform("dirLight");
+        frostbiteShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
+
+        frostbiteShader.createUniform("irradianceMap");
+        frostbiteShader.createUniform("prefilterMap");
+        frostbiteShader.createUniform("brdfLUT");
+
+        frostbiteShader.createSettingsUniform("settings");
+
+        frostbiteShader.createUniform("lightSpaceMatrix");
+        frostbiteShader.createUniform("shadowMap");
+
         // Light shader
         lightShader = new ShaderProgram();
         lightShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
@@ -109,7 +187,7 @@ public class Renderer {
         hdrShader.createUniform("toneMapping");
     }
 
-    public void render(Camera camera, Scene scene, Window window) {
+    public void render(Camera camera, Scene scene, ShadowRenderer shadowRenderer, Window window) {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
@@ -175,109 +253,126 @@ public class Renderer {
 //
 //        shaderProgram.unbind();
 
+        ShaderProgram shader = switch (currentShader) {
+            case PBR -> pbrShader;
+            case FILAMENT -> filamentShader;
+            case FROSTBITE -> frostbiteShader;
+        };
+
         // PBR shader
-        pbrShader.bind();
-        pbrShader.setUniform("view", view);
-        pbrShader.setUniform("projection", projection);
+        shader.bind();
+        shader.setUniform("view", view);
+        shader.setUniform("projection", projection);
 
-        pbrShader.setUniform("camPos", camera.getPosition());
+        shader.setUniform("camPos", camera.getPosition());
 
-        pbrShader.setUniform("material.albedo", 0);
-        pbrShader.setUniform("material.normal", 1);
-        pbrShader.setUniform("material.metallic", 2);
-        pbrShader.setUniform("material.roughness", 3);
-        pbrShader.setUniform("material.metallicRoughness", 4);
-        pbrShader.setUniform("material.ao", 5);
-        pbrShader.setUniform("material.emissive", 6);
+        shader.setUniform("material.albedo", 0);
+        shader.setUniform("material.normal", 1);
+        shader.setUniform("material.metallic", 2);
+        shader.setUniform("material.roughness", 3);
+        shader.setUniform("material.metallicRoughness", 4);
+        shader.setUniform("material.ao", 5);
+        shader.setUniform("material.emissive", 6);
 
         // Update point light uniforms
         for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
             if (i < pointLights.size()) {
-                pbrShader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
-                pbrShader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
-                pbrShader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
+                shader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
+                shader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
+                shader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
             } else {
-                pbrShader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
-                pbrShader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
-                pbrShader.setUniform("pointLights[" + i + "].intensity", 0.0f);
+                shader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
+                shader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
+                shader.setUniform("pointLights[" + i + "].intensity", 0.0f);
             }
         }
 
         // Update spotlight uniforms
         for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
             if (i < spotLights.size()) {
-                pbrShader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
-                pbrShader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
-                pbrShader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
-                pbrShader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
-                pbrShader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
-                pbrShader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
-                pbrShader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
+                shader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
+                shader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
+                shader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
+                shader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
+                shader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
+                shader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
+                shader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
             } else {
-                pbrShader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
-                pbrShader.setUniform("spotLights[" + i + "].direction",   new Vector3f(0.0f));
-                pbrShader.setUniform("spotLights[" + i + "].color",       new Vector3f(0.0f));
-                pbrShader.setUniform("spotLights[" + i + "].intensity",   0.0f);
-                pbrShader.setUniform("spotLights[" + i + "].cutoff",      0.0f);
-                pbrShader.setUniform("spotLights[" + i + "].outerCutoff", 0.0f);
-                pbrShader.setUniform("spotLights[" + i + "].enabled",     false);
+                shader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].direction",   new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].color",       new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].intensity",   0.0f);
+                shader.setUniform("spotLights[" + i + "].cutoff",      0.0f);
+                shader.setUniform("spotLights[" + i + "].outerCutoff", 0.0f);
+                shader.setUniform("spotLights[" + i + "].enabled",     false);
             }
         }
 
         // Update directional light uniforms
-        pbrShader.setUniform("dirLight.direction", dirLight.getDirection());
-        pbrShader.setUniform("dirLight.color", dirLight.getColor());
+        shader.setUniform("dirLight.direction", dirLight.getDirection());
+        shader.setUniform("dirLight.color", dirLight.getColor());
 
-        // Render entities
-        pbrShader.setUniform("irradianceMap", 7);
+        // Update environment map uniforms
+        shader.setUniform("irradianceMap", 7);
         glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
 
-        pbrShader.setUniform("prefilterMap", 8);
+        shader.setUniform("prefilterMap", 8);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
 
-        pbrShader.setUniform("brdfLUT", 9);
+        shader.setUniform("brdfLUT", 9);
         glActiveTexture(GL_TEXTURE9);
         glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
+        // Update settings uniforms
+        shader.setUniform("settings.specularOcclusion", getShaderSetting("specularOcclusion"));
+        shader.setUniform("settings.horizonSpecularOcclusion", getShaderSetting("horizonSpecularOcclusion"));
+
+        // Update shadow mapping uniforms
+        shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
+        shader.setUniform("shadowMap", 10);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowRenderer.getTextureID());
+
+        // Render entities
         for (Entity entity : entities) {
             if (entity.getMaterialMeshes() == null) {
                 continue;
             }
 
             Matrix4f model = Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale());
-            pbrShader.bind();
-            pbrShader.setUniform("model", model);
+            shader.bind();
+            shader.setUniform("model", model);
 
             Map<String, Boolean> usesTextures = entity.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures();
 
             for (Map.Entry<String, Boolean> usesTexture: usesTextures.entrySet()) {
-                pbrShader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
+                shader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
             }
 
             if (!usesTextures.get("albedo"))
-                pbrShader.setUniform("material.albedoColor", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+                shader.setUniform("material.albedoColor", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
 
             if (!usesTextures.get("metallic"))
-                pbrShader.setUniform("material.metallicFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
+                shader.setUniform("material.metallicFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
 
             if (!usesTextures.get("roughness"))
-                pbrShader.setUniform("material.roughnessFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
+                shader.setUniform("material.roughnessFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
 
             entity.render();
 
             if (entity.getMovement() != null) {
                 for (Entity point : entity.getMovement().getPointEntities()) {
                     model = Maths.calculateModelMatrix(point.getWorldPosition(), point.getRotation(), point.getScale());
-                    pbrShader.setUniform("model", model);
+                    shader.setUniform("model", model);
 
                     for (Map.Entry<String, Boolean> usesTexture: point.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures().entrySet()) {
-                        pbrShader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
+                        shader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
                     }
-                    pbrShader.setUniform("material.albedoColor", point.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
-                    pbrShader.setUniform("material.metallicFactor", point.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
-                    pbrShader.setUniform("material.roughnessFactor", point.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
+                    shader.setUniform("material.albedoColor", point.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
+                    shader.setUniform("material.metallicFactor", point.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
+                    shader.setUniform("material.roughnessFactor", point.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
                     point.render();
                 }
             }
@@ -358,6 +453,22 @@ public class Renderer {
         lightShader.cleanup();
         hdrShader.cleanup();
         framebuffer.cleanup();
+    }
+
+    public Shader getCurrentShader() {
+        return currentShader;
+    }
+
+    public void setCurrentShader(Shader currentShader) {
+        this.currentShader = currentShader;
+    }
+
+    public boolean getShaderSetting(String setting) {
+        return shaderSettings.get(setting);
+    }
+
+    public void setShaderSetting(String setting, boolean value) {
+        shaderSettings.put(setting, value);
     }
 
     public boolean isWireframe() {

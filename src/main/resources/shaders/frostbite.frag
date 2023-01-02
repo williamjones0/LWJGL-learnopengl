@@ -46,6 +46,7 @@ struct PBRMaterial {
     bool uses_emissive_map;
 };
 
+
 struct Settings {
     bool specularOcclusion;
     bool horizonSpecularOcclusion;
@@ -92,17 +93,11 @@ vec3 getNormalFromMap() {
     return normalize(TBN * tangentNormal);
 }
 
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
+float DistributionGGX(vec3 N, vec3 H, float m) {
     float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float num  = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-
-    return num / denom;
+    float m2 = m * m;
+    float f = (NdotH * m2 - NdotH) * NdotH + 1.0;
+    return m2 / (PI * f * f);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -130,6 +125,28 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+float F_Schlick(float u, float f0, float f90) {
+    return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
+}
+
+float V_SmithGGXCorrelated(float NdotL, float NdotV, float alphaG) {
+    float alphaG2 = alphaG * alphaG;
+    float Lambda_GGXV = NdotL * sqrt((-NdotV * alphaG2 + NdotV) * NdotV + alphaG2);
+    float Lambda_GGXL = NdotV * sqrt((-NdotL * alphaG2 + NdotL) * NdotL + alphaG2);
+    return 0.5 / (Lambda_GGXV + Lambda_GGXL);
+}
+
+float Fr_DisneyDiffuse(float NdotV, float NdotL, float LdotH, float linearRoughness) {
+    float energyBias = mix(0, 0.5, linearRoughness);
+    float energyFactor = mix(1.0, 1.0 / 1.51, linearRoughness);
+    float fd90 = energyBias + 2.0 * LdotH * LdotH * linearRoughness;
+    vec3 f0 = vec3(1.0f, 1.0f, 1.0f);
+    float lightScatter = fresnelSchlick(NdotL, f0).r;
+    float viewScatter = fresnelSchlick(NdotV, f0).r;
+
+    return lightScatter * viewScatter * energyFactor;
 }
 
 float computeSpecularAO(float NdotV, float ao, float roughness) {
@@ -161,7 +178,7 @@ float shadowCalculation(vec4 fragPosLightSpace) {
     }
     shadow /= 9.0;
 
-//    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    //    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -233,12 +250,12 @@ void main() {
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = pointLights[i].color * pointLights[i].intensity * attenuation;
 
-        // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, roughness);
-        float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+        // Specular BRDF
+        vec3 F = fresnelSchlick(max(dot(L, H), 0.0), F0);
+        float Vis = V_SmithGGXCorrelated(max(dot(N, L), 0.0), max(dot(N, V), 0.0), roughness);
+        float D = DistributionGGX(N, H, roughness);
 
-        vec3 numerator = NDF * G * F;
+        vec3 numerator = D * F * Vis;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
         vec3 specular = numerator / denominator;
 
@@ -254,7 +271,12 @@ void main() {
 
         // Add to outgoing radiance Lo
         // Already multiplied the BRDF by kS, so don't need to multiply again
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+        vec3 diffuseColor = kD * albedo;
+//        vec3 Fd = diffuseColor * Fd_Lambert();
+        vec3 Fd = diffuseColor * Fr_DisneyDiffuse(max(dot(N, V), 0.0), max(dot(N, L), 0.0), max(dot(L, H), 0.0), roughness * roughness) / PI;
+
+        Lo += (Fd + specular) * radiance * NdotL;
+//        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
     // Spot lights
@@ -294,7 +316,12 @@ void main() {
 
             // Add to outgoing radiance Lo
             // Already multiplied the BRDF by kS, so don't need to multiply again
-            Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+            vec3 diffuseColor = kD * albedo;
+//            vec3 Fd = diffuseColor * Fd_Lambert();
+            vec3 Fd = diffuseColor * Fr_DisneyDiffuse(max(dot(N, V), 0.0), max(dot(N, L), 0.0), max(dot(L, H), 0.0), roughness * roughness) / PI;
+
+            Lo += (Fd + specular) * radiance * NdotL;
+//            Lo += (kD * albedo / PI + specular) * radiance * NdotL;
         }
     }
 
@@ -317,7 +344,13 @@ void main() {
 
         float NdotL = max(dot(N, L), 0.0);
 
-        Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
+        // Add to outgoing radiance Lo
+        // Already multiplied the BRDF by kS, so don't need to multiply again
+        vec3 diffuseColor = kD * albedo;
+//        vec3 Fd = diffuseColor * Fd_Lambert();
+        vec3 Fd = diffuseColor * Fr_DisneyDiffuse(max(dot(N, V), 0.0), max(dot(N, L), 0.0), max(dot(L, H), 0.0), roughness * roughness) / PI;
+
+        Lo += (Fd + specular) * dirLight.color * NdotL;
     }
 
     // Ambient lighting
