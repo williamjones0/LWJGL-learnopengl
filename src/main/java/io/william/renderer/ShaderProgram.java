@@ -82,6 +82,7 @@ public class ShaderProgram {
         createUniform(uniformName + ".position");
         createUniform(uniformName + ".color");
         createUniform(uniformName + ".intensity");
+        createUniform(uniformName + ".enabled");
     }
 
     public void createSpotLightListUniform(String uniformName, int size) throws Exception {
@@ -103,6 +104,8 @@ public class ShaderProgram {
     public void createSettingsUniform(String uniformName) throws Exception {
         createUniform(uniformName + ".specularOcclusion");
         createUniform(uniformName + ".horizonSpecularOcclusion");
+        createUniform(uniformName + ".pointShadows");
+        createUniform(uniformName + ".pointShadowBias");
     }
 
     public void setUniform(String uniformName, Vector3f value) {

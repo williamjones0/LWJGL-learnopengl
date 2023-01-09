@@ -3,6 +3,7 @@ package io.william.renderer;
 import io.william.game.component.Movement;
 import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
+import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.util.Utils;
 import imgui.ImGui;
@@ -114,7 +115,7 @@ public class GUI {
         selected.put("skybox", -1);
     }
 
-    public void render(Scene scene, Camera camera, Renderer renderer, ShadowRenderer shadowRenderer, Window window) throws Exception {
+    public void render(Scene scene, Camera camera, Renderer renderer, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) throws Exception {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
@@ -438,8 +439,8 @@ public class GUI {
             if (ImGui.dragFloat3("Direction", direction, 0.1f, -1, 1)) newSpotLight.setDirection(Utils.arrayToVector3f(direction));
             if (ImGui.colorPicker3("Color: ", color)) newSpotLight.setColor(Utils.arrayToVector3f(color));
             if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) newSpotLight.setIntensity(intensity[0]);
-            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 90f)) newSpotLight.setCutoff(cutoff[0]);
-            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 90f)) newSpotLight.setOuterCutoff(outerCutoff[0]);
+            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 180f)) newSpotLight.setCutoff(cutoff[0]);
+            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 180f)) newSpotLight.setOuterCutoff(outerCutoff[0]);
 
             if (ImGui.button("Add", 120, 0)) {
                 spotLights.add(new SpotLight(newSpotLight.getPosition(), newSpotLight.getDirection(), newSpotLight.getCutoff(), newSpotLight.getOuterCutoff(), newSpotLight.getColor(), newSpotLight.getIntensity()));
@@ -499,33 +500,54 @@ public class GUI {
 
                     // Settings
                     ImGui.text("Settings");
+                    ShaderSettings settings = renderer.getShaderSettings();
 
                     // Occlusion
-                    ImBoolean specularOcclusion = new ImBoolean(renderer.getShaderSetting("specularOcclusion"));
+                    ImBoolean specularOcclusion = new ImBoolean(settings.isSpecularOcclusion());
                     if (ImGui.checkbox("Specular Occlusion", specularOcclusion)) {
-                        renderer.setShaderSetting("specularOcclusion", specularOcclusion.get());
+                        settings.setSpecularOcclusion(specularOcclusion.get());
                     }
 
-                    ImBoolean horizonSpecularOcclusion = new ImBoolean(renderer.getShaderSetting("horizonSpecularOcclusion"));
+                    ImBoolean horizonSpecularOcclusion = new ImBoolean(settings.isHorizonSpecularOcclusion());
                     if (ImGui.checkbox("Horizon Specular Occlusion", horizonSpecularOcclusion)) {
-                        renderer.setShaderSetting("horizonSpecularOcclusion", horizonSpecularOcclusion.get());
+                        settings.setHorizonSpecularOcclusion(horizonSpecularOcclusion.get());
                     }
 
                     // Shadow mapping
                     ImGui.separator();
-                    ImGui.text("Shadow mapping");
+                    ImGui.text("Directional shadow mapping");
                     float[] nearPlane = new float[] {shadowRenderer.getNearPlane()};
                     float[] farPlane = new float[] {shadowRenderer.getFarPlane()};
                     float[] size = new float[] {shadowRenderer.getSize()};
 
-                    if (ImGui.dragFloat("Near plane", nearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                    if (ImGui.dragFloat("Near plane##Directional", nearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
                         shadowRenderer.setNearPlane(nearPlane[0]);
                     }
-                    if (ImGui.dragFloat("Far plane", farPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                    if (ImGui.dragFloat("Far plane##Directional", farPlane, 0.1f, 0f, Float.MAX_VALUE)) {
                         shadowRenderer.setFarPlane(farPlane[0]);
                     }
                     if (ImGui.dragFloat("Size", size, 0.1f, 0f, Float.MAX_VALUE)) {
                         shadowRenderer.setSize(size[0]);
+                    }
+
+                    ImGui.separator();
+                    ImGui.text("Point shadow mapping");
+                    ImBoolean pointShadows = new ImBoolean(settings.isPointShadows());
+                    float[] pointNearPlane = new float[] {omnidirectionalShadowRenderer.getNearPlane()};
+                    float[] pointFarPlane = new float[] {omnidirectionalShadowRenderer.getFarPlane()};
+                    float[] pointShadowBias = new float[] {settings.getPointShadowBias()};
+
+                    if (ImGui.checkbox("Point shadows", pointShadows)) {
+                        settings.setPointShadows(pointShadows.get());
+                    }
+                    if (ImGui.dragFloat("Near plane##Point", pointNearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                        omnidirectionalShadowRenderer.setNearPlane(pointNearPlane[0]);
+                    }
+                    if (ImGui.dragFloat("Far plane##Point", pointFarPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                        omnidirectionalShadowRenderer.setFarPlane(pointFarPlane[0]);
+                    }
+                    if (ImGui.dragFloat("Point shadow bias", pointShadowBias, 0.001f, 0f, Float.MAX_VALUE)) {
+                        settings.setPointShadowBias(pointShadowBias[0]);
                     }
 
                     ImGui.endTabItem();
@@ -824,6 +846,11 @@ public class GUI {
                 }
                 ImGui.endPopup();
             }
+
+            if (ImGui.button("Remove")) {
+                entities.remove(entity);
+                selected.put("entity", -1);
+            }
         }
 
         if (selected.get("pointLight") != -1) {
@@ -838,6 +865,11 @@ public class GUI {
             if (ImGui.button("Set to camera position")) light.setPosition(camera.getPosition());
             if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
             if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
+
+            if (ImGui.button("Remove")) {
+                pointLights.remove(light);
+                selected.put("pointLight", -1);
+            }
         }
 
         if (selected.get("spotLight") != -1) {
@@ -862,9 +894,20 @@ public class GUI {
             if (ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f)) light.setElevation(elevation[0]);
             if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
             if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
-            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.01f, 0.1f, 10f)) light.setCutoff(cutoff[0]);
-            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.01f, 0.1f, 10f)) light.setOuterCutoff(outerCutoff[0]);
+            if (ImGui.dragFloat("Cutoff: ", cutoff, 0.1f, 0f, 180f)) light.setCutoff(cutoff[0]);
+            if (ImGui.dragFloat("Outer Cutoff: ", outerCutoff, 0.1f, 0f, 180f)) light.setOuterCutoff(outerCutoff[0]);
             if (ImGui.checkbox("Enabled: ", enabled)) light.setEnabled(enabled.get());
+
+            if (ImGui.button("Remove")) {
+                // If index is not zero
+                if (selected.get("spotLight") != 0) {
+                    spotLights.remove(light);
+                    selected.put("spotLight", -1);
+                } else {
+                    // If index is zero, disable the light instead
+                    light.setEnabled(false);
+                }
+            }
         }
 
         if (selected.get("dirLight") != -1) {

@@ -3,10 +3,10 @@ package io.william.renderer;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.util.Maths;
 import io.william.io.Window;
@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL40.GL_TEXTURE_CUBE_MAP_ARRAY;
 
 public class Renderer {
 
@@ -37,7 +38,7 @@ public class Renderer {
 
     private Shader currentShader = Shader.PBR;
 
-    private Map<String, Boolean> shaderSettings = new HashMap<>();
+    private ShaderSettings shaderSettings;
 
     private float aspectRatio;
     private boolean wireframe;
@@ -59,8 +60,7 @@ public class Renderer {
             GL_DEPTH_STENCIL_ATTACHMENT
         );
 
-        shaderSettings.put("specularOcclusion", true);
-        shaderSettings.put("horizonSpecularOcclusion", true);
+        shaderSettings = new ShaderSettings();
 
         phongShader = new ShaderProgram();
         phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
@@ -107,8 +107,8 @@ public class Renderer {
 
         pbrShader.createSettingsUniform("settings");
 
-        pbrShader.createUniform("lightSpaceMatrix");
-        pbrShader.createUniform("shadowMap");
+        pbrShader.createUniform("shadowMaps");
+        pbrShader.createUniform("farPlane");
 
         // Filament shader
         filamentShader = new ShaderProgram();
@@ -134,8 +134,8 @@ public class Renderer {
 
         filamentShader.createSettingsUniform("settings");
 
-        filamentShader.createUniform("lightSpaceMatrix");
-        filamentShader.createUniform("shadowMap");
+        filamentShader.createUniform("shadowMaps");
+        filamentShader.createUniform("farPlane");
 
         // Frostbite shader
         frostbiteShader = new ShaderProgram();
@@ -161,8 +161,8 @@ public class Renderer {
 
         frostbiteShader.createSettingsUniform("settings");
 
-        frostbiteShader.createUniform("lightSpaceMatrix");
-        frostbiteShader.createUniform("shadowMap");
+        frostbiteShader.createUniform("shadowMaps");
+        frostbiteShader.createUniform("farPlane");
 
         // Light shader
         lightShader = new ShaderProgram();
@@ -187,7 +187,7 @@ public class Renderer {
         hdrShader.createUniform("toneMapping");
     }
 
-    public void render(Camera camera, Scene scene, ShadowRenderer shadowRenderer, Window window) {
+    public void render(Camera camera, Scene scene, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
@@ -280,10 +280,12 @@ public class Renderer {
                 shader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
                 shader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
                 shader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
+                shader.setUniform("pointLights[" + i + "].enabled", pointLights.get(i).isEnabled());
             } else {
                 shader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
                 shader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
                 shader.setUniform("pointLights[" + i + "].intensity", 0.0f);
+                shader.setUniform("pointLights[" + i + "].enabled", false);
             }
         }
 
@@ -294,8 +296,8 @@ public class Renderer {
                 shader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
                 shader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
                 shader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
-                shader.setUniform("spotLights[" + i + "].cutoff",      spotLights.get(i).getCutoff());
-                shader.setUniform("spotLights[" + i + "].outerCutoff", spotLights.get(i).getOuterCutoff());
+                shader.setUniform("spotLights[" + i + "].cutoff",      (float) Math.cos(Math.toRadians(spotLights.get(i).getCutoff())));
+                shader.setUniform("spotLights[" + i + "].outerCutoff", (float) Math.cos(Math.toRadians(spotLights.get(i).getOuterCutoff())));
                 shader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
             } else {
                 shader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
@@ -326,14 +328,17 @@ public class Renderer {
         glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
         // Update settings uniforms
-        shader.setUniform("settings.specularOcclusion", getShaderSetting("specularOcclusion"));
-        shader.setUniform("settings.horizonSpecularOcclusion", getShaderSetting("horizonSpecularOcclusion"));
+        shader.setUniform("settings.specularOcclusion", shaderSettings.isSpecularOcclusion());
+        shader.setUniform("settings.horizonSpecularOcclusion", shaderSettings.isHorizonSpecularOcclusion());
+        shader.setUniform("settings.pointShadows", shaderSettings.isPointShadows());
+        shader.setUniform("settings.pointShadowBias", shaderSettings.getPointShadowBias());
 
         // Update shadow mapping uniforms
-        shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
-        shader.setUniform("shadowMap", 10);
+        shader.setUniform("shadowMaps", 10);
         glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_2D, shadowRenderer.getTextureID());
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, omnidirectionalShadowRenderer.getTextureArrayID());
+
+        shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
 
         // Render entities
         for (Entity entity : entities) {
@@ -463,12 +468,8 @@ public class Renderer {
         this.currentShader = currentShader;
     }
 
-    public boolean getShaderSetting(String setting) {
-        return shaderSettings.get(setting);
-    }
-
-    public void setShaderSetting(String setting, boolean value) {
-        shaderSettings.put(setting, value);
+    public ShaderSettings getShaderSettings() {
+        return shaderSettings;
     }
 
     public boolean isWireframe() {

@@ -1,10 +1,11 @@
-#version 330 core
+#version 400 core
 out vec4 FragColor;
 
 struct PointLight {
     vec3 position;
     vec3 color;
     float intensity;
+    bool enabled;
 };
 
 struct SpotLight {
@@ -46,10 +47,11 @@ struct PBRMaterial {
     bool uses_emissive_map;
 };
 
-
 struct Settings {
     bool specularOcclusion;
     bool horizonSpecularOcclusion;
+    bool pointShadows;
+    float pointShadowBias;
 };
 
 #define NUM_POINT_LIGHTS 8
@@ -59,7 +61,6 @@ struct Settings {
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
-in vec4 FragPosLightSpace;
 
 uniform vec3 camPos;
 
@@ -75,7 +76,8 @@ uniform DirLight dirLight;
 
 uniform Settings settings;
 
-uniform sampler2D shadowMap;
+uniform samplerCubeArray shadowMaps;
+uniform float farPlane;
 
 vec3 getNormalFromMap() {
     vec3 tangentNormal = texture(material.normal, TexCoords).rgb * 2.0 - 1.0;
@@ -139,8 +141,8 @@ float V_SmithGGXCorrelated(float NdotL, float NdotV, float alphaG) {
 }
 
 float Fr_DisneyDiffuse(float NdotV, float NdotL, float LdotH, float linearRoughness) {
-    float energyBias = mix(0, 0.5, linearRoughness);
-    float energyFactor = mix(1.0, 1.0 / 1.51, linearRoughness);
+    float energyBias = mix(float(0), float(0.5), float(linearRoughness));
+    float energyFactor = mix(float(1.0), float(1.0 / 1.51), float(linearRoughness));
     float fd90 = energyBias + 2.0 * LdotH * LdotH * linearRoughness;
     vec3 f0 = vec3(1.0f, 1.0f, 1.0f);
     float lightScatter = fresnelSchlick(NdotL, f0).r;
@@ -153,32 +155,21 @@ float computeSpecularAO(float NdotV, float ao, float roughness) {
     return clamp(pow(NdotV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao, 0.0, 1.0);
 }
 
-float shadowCalculation(vec4 fragPosLightSpace) {
-    // Perspective division - transforms to [-1, 1]
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+float shadowCalculation(vec3 fragPos, int i) {
+    vec3 fragToLight = fragPos - pointLights[i].position;
+    float currentDepth = length(fragToLight);
 
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    float currentDepth = projCoords.z;
-
-    if (currentDepth > 1.0) {
+    // Early exit
+    if (currentDepth > farPlane) {
         return 0.0;
     }
 
-    float bias = max(0.05 * (1.0 - dot(Normal, dirLight.direction)), 0.005);
+    float closestDepth = texture(shadowMaps, vec4(fragToLight, i)).r;
+    closestDepth *= farPlane;  // Transform to [0, farPlane]
 
-    // PCF
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    for (int x = -1; x <= 1; ++x) {
-        for (int y = -1; y <= 1; ++y) {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
-        }
-    }
-    shadow /= 9.0;
+    float bias = settings.pointShadowBias;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
-    //    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -242,6 +233,14 @@ void main() {
     // Reflectance equation
     vec3 Lo = vec3(0.0);
     for (int i = 0; i < NUM_POINT_LIGHTS; ++i) {
+        // Check if fragment is in shadow
+        if (settings.pointShadows && pointLights[i].enabled) {
+            float shadow = shadowCalculation(WorldPos, i);
+            if (shadow > 0.0) {
+                continue;
+            }
+        }
+
         // Per-light radiance
         vec3 L = normalize(pointLights[i].position - WorldPos);
         vec3 H = normalize(V + L);
@@ -377,10 +376,6 @@ void main() {
     vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
 
-    // Calculate shadows
-    float shadow = shadowCalculation(FragPosLightSpace);
-    diffuse *= (1.0 - shadow);
-    specular *= (1.0 - shadow);
 
     vec3 ambient = (kD * diffuse + specular) * ao;
     ambient += emissive;

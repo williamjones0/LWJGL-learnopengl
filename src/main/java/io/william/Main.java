@@ -1,9 +1,13 @@
 package io.william;
 
+import io.william.io.ModelLoader;
 import io.william.renderer.*;
 import io.william.io.Input;
 import io.william.io.Window;
+import io.william.renderer.primitive.Cube;
+import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
+import io.william.util.Maths;
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import io.william.renderer.primitive.Cylinder;
@@ -14,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class Main {
 
@@ -24,6 +30,7 @@ public class Main {
     private List<SpotLight> spotLights;
     private Scene scene;
     private ShadowRenderer shadowRenderer;
+    private OmnidirectionalShadowRenderer omnidirectionalShadowRenderer;
     private GUI gui;
     private MasterRenderer masterRenderer;
 
@@ -62,10 +69,12 @@ public class Main {
 
         shadowRenderer = new ShadowRenderer();
 
+        omnidirectionalShadowRenderer = new OmnidirectionalShadowRenderer();
+
         gui = new GUI();
 
         masterRenderer = new MasterRenderer();
-        masterRenderer.init(window, renderer, camera, shadowRenderer, gui);
+        masterRenderer.init(window, renderer, camera, shadowRenderer, omnidirectionalShadowRenderer, gui);
 
 //        PBRMaterial rustedIron = new PBRMaterial(
 //            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
@@ -118,15 +127,17 @@ public class Main {
 
         meshes.add(sphereMesh);
 
-        Cylinder cylinder = new Cylinder(1f, 1f, 2f, 16);
+//        Cylinder cylinder = new Cylinder(1f, 1f, 2f, 16);
+//
+//        Mesh cylinderMesh = new Mesh(
+//            cylinder.getPositions(),
+//            cylinder.getNormals(),
+//            cylinder.getTexCoords(),
+//            cylinder.getIndices()
+//        );
+//        MaterialMesh cylinderMaterialMesh = new MaterialMesh(cylinderMesh, new PBRMaterial());
 
-        Mesh cylinderMesh = new Mesh(
-            cylinder.getPositions(),
-            cylinder.getNormals(),
-            cylinder.getTexCoords(),
-            cylinder.getIndices()
-        );
-        MaterialMesh cylinderMaterialMesh = new MaterialMesh(cylinderMesh, new PBRMaterial());
+//        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
 //        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        meshes.add(backpackMesh[0]);
@@ -145,7 +156,7 @@ public class Main {
 //        float spacing = 2.5f;
 //
         List<Entity> entities = new ArrayList<>();
-//
+
 //        Entity cubeParent = new Entity(new Vector3f(0, 0, 0), "Cube Parent");
 //        entities.add(cubeParent);
 //
@@ -176,7 +187,6 @@ public class Main {
 //        entities.add(helmet);
 //        entities.add(backpack);
 //
-        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
         Quad quad = new Quad();
         Mesh planeMesh = new Mesh(
@@ -189,7 +199,30 @@ public class Main {
 
         meshes.add(planeMesh);
 
-        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 5));
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -20), new Vector3f(0, 0, 0), 20));
+
+        Cube cube = new Cube();
+        Mesh cubeMesh = new Mesh(
+            cube.getPositions(),
+            cube.getNormals(),
+            cube.getTexCoords(),
+            cube.getIndices()
+        );
+        MaterialMesh cubeMaterialMesh = new MaterialMesh(cubeMesh, new PBRMaterial());
+
+        meshes.add(cubeMesh);
+
+//        entities.add(new Entity(cubeMaterialMesh, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 2));
+
+        // Sponza
+        MaterialMesh[] sponzaMaterialMeshes = ModelLoader.load("C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
+        for (MaterialMesh mesh : sponzaMaterialMeshes) {
+            meshes.add(mesh.getMesh());
+        }
+        Entity sponza = new Entity(sponzaMaterialMeshes, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
+        entities.add(sponza);
+
+//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(-10, 0, 0), new Vector3f(0, 90, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 90), 10, cubeParent));
@@ -208,7 +241,7 @@ public class Main {
         );
 
         PointLight pointLight1 = new PointLight(
-            new Vector3f(-8.0f, 8.0f, 8.0f),
+            new Vector3f(0.0f, 0.0f, 8.0f),
             new Vector3f(1.0f, 1.0f, 1.0f),
             150.0f
         );
@@ -233,9 +266,9 @@ public class Main {
 
         List<PointLight> pointLights = new ArrayList<>();
         pointLights.add(pointLight1);
-        pointLights.add(pointLight2);
-        pointLights.add(pointLight3);
-        pointLights.add(pointLight4);
+//        pointLights.add(pointLight2);
+//        pointLights.add(pointLight3);
+//        pointLights.add(pointLight4);
 
         SpotLight spotLight = new SpotLight(
             sphereMesh,
@@ -243,31 +276,31 @@ public class Main {
             new Vector3f(0.0f, 5.0f, 0.0f),
             new Vector3f(0.0f, -1.0f, 0.0f),
 
-            (float) Math.cos(Math.toRadians(12.5f)),
-            (float) Math.cos(Math.toRadians(15.0f)),
+            12.5f,
+            15.0f,
 
             new Vector3f(1.0f, 1.0f, 1.0f)
         );
 
-        SpotLight spotLight2 = new SpotLight(
-            new Vector3f(0, 0, 12),
-            new Vector3f(0, 0, -1),
-
-            (float) Math.cos(Math.toRadians(12.5f)),
-            (float) Math.cos(Math.toRadians(15.0f)),
-
-            new Vector3f(0.0f, 1.0f, 1.0f),
-            500
-        );
+//        SpotLight spotLight2 = new SpotLight(
+//            new Vector3f(0, 0, 12),
+//            new Vector3f(0, 0, -1),
+//
+//            12.5f,
+//            15.0f,
+//
+//            new Vector3f(0.0f, 1.0f, 1.0f),
+//            500
+//        );
 
         spotLights = new ArrayList<>();
         spotLights.add(spotLight);
-        spotLights.add(spotLight2);
+//        spotLights.add(spotLight2);
 
         Texture backgroundTexture = new Texture(
             "src/main/resources/skybox/HDR/Newport_Loft.hdr",
             org.lwjgl.opengl.GL30.GL_RGB16F,
-            org.lwjgl.opengl.GL30.GL_RGBA,
+            GL_RGBA,
             org.lwjgl.opengl.GL30.GL_FLOAT,
             true
         );

@@ -13,6 +13,8 @@ public class PointLight {
 
     private float intensity;
 
+    private boolean enabled;
+
     public PointLight(Mesh mesh, Vector3f position, Vector3f color) {
         this.mesh = mesh;
 
@@ -21,6 +23,8 @@ public class PointLight {
         this.color = color;
 
         this.intensity = 1f;
+
+        this.enabled = true;
     }
 
     public PointLight(Vector3f position, Vector3f color, float intensity) {
@@ -38,6 +42,8 @@ public class PointLight {
         this.color = color;
 
         this.intensity = intensity;
+
+        this.enabled = true;
     }
 
     public PointLight(Vector3f position, Vector3f color) {
@@ -55,6 +61,8 @@ public class PointLight {
         this.color = color;
 
         this.intensity = 1f;
+
+        this.enabled = true;
     }
 
     public Mesh getMesh() {
@@ -91,5 +99,13 @@ public class PointLight {
 
     public void setIntensity(float intensity) {
         this.intensity = intensity;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }
