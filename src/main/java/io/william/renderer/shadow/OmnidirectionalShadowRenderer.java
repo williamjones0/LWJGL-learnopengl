@@ -27,7 +27,7 @@ public class OmnidirectionalShadowRenderer {
     private final int matricesUBO;
 
     private float nearPlane = 0.0f;
-    private float farPlane = 40.0f;
+    private float farPlane = 200.0f;
 
     public OmnidirectionalShadowRenderer() throws Exception {
         shaderProgram = new ShaderProgram();

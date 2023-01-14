@@ -106,6 +106,8 @@ public class ShaderProgram {
         createUniform(uniformName + ".horizonSpecularOcclusion");
         createUniform(uniformName + ".pointShadows");
         createUniform(uniformName + ".pointShadowBias");
+        createUniform(uniformName + ".shadowMinBias");
+        createUniform(uniformName + ".shadowMaxBias");
     }
 
     public void setUniform(String uniformName, Vector3f value) {

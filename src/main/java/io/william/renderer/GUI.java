@@ -519,6 +519,8 @@ public class GUI {
                     float[] nearPlane = new float[] {shadowRenderer.getNearPlane()};
                     float[] farPlane = new float[] {shadowRenderer.getFarPlane()};
                     float[] size = new float[] {shadowRenderer.getSize()};
+                    float[] shadowMinBias = new float[] {settings.getShadowMinBias()};
+                    float[] shadowMaxBias = new float[] {settings.getShadowMaxBias()};
 
                     if (ImGui.dragFloat("Near plane##Directional", nearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
                         shadowRenderer.setNearPlane(nearPlane[0]);
@@ -528,6 +530,12 @@ public class GUI {
                     }
                     if (ImGui.dragFloat("Size", size, 0.1f, 0f, Float.MAX_VALUE)) {
                         shadowRenderer.setSize(size[0]);
+                    }
+                    if (ImGui.dragFloat("Minimum shadow bias", shadowMinBias, 0.00001f)) {
+                        settings.setShadowMinBias(shadowMinBias[0]);
+                    }
+                    if (ImGui.dragFloat("Maximum shadow bias", shadowMaxBias, 0.0001f)) {
+                        settings.setShadowMaxBias(shadowMaxBias[0]);
                     }
 
                     ImGui.separator();

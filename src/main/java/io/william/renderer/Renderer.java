@@ -89,26 +89,7 @@ public class Renderer {
         pbrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbr.frag").toPath(), StandardCharsets.US_ASCII));
         pbrShader.link();
 
-        pbrShader.createUniform("model");
-        pbrShader.createUniform("view");
-        pbrShader.createUniform("projection");
-
-        pbrShader.createUniform("camPos");
-
-        pbrShader.createPBRMaterialUniform("material");
-
-        pbrShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
-        pbrShader.createDirLightUniform("dirLight");
-        pbrShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
-
-        pbrShader.createUniform("irradianceMap");
-        pbrShader.createUniform("prefilterMap");
-        pbrShader.createUniform("brdfLUT");
-
-        pbrShader.createSettingsUniform("settings");
-
-        pbrShader.createUniform("shadowMaps");
-        pbrShader.createUniform("farPlane");
+        createShaderUniforms(pbrShader);
 
         // Filament shader
         filamentShader = new ShaderProgram();
@@ -116,26 +97,7 @@ public class Renderer {
         filamentShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrfilament.frag").toPath(), StandardCharsets.US_ASCII));
         filamentShader.link();
 
-        filamentShader.createUniform("model");
-        filamentShader.createUniform("view");
-        filamentShader.createUniform("projection");
-
-        filamentShader.createUniform("camPos");
-
-        filamentShader.createPBRMaterialUniform("material");
-
-        filamentShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
-        filamentShader.createDirLightUniform("dirLight");
-        filamentShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
-
-        filamentShader.createUniform("irradianceMap");
-        filamentShader.createUniform("prefilterMap");
-        filamentShader.createUniform("brdfLUT");
-
-        filamentShader.createSettingsUniform("settings");
-
-        filamentShader.createUniform("shadowMaps");
-        filamentShader.createUniform("farPlane");
+        createShaderUniforms(filamentShader);
 
         // Frostbite shader
         frostbiteShader = new ShaderProgram();
@@ -143,26 +105,7 @@ public class Renderer {
         frostbiteShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/frostbite.frag").toPath(), StandardCharsets.US_ASCII));
         frostbiteShader.link();
 
-        frostbiteShader.createUniform("model");
-        frostbiteShader.createUniform("view");
-        frostbiteShader.createUniform("projection");
-
-        frostbiteShader.createUniform("camPos");
-
-        frostbiteShader.createPBRMaterialUniform("material");
-
-        frostbiteShader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
-        frostbiteShader.createDirLightUniform("dirLight");
-        frostbiteShader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
-
-        frostbiteShader.createUniform("irradianceMap");
-        frostbiteShader.createUniform("prefilterMap");
-        frostbiteShader.createUniform("brdfLUT");
-
-        frostbiteShader.createSettingsUniform("settings");
-
-        frostbiteShader.createUniform("shadowMaps");
-        frostbiteShader.createUniform("farPlane");
+        createShaderUniforms(frostbiteShader);
 
         // Light shader
         lightShader = new ShaderProgram();
@@ -187,7 +130,7 @@ public class Renderer {
         hdrShader.createUniform("toneMapping");
     }
 
-    public void render(Camera camera, Scene scene, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
+    public void render(Camera camera, Scene scene, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
         List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
@@ -332,11 +275,17 @@ public class Renderer {
         shader.setUniform("settings.horizonSpecularOcclusion", shaderSettings.isHorizonSpecularOcclusion());
         shader.setUniform("settings.pointShadows", shaderSettings.isPointShadows());
         shader.setUniform("settings.pointShadowBias", shaderSettings.getPointShadowBias());
+        shader.setUniform("settings.shadowMinBias", shaderSettings.getShadowMinBias());
+        shader.setUniform("settings.shadowMaxBias", shaderSettings.getShadowMaxBias());
 
         // Update shadow mapping uniforms
-        shader.setUniform("shadowMaps", 10);
+        shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
+        shader.setUniform("pointShadowMaps", 10);
         glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, omnidirectionalShadowRenderer.getTextureArrayID());
+        shader.setUniform("directionalShadowMap", 11);
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_2D, shadowRenderer.getTextureID());
 
         shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
 
@@ -458,6 +407,31 @@ public class Renderer {
         lightShader.cleanup();
         hdrShader.cleanup();
         framebuffer.cleanup();
+    }
+
+    private void createShaderUniforms(ShaderProgram shader) throws Exception {
+        shader.createUniform("model");
+        shader.createUniform("view");
+        shader.createUniform("projection");
+
+        shader.createUniform("camPos");
+
+        shader.createPBRMaterialUniform("material");
+
+        shader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
+        shader.createDirLightUniform("dirLight");
+        shader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
+
+        shader.createUniform("irradianceMap");
+        shader.createUniform("prefilterMap");
+        shader.createUniform("brdfLUT");
+
+        shader.createSettingsUniform("settings");
+
+        shader.createUniform("lightSpaceMatrix");
+        shader.createUniform("directionalShadowMap");
+        shader.createUniform("pointShadowMaps");
+        shader.createUniform("farPlane");
     }
 
     public Shader getCurrentShader() {

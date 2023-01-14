@@ -52,6 +52,8 @@ struct Settings {
     bool horizonSpecularOcclusion;
     bool pointShadows;
     float pointShadowBias;
+    float shadowMinBias;
+    float shadowMaxBias;
 };
 
 #define NUM_POINT_LIGHTS 8
@@ -61,6 +63,7 @@ struct Settings {
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 uniform vec3 camPos;
 
@@ -76,7 +79,8 @@ uniform DirLight dirLight;
 
 uniform Settings settings;
 
-uniform samplerCubeArray shadowMaps;
+uniform samplerCubeArray pointShadowMaps;
+uniform sampler2D directionalShadowMap;
 uniform float farPlane;
 
 vec3 getNormalFromMap() {
@@ -121,16 +125,13 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return ggx1 * ggx2;
 }
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+vec3 F_Schlick(float cosTheta, vec3 F0) {
+    float F90 = clamp(50.0 * dot(F0, vec3(0.33)), 0.0, 1.0);
+    return F0 + (F90 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-float F_Schlick(float u, float f0, float f90) {
-    return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
 }
 
 float V_SmithGGXCorrelated(float NdotL, float NdotV, float alphaG) {
@@ -145,8 +146,8 @@ float Fr_DisneyDiffuse(float NdotV, float NdotL, float LdotH, float linearRoughn
     float energyFactor = mix(float(1.0), float(1.0 / 1.51), float(linearRoughness));
     float fd90 = energyBias + 2.0 * LdotH * LdotH * linearRoughness;
     vec3 f0 = vec3(1.0f, 1.0f, 1.0f);
-    float lightScatter = fresnelSchlick(NdotL, f0).r;
-    float viewScatter = fresnelSchlick(NdotV, f0).r;
+    float lightScatter = F_Schlick(NdotL, f0).r;
+    float viewScatter = F_Schlick(NdotV, f0).r;
 
     return lightScatter * viewScatter * energyFactor;
 }
@@ -164,12 +165,41 @@ float shadowCalculation(vec3 fragPos, int i) {
         return 0.0;
     }
 
-    float closestDepth = texture(shadowMaps, vec4(fragToLight, i)).r;
+    float closestDepth = texture(pointShadowMaps, vec4(fragToLight, i)).r;
     closestDepth *= farPlane;  // Transform to [0, farPlane]
 
     float bias = settings.pointShadowBias;
     float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
+    return shadow;
+}
+
+float orthoShadowCalculation(vec4 fragPosLightSpace) {
+    // Perspective division - transforms to [-1, 1]
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    float closestDepth = texture(directionalShadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    if (currentDepth > 1.0) {
+        return 0.0;
+    }
+
+    float bias = max(settings.shadowMaxBias * (1.0 - dot(Normal, dirLight.direction)), settings.shadowMinBias);
+
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(directionalShadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(directionalShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    //    return currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -250,7 +280,7 @@ void main() {
         vec3 radiance = pointLights[i].color * pointLights[i].intensity * attenuation;
 
         // Specular BRDF
-        vec3 F = fresnelSchlick(max(dot(L, H), 0.0), F0);
+        vec3 F = F_Schlick(max(dot(L, H), 0.0), F0);
         float Vis = V_SmithGGXCorrelated(max(dot(N, L), 0.0), max(dot(N, V), 0.0), roughness);
         float D = DistributionGGX(N, H, roughness);
 
@@ -297,7 +327,7 @@ void main() {
             // Cook-Torrance BRDF
             float NDF = DistributionGGX(N, H, roughness);
             float G = GeometrySmith(N, V, L, roughness);
-            vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+            vec3 F = F_Schlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
             vec3 numerator = NDF * G * F;
             float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
@@ -326,12 +356,18 @@ void main() {
 
     // Directional lighting
     for (int i = 0; i < 1; i++) {
+        // Check if fragment is in shadow
+        float shadow = orthoShadowCalculation(FragPosLightSpace);
+        if (shadow > 0.0) {
+            continue;
+        }
+
         vec3 L = normalize(dirLight.direction);
         vec3 H = normalize(V + L);
 
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+        vec3 F = F_Schlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
         vec3 numerator = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;

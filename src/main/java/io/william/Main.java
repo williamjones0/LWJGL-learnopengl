@@ -7,6 +7,7 @@ import io.william.io.Window;
 import io.william.renderer.primitive.Cube;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
+import io.william.renderer.shadow.SpotlightShadowRenderer;
 import io.william.util.Maths;
 import org.joml.Vector3f;
 import org.lwjgl.*;
@@ -31,6 +32,7 @@ public class Main {
     private Scene scene;
     private ShadowRenderer shadowRenderer;
     private OmnidirectionalShadowRenderer omnidirectionalShadowRenderer;
+    private SpotlightShadowRenderer spotlightShadowRenderer;
     private GUI gui;
     private MasterRenderer masterRenderer;
 
@@ -71,10 +73,12 @@ public class Main {
 
         omnidirectionalShadowRenderer = new OmnidirectionalShadowRenderer();
 
+        spotlightShadowRenderer = new SpotlightShadowRenderer();
+
         gui = new GUI();
 
         masterRenderer = new MasterRenderer();
-        masterRenderer.init(window, renderer, camera, shadowRenderer, omnidirectionalShadowRenderer, gui);
+        masterRenderer.init(window, renderer, camera, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer, gui);
 
 //        PBRMaterial rustedIron = new PBRMaterial(
 //            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
@@ -116,6 +120,16 @@ public class Main {
 //            null
 //        );
 
+        PBRMaterial brushedMetal = new PBRMaterial(
+            new Texture("src/main/resources/textures/PBR/brushed_metal/albedo.png", GL_SRGB_ALPHA),
+            new Texture("src/main/resources/textures/PBR/brushed_metal/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/brushed_metal/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/brushed_metal/roughness.png", GL_RGBA),
+            null,
+            new Texture("src/main/resources/textures/PBR/brushed_metal/ao.png", GL_RGBA),
+            null
+        );
+
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
         Mesh sphereMesh = new Mesh(
@@ -139,16 +153,11 @@ public class Main {
 
 //        entities.add(new Entity(cylinderMaterialMesh, new Vector3f(0, -8, -5), new Vector3f(90, 0, 0), 1f));
 
-//        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
 //        meshes.add(backpackMesh[0]);
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack/backpack.obj", "src/main/resources/models/backpack");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
 //        Mesh[] backpackMesh = ModelLoader.load("src/main/resources/models/backpack_fbx/source/Survival_BackPack_2/Survival_BackPack_2.fbx", "src/main/resources/models/backpack_fbx/textures");
-//        for (MaterialMesh mesh : helmetMaterialMeshes) {
-//            meshes.add(mesh.getMesh());
-//        }
 
-//        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 4, 12), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
 //        Entity backpack = new Entity(backpackMesh[0], new Vector3f(5, 0, 5), new Vector3f(), 0.01f);
 
 //        int numRows = 7;
@@ -184,7 +193,6 @@ public class Main {
 //        RotationController rotationController = new RotationController();
 //        helmet.setRotationController(rotationController);
 //
-//        entities.add(helmet);
 //        entities.add(backpack);
 //
 
@@ -199,7 +207,7 @@ public class Main {
 
         meshes.add(planeMesh);
 
-//        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -20), new Vector3f(0, 0, 0), 20));
+        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, 0, -10), new Vector3f(0, 0, 0), 20));
 
         Cube cube = new Cube();
         Mesh cubeMesh = new Mesh(
@@ -214,13 +222,25 @@ public class Main {
 
 //        entities.add(new Entity(cubeMaterialMesh, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 2));
 
-        // Sponza
-        MaterialMesh[] sponzaMaterialMeshes = ModelLoader.load("C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
-        for (MaterialMesh mesh : sponzaMaterialMeshes) {
-            meshes.add(mesh.getMesh());
-        }
-        Entity sponza = new Entity(sponzaMaterialMeshes, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
-        entities.add(sponza);
+        MaterialMesh sphereMaterialMesh = new MaterialMesh(sphereMesh, brushedMetal);
+        Entity sphere = new Entity(sphereMaterialMesh, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 1);
+        entities.add(sphere);
+
+//        // Sponza
+//        MaterialMesh[] sponzaMaterialMeshes = ModelLoader.load("C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
+//        for (MaterialMesh mesh : sponzaMaterialMeshes) {
+//            meshes.add(mesh.getMesh());
+//        }
+//        Entity sponza = new Entity(sponzaMaterialMeshes, new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
+//        entities.add(sponza);
+
+//        // Helmet
+//        MaterialMesh[] helmetMaterialMeshes = ModelLoader.load("src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        for (MaterialMesh mesh : helmetMaterialMeshes) {
+//            meshes.add(mesh.getMesh());
+//        }
+//        Entity helmet = new Entity(helmetMaterialMeshes, new Vector3f(0, 4, 12), new Vector3f(0, 0, 0), 1f, "Damaged Helmet");
+//        entities.add(helmet);
 
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(0, -10, 0), new Vector3f(-90, 0, 0), 10, cubeParent));
 //        entities.add(new Entity(planeMaterialMesh, new Vector3f(10, 0, 0), new Vector3f(0f, -90, 0), 10, cubeParent));
@@ -241,9 +261,9 @@ public class Main {
         );
 
         PointLight pointLight1 = new PointLight(
-            new Vector3f(0.0f, 0.0f, 8.0f),
+            new Vector3f(0.0f, 50.0f, 8.0f),
             new Vector3f(1.0f, 1.0f, 1.0f),
-            150.0f
+            500.0f
         );
 
         PointLight pointLight2 = new PointLight(
@@ -289,7 +309,7 @@ public class Main {
 //            12.5f,
 //            15.0f,
 //
-//            new Vector3f(0.0f, 1.0f, 1.0f),
+//            new Vector3f(1.0f, 1.0f, 1.0f),
 //            500
 //        );
 

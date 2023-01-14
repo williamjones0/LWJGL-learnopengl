@@ -53,6 +53,8 @@ struct Settings {
     bool horizonSpecularOcclusion;
     bool pointShadows;
     float pointShadowBias;
+    float shadowMinBias;
+    float shadowMaxBias;
 };
 
 #define NUM_POINT_LIGHTS 8
@@ -62,6 +64,7 @@ struct Settings {
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 uniform vec3 camPos;
 
@@ -77,7 +80,8 @@ uniform DirLight dirLight;
 
 uniform Settings settings;
 
-uniform samplerCubeArray shadowMaps;
+uniform samplerCubeArray pointShadowMaps;
+uniform sampler2D directionalShadowMap;
 uniform float farPlane;
 
 vec3 getNormalFromMap() {
@@ -97,39 +101,33 @@ vec3 getNormalFromMap() {
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
+    float a2 = roughness * roughness * roughness * roughness;
     float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
 
-    float num  = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
 
-    return num / denom;
+    return a2 / (PI * denom * denom);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
+    float k = ((roughness + 1.0) * (roughness + 1.0)) / 8.0;
 
-    float nom   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
+    return NdotV / (NdotV * (1.0 - k) + k);
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
 
-    return ggx1 * ggx2;
+    return GeometrySchlickGGX(NdotL, roughness) * GeometrySchlickGGX(NdotV, roughness);
 }
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+//vec3 fresnelSchlick(float VdotH, vec3 F0) {
+//    return F0 + (1.0 - F0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
+//}
+
+vec3 fresnelSchlick(float VdotH, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(2, (-5.55473 * VdotH - 6.98316) * VdotH);
 }
 
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
@@ -149,12 +147,30 @@ float shadowCalculation(vec3 fragPos, int i) {
         return 0.0;
     }
 
-    float closestDepth = texture(shadowMaps, vec4(fragToLight, i)).r;
+    float closestDepth = texture(pointShadowMaps, vec4(fragToLight, i)).r;
     closestDepth *= farPlane;  // Transform to [0, farPlane]
 
     float bias = settings.pointShadowBias;
     float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
+    return shadow;
+}
+
+float orthoShadowCalculation(vec4 fragPosLightSpace) {
+    // Perspective division - transforms to [-1, 1]
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    float closestDepth = texture(directionalShadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    if (currentDepth > 1.0) {
+        return 0.0;
+    }
+
+    float bias = max(settings.shadowMaxBias * (1.0 - dot(Normal, dirLight.direction)), settings.shadowMinBias);
+
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -301,6 +317,12 @@ void main() {
 
     // Directional lighting
     for (int i = 0; i < 1; i++) {
+        // Check if fragment is in shadow
+        float shadow = orthoShadowCalculation(FragPosLightSpace);
+        if (shadow == 1.0) {
+            continue;
+        }
+
         vec3 L = normalize(dirLight.direction);
         vec3 H = normalize(V + L);
 
@@ -317,6 +339,9 @@ void main() {
         kD *= 1.0 - metallic;
 
         float NdotL = max(dot(N, L), 0.0);
+
+        vec3 result = (kD * albedo / PI + specular) * dirLight.color * NdotL;
+        result *= (1.0 - shadow);
 
         Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
     }

@@ -22,9 +22,9 @@ public class ShadowRenderer {
 
     private Matrix4f lightSpaceMatrix;
 
-    private float nearPlane = 1.0f;
+    private float nearPlane = -40.0f;
     private float farPlane = 40.0f;
-    private float size = 20.0f;
+    private float size = 40.0f;
 
     public ShadowRenderer() throws Exception {
         shaderProgram = new ShaderProgram();
@@ -37,6 +37,7 @@ public class ShadowRenderer {
 
         texture = new Texture(resolution, resolution, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
         texture.bind();
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, new float[] {1.0f, 1.0f, 1.0f, 1.0f});

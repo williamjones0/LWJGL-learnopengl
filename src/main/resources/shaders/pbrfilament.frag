@@ -52,6 +52,8 @@ struct Settings {
     bool horizonSpecularOcclusion;
     bool pointShadows;
     float pointShadowBias;
+    float shadowMinBias;
+    float shadowMaxBias;
 };
 
 #define NUM_POINT_LIGHTS 8
@@ -61,6 +63,7 @@ struct Settings {
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 uniform vec3 camPos;
 
@@ -76,7 +79,8 @@ uniform DirLight dirLight;
 
 uniform Settings settings;
 
-uniform samplerCubeArray shadowMaps;
+uniform samplerCubeArray pointShadowMaps;
+uniform sampler2D directionalShadowMap;
 uniform float farPlane;
 
 vec3 getNormalFromMap() {
@@ -96,13 +100,31 @@ vec3 getNormalFromMap() {
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    vec3 NcrossH = cross(N, H);
     float NdotH = max(dot(N, H), 0.0);
+
     float a = NdotH * roughness;
+    float k = roughness / (dot(NcrossH, NcrossH) + a * a);
+    float d = k * k * (1.0 / PI);
 
-    float k = roughness / (1.0 - NdotH * NdotH + a * a);
-
-    return k * k * (1.0 / PI);
+    return min(d, 65504.0);
 }
+
+//float at = max(roughness * (1.0 + anisotropy), 0.001);
+//float ab = max(roughness * (1.0 - anisotropy), 0.001);
+//
+//float D_GGX_Anisotropic(float at, float ab, float ToH, float BoH, float NoH) {
+//    // Burley 2012, "Physically-Based Shading at Disney"
+//
+//    // The values at and ab are perceptualRoughness^2, a2 is therefore perceptualRoughness^4
+//    // The dot product below computes perceptualRoughness^8. We cannot fit in fp16 without clamping
+//    // the roughness to too high values so we perform the dot product and the division in fp32
+//    float a2 = at * ab;
+//    highp vec3 d = vec3(ab * ToH, at * BoH, a2 * NoH);
+//    highp float d2 = dot(d, d);
+//    float b2 = a2 / d2;
+//    return a2 * b2 * b2 * (1.0 / PI);
+//}
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
@@ -171,12 +193,30 @@ float shadowCalculation(vec3 fragPos, int i) {
         return 0.0;
     }
 
-    float closestDepth = texture(shadowMaps, vec4(fragToLight, i)).r;
+    float closestDepth = texture(pointShadowMaps, vec4(fragToLight, i)).r;
     closestDepth *= farPlane;  // Transform to [0, farPlane]
 
     float bias = settings.pointShadowBias;
     float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
+    return shadow;
+}
+
+float orthoShadowCalculation(vec4 fragPosLightSpace) {
+    // Perspective division - transforms to [-1, 1]
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    float closestDepth = texture(directionalShadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    if (currentDepth > 1.0) {
+        return 0.0;
+    }
+
+    float bias = max(settings.shadowMaxBias * (1.0 - dot(Normal, dirLight.direction)), settings.shadowMinBias);
+
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
 
@@ -331,6 +371,12 @@ void main() {
 
     // Directional lighting
     for (int i = 0; i < 1; i++) {
+        // Check if fragment is in shadow
+        float shadow = orthoShadowCalculation(FragPosLightSpace);
+        if (shadow > 0.0) {
+            continue;
+        }
+
         vec3 L = normalize(dirLight.direction);
         vec3 H = normalize(V + L);
 
