@@ -1,6 +1,8 @@
 package io.william.renderer;
 
 import java.io.File;
+import java.lang.Math;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
@@ -10,13 +12,15 @@ import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.util.Maths;
 import io.william.io.Window;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
+import org.joml.*;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImageWrite;
+import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL40.GL_TEXTURE_CUBE_MAP_ARRAY;
+import static org.lwjgl.opengl.GL40.*;
+import static org.lwjgl.opengl.GL43.*;
 
 public class Renderer {
 
@@ -52,7 +56,13 @@ public class Renderer {
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
 
-    public void init(Window window, Camera camera) throws Exception {
+    private SceneMesh sceneMesh;
+    private int indirectBuffer;
+    private int drawCount;
+    private int modelMeshInstanceBuffer;
+    private int materialBuffer;
+
+    public void init(Window window, Camera camera, Scene scene) throws Exception {
         framebuffer = new Framebuffer(
             new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
             GL_DEPTH24_STENCIL8,
@@ -60,9 +70,14 @@ public class Renderer {
             GL_DEPTH_STENCIL_ATTACHMENT
         );
 
+        sceneMesh = new SceneMesh();
+        sceneMesh.loadModels(scene);
+
+        setupIndirectBuffer(scene);
+
         shaderSettings = new ShaderSettings();
 
-        phongShader = new ShaderProgram();
+        phongShader = new ShaderProgram("Phong");
         phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
         phongShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment_alt.glsl").toPath(), StandardCharsets.US_ASCII));
         phongShader.link();
@@ -84,7 +99,7 @@ public class Renderer {
 //        shaderProgram.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
         // PBR shader
-        pbrShader = new ShaderProgram();
+        pbrShader = new ShaderProgram("PBR");
         pbrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
         pbrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbr.frag").toPath(), StandardCharsets.US_ASCII));
         pbrShader.link();
@@ -92,7 +107,7 @@ public class Renderer {
         createShaderUniforms(pbrShader);
 
         // Filament shader
-        filamentShader = new ShaderProgram();
+        filamentShader = new ShaderProgram("Filament");
         filamentShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
         filamentShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrfilament.frag").toPath(), StandardCharsets.US_ASCII));
         filamentShader.link();
@@ -100,7 +115,7 @@ public class Renderer {
         createShaderUniforms(filamentShader);
 
         // Frostbite shader
-        frostbiteShader = new ShaderProgram();
+        frostbiteShader = new ShaderProgram("Frostbite");
         frostbiteShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
         frostbiteShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/frostbite.frag").toPath(), StandardCharsets.US_ASCII));
         frostbiteShader.link();
@@ -108,7 +123,7 @@ public class Renderer {
         createShaderUniforms(frostbiteShader);
 
         // Light shader
-        lightShader = new ShaderProgram();
+        lightShader = new ShaderProgram("LightCube");
         lightShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
         lightShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
         lightShader.link();
@@ -120,7 +135,7 @@ public class Renderer {
         lightShader.createUniform("colour");
 
         // HDR shader
-        hdrShader = new ShaderProgram();
+        hdrShader = new ShaderProgram("HDR");
         hdrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/hdr.vert").toPath(), StandardCharsets.US_ASCII));
         hdrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/hdr.frag").toPath(), StandardCharsets.US_ASCII));
         hdrShader.link();
@@ -128,14 +143,17 @@ public class Renderer {
         hdrShader.createUniform("hdrBuffer");
         hdrShader.createUniform("exposure");
         hdrShader.createUniform("toneMapping");
+
+        // SSBO
+        modelMeshInstanceBuffer = glGenBuffers();
+        materialBuffer = glGenBuffers();
     }
 
     public void render(Camera camera, Scene scene, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
-        List<Entity> entities = scene.getEntities();
+//        List<Entity> entities = scene.getEntities();
         DirLight dirLight = scene.getDirLight();
         List<PointLight> pointLights = scene.getPointLights();
         List<SpotLight> spotLights = scene.getSpotLights();
-        Skybox skybox = scene.getSkybox();
         EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
 
         // First pass: render scene to floating point framebuffer
@@ -209,13 +227,13 @@ public class Renderer {
 
         shader.setUniform("camPos", camera.getPosition());
 
-        shader.setUniform("material.albedo", 0);
-        shader.setUniform("material.normal", 1);
-        shader.setUniform("material.metallic", 2);
-        shader.setUniform("material.roughness", 3);
-        shader.setUniform("material.metallicRoughness", 4);
-        shader.setUniform("material.ao", 5);
-        shader.setUniform("material.emissive", 6);
+//        shader.setUniform("material.albedo", 0);
+//        shader.setUniform("material.normal", 1);
+//        shader.setUniform("material.metallic", 2);
+//        shader.setUniform("material.roughness", 3);
+//        shader.setUniform("material.metallicRoughness", 4);
+//        shader.setUniform("material.ao", 5);
+//        shader.setUniform("material.emissive", 6);
 
         // Update point light uniforms
         for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
@@ -289,48 +307,113 @@ public class Renderer {
 
         shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
 
-        // Render entities
-        for (Entity entity : entities) {
-            if (entity.getMaterialMeshes() == null) {
-                continue;
+        // Render entities (indirect drawing)
+
+        // ModelMeshInstanceBuffer
+        List<Model> models = scene.getModels();
+
+        // Calculate buffer capacity - 20 * number of entities
+        int capacity = 0;
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                capacity += (16 + 4) * entities.size();
             }
+        }
 
-            Matrix4f model = Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale());
-            shader.bind();
-            shader.setUniform("model", model);
-
-            Map<String, Boolean> usesTextures = entity.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures();
-
-            for (Map.Entry<String, Boolean> usesTexture: usesTextures.entrySet()) {
-                shader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
-            }
-
-            if (!usesTextures.get("albedo"))
-                shader.setUniform("material.albedoColor", entity.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
-
-            if (!usesTextures.get("metallic"))
-                shader.setUniform("material.metallicFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
-
-            if (!usesTextures.get("roughness"))
-                shader.setUniform("material.roughnessFactor", entity.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
-
-            entity.render();
-
-            if (entity.getMovement() != null) {
-                for (Entity point : entity.getMovement().getPointEntities()) {
-                    model = Maths.calculateModelMatrix(point.getWorldPosition(), point.getRotation(), point.getScale());
-                    shader.setUniform("model", model);
-
-                    for (Map.Entry<String, Boolean> usesTexture: point.getMaterialMeshes()[0].getPbrMaterial().getUsesTextures().entrySet()) {
-                        shader.setUniform("material.uses_" + usesTexture.getKey() + "_map", usesTexture.getValue());
-                    }
-                    shader.setUniform("material.albedoColor", point.getMaterialMeshes()[0].getPbrMaterial().getAlbedoColor());
-                    shader.setUniform("material.metallicFactor", point.getMaterialMeshes()[0].getPbrMaterial().getMetallicFactor());
-                    shader.setUniform("material.roughnessFactor", point.getMaterialMeshes()[0].getPbrMaterial().getRoughnessFactor());
-                    point.render();
+        ByteBuffer mmib = MemoryUtil.memAlloc(capacity * 8);
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                for (Entity entity : entities) {
+                    Matrix4f m = Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale());
+                    mmib.putFloat(m.m00());
+                    mmib.putFloat(m.m01());
+                    mmib.putFloat(m.m02());
+                    mmib.putFloat(m.m03());
+                    mmib.putFloat(m.m10());
+                    mmib.putFloat(m.m11());
+                    mmib.putFloat(m.m12());
+                    mmib.putFloat(m.m13());
+                    mmib.putFloat(m.m20());
+                    mmib.putFloat(m.m21());
+                    mmib.putFloat(m.m22());
+                    mmib.putFloat(m.m23());
+                    mmib.putFloat(m.m30());
+                    mmib.putFloat(m.m31());
+                    mmib.putFloat(m.m32());
+                    mmib.putFloat(m.m33());
+                    mmib.putInt(meshDrawData.materialID());
+                    mmib.putInt(0);
+                    mmib.putInt(0);
+                    mmib.putInt(0);
                 }
             }
         }
+        mmib.flip();
+
+        // Bind SSBO
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMeshInstanceBuffer);
+        glObjectLabel(GL_BUFFER, modelMeshInstanceBuffer, "ModelMeshInstanceBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, mmib, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelMeshInstanceBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        // MaterialBuffer (ByteBuffer)
+        capacity = 0;
+        for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
+            capacity += 7 + 12 + 7;
+        }
+
+        ByteBuffer bb = BufferUtils.createByteBuffer(capacity * 8);
+        for (PBRMaterial material : scene.getPBRMaterials()) {
+            Map<String, Boolean> usesTextures = material.getUsesTextures();
+
+            bb.putFloat(material.getAlbedoColor().x);
+            bb.putFloat(material.getAlbedoColor().y);
+            bb.putFloat(material.getAlbedoColor().z);
+            bb.putFloat(0);
+            bb.putFloat(material.getEmissiveColor().x);
+            bb.putFloat(material.getEmissiveColor().y);
+            bb.putFloat(material.getEmissiveColor().z);
+            bb.putFloat(0);
+
+            bb.putLong(usesTextures.get("albedo") ? material.getAlbedo().getHandle() : 0);
+            bb.putLong(usesTextures.get("normal") ? material.getNormal().getHandle() : 0);
+
+            bb.putLong(usesTextures.get("metallic") ? material.getMetallic().getHandle() : 0);
+            bb.putLong(usesTextures.get("roughness") ? material.getRoughness().getHandle() : 0);
+
+            bb.putLong(usesTextures.get("metallicRoughness") ? material.getMetallicRoughness().getHandle() : 0);
+            bb.putLong(usesTextures.get("ao") ? material.getAo().getHandle() : 0);
+
+            bb.putLong(usesTextures.get("emissive") ? material.getEmissive().getHandle() : 0);
+            bb.putFloat(material.getMetallicFactor());
+            bb.putFloat(material.getRoughnessFactor());
+
+            bb.putInt(usesTextures.get("albedo") ? 1 : 0);
+            bb.putInt(usesTextures.get("normal") ? 1 : 0);
+            bb.putInt(usesTextures.get("metallic") ? 1 : 0);
+            bb.putInt(usesTextures.get("roughness") ? 1 : 0);
+
+            bb.putInt(usesTextures.get("metallicRoughness") ? 1 : 0);
+            bb.putInt(usesTextures.get("ao") ? 1 : 0);
+            bb.putInt(usesTextures.get("emissive") ? 1 : 0);
+            bb.putInt(0);
+        }
+        bb.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialBuffer);
+        glObjectLabel(GL_BUFFER, materialBuffer, "MaterialBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, bb, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, materialBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        // Draw
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+        glBindVertexArray(sceneMesh.getVAO());
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
+        glBindVertexArray(0);
 
         // Render lights
         lightShader.bind();
@@ -401,6 +484,56 @@ public class Renderer {
         io.william.util.renderer.Quad.render();
     }
 
+    public void setupIndirectBuffer(Scene scene) {
+        List<Model> models = scene.getModels();
+        int numCommands = 0;
+        for (Model model : models) {
+            for (Entity entity : model.getEntities()) {
+                numCommands += model.getMeshDrawDatas().size();
+            }
+        }
+
+        int firstIndex = 0;
+        int baseInstance = 0;
+        ByteBuffer indirectBuffer = BufferUtils.createByteBuffer(numCommands * 5 * 4);
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            int numEntities = entities.size();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                // Count
+                indirectBuffer.putInt(meshDrawData.vertices());
+
+                // Instance count
+                indirectBuffer.putInt(numEntities);
+
+                // First index
+                indirectBuffer.putInt(firstIndex);
+
+                // Base vertex
+                indirectBuffer.putInt(meshDrawData.offset());
+
+                // Base instance
+                indirectBuffer.putInt(baseInstance);
+
+                firstIndex += meshDrawData.vertices();
+                baseInstance += numEntities;
+            }
+        }
+
+        indirectBuffer.flip();
+
+        drawCount = indirectBuffer.remaining() / 5 / 4;
+        System.out.println("Draw count: " + drawCount);
+
+        this.indirectBuffer = glGenBuffers();
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this.indirectBuffer);
+        glObjectLabel(GL_BUFFER, this.indirectBuffer, "IndirectBuffer");
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, indirectBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+        MemoryUtil.memFree(indirectBuffer);
+    }
+
     public void cleanup() {
         phongShader.cleanup();
         pbrShader.cleanup();
@@ -410,13 +543,12 @@ public class Renderer {
     }
 
     private void createShaderUniforms(ShaderProgram shader) throws Exception {
-        shader.createUniform("model");
         shader.createUniform("view");
         shader.createUniform("projection");
 
         shader.createUniform("camPos");
 
-        shader.createPBRMaterialUniform("material");
+//        shader.createPBRMaterialUniform("material");
 
         shader.createPointLightListUniform("pointLights", MAX_POINT_LIGHTS);
         shader.createDirLightUniform("dirLight");
@@ -432,6 +564,25 @@ public class Renderer {
         shader.createUniform("directionalShadowMap");
         shader.createUniform("pointShadowMaps");
         shader.createUniform("farPlane");
+    }
+
+    public void screenshot() {
+        String filepath = "C:/Users/wmjon/IdeaProjects/LWJGL learnopengl/src/main/resources/screenshot_" + System.currentTimeMillis() + ".png";
+        int width = framebuffer.getWidth();
+        int height = framebuffer.getHeight();
+        int channels = 3;
+        int stride = width * channels;
+        stride += (stride % 4) == 0 ? 0 : 4 - (stride % 4);
+        ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * channels);
+        glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
+        try {
+            STBImageWrite.stbi_flip_vertically_on_write(true);
+            STBImageWrite.stbi_write_png(filepath, width, height, channels, buffer, stride);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Screenshot saved to " + filepath);
     }
 
     public Shader getCurrentShader() {

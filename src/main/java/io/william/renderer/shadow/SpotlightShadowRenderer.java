@@ -25,7 +25,7 @@ public class SpotlightShadowRenderer {
     private float farPlane = 200.0f;
 
     public SpotlightShadowRenderer() throws Exception {
-        shaderProgram = new ShaderProgram();
+        shaderProgram = new ShaderProgram("SpotlightShadow");
         shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/shadow/spotlight/shadow.vert").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/spotlight/shadow.frag").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();

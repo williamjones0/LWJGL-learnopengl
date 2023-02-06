@@ -1,5 +1,14 @@
-#version 400 core
-out vec4 FragColor;
+#version 460 core
+
+#extension GL_ARB_bindless_texture : enable
+
+in vec3 WorldPos;
+in vec3 Normal;
+in vec2 TexCoords;
+in flat uint ModelMeshMaterialID;
+in vec4 FragPosLightSpace;
+
+layout (location = 0) out vec4 FragColor;
 
 struct PointLight {
     vec3 position;
@@ -48,6 +57,38 @@ struct PBRMaterial {
     bool uses_emissive_map;
 };
 
+struct GPUMaterial {
+    vec4 albedoColor;
+    vec4 emissiveColor;
+
+    sampler2D albedo;
+    sampler2D normal;
+
+    sampler2D metallic;
+    sampler2D roughness;
+
+    sampler2D metallicRoughness;
+    sampler2D ao;
+
+    sampler2D emissive;
+    float metallicFactor;
+    float roughnessFactor;
+
+    uint uses_albedo_map;
+    uint uses_normal_map;
+    uint uses_metallic_map;
+    uint uses_roughness_map;
+
+    uint uses_metallicRoughness_map;
+    uint uses_ao_map;
+    uint uses_emissive_map;
+    uint _pad0;
+};
+
+layout (binding = 1, std430) buffer MaterialBuffer {
+    GPUMaterial Materials[];
+} materialBuffer;
+
 struct Settings {
     bool specularOcclusion;
     bool horizonSpecularOcclusion;
@@ -61,18 +102,11 @@ struct Settings {
 #define NUM_SPOT_LIGHTS 4
 #define PI 3.14159265359
 
-in vec2 TexCoords;
-in vec3 WorldPos;
-in vec3 Normal;
-in vec4 FragPosLightSpace;
-
 uniform vec3 camPos;
 
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
-
-uniform PBRMaterial material;
 
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
 uniform SpotLight spotLights[NUM_SPOT_LIGHTS];
@@ -84,7 +118,7 @@ uniform samplerCubeArray pointShadowMaps;
 uniform sampler2D directionalShadowMap;
 uniform float farPlane;
 
-vec3 getNormalFromMap() {
+vec3 getNormalFromMap(GPUMaterial material) {
     vec3 tangentNormal = texture(material.normal, TexCoords).rgb * 2.0 - 1.0;
 
     vec3 Q1 = dFdx(WorldPos);
@@ -175,6 +209,8 @@ float orthoShadowCalculation(vec4 fragPosLightSpace) {
 }
 
 void main() {
+    GPUMaterial material = materialBuffer.Materials[ModelMeshMaterialID];
+
     // Material properties
     vec3 albedo;
     vec3 N;
@@ -183,45 +219,45 @@ void main() {
     vec3 emissive;
     float ao;
 
-    if (material.uses_albedo_map) {
+    if (material.uses_albedo_map > 0.5) {
         albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
     } else {
-        albedo = material.albedoColor;
+        albedo = material.albedoColor.xyz;
     }
 
-    if (material.uses_normal_map) {
-        N = getNormalFromMap();
+    if (material.uses_normal_map > 0.5) {
+        N = getNormalFromMap(material);
     } else {
         N = normalize(Normal);
     }
 
-    if (material.uses_metallicRoughness_map) {
+    if (material.uses_metallicRoughness_map > 0.5) {
         metallic = texture(material.metallicRoughness, TexCoords).b + texture(material.metallic, TexCoords).b * 0.00001;
         roughness = texture(material.metallicRoughness, TexCoords).g + texture(material.roughness, TexCoords).b * 0.00001;
     } else {
-        if (material.uses_metallic_map) {
+        if (material.uses_metallic_map > 0.5) {
             metallic = texture(material.metallic, TexCoords).r;
         } else {
             metallic = material.metallicFactor;
         }
 
-        if (material.uses_roughness_map) {
+        if (material.uses_roughness_map > 0.5) {
             roughness = texture(material.roughness, TexCoords).r;
         } else {
             roughness = material.roughnessFactor;
         }
     }
 
-    if (material.uses_ao_map) {
+    if (material.uses_ao_map > 0.5) {
         ao = texture(material.ao, TexCoords).r;
     } else {
         ao = 1.0;
     }
 
-    if (material.uses_emissive_map) {
+    if (material.uses_emissive_map > 0.5) {
         emissive = texture(material.emissive, TexCoords).rgb;
     } else {
-        emissive = material.emissiveColor;
+        emissive = material.emissiveColor.xyz;
     }
 
     // Lighting data input
@@ -238,7 +274,8 @@ void main() {
         if (settings.pointShadows && pointLights[i].enabled) {
             float shadow = shadowCalculation(WorldPos, i);
             if (shadow > 0.0) {
-                continue;
+                // do something useless to avoid compiler optimization
+                Lo += vec3(0.00001);
             }
         }
 

@@ -1,7 +1,7 @@
 package io.william.renderer;
 
+import io.william.util.renderer.Cube;
 import org.joml.Matrix4f;
-import io.william.renderer.primitive.Cube;
 
 import java.io.File;
 import java.nio.ByteBuffer;
@@ -15,8 +15,6 @@ import static org.lwjgl.opengl.GL32.GL_TEXTURE_CUBE_MAP_SEAMLESS;
 
 public class EquirectangularMap {
 
-    private Matrix4f captureProjection;
-
     private ShaderProgram equirectangularToCubemapShader;
     private ShaderProgram irradianceShader;
     private ShaderProgram prefilterShader;
@@ -27,8 +25,6 @@ public class EquirectangularMap {
     private int irradianceMap;
     private int prefilterMap;
     private int brdfLUT;
-
-    private Mesh cubeMesh;
 
     public EquirectangularMap(Texture texture) throws Exception {
         init(texture);
@@ -62,7 +58,7 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Set up projection and view matrices
-        captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+        Matrix4f captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
         Matrix4f[] views = new Matrix4f[]{
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
@@ -74,7 +70,7 @@ public class EquirectangularMap {
         };
 
         // Convert equirectangular to cubemap
-        equirectangularToCubemapShader = new ShaderProgram();
+        equirectangularToCubemapShader = new ShaderProgram("EquirectangularToCubemap");
         equirectangularToCubemapShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
         equirectangularToCubemapShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/equirectangular_to_cubemap.frag").toPath(), StandardCharsets.US_ASCII));
         equirectangularToCubemapShader.link();
@@ -98,14 +94,7 @@ public class EquirectangularMap {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             // Render cube
-            Cube cube = new Cube();
-            cubeMesh = new Mesh(
-                cube.getPositions(),
-                cube.getNormals(),
-                cube.getTexCoords(),
-                cube.getIndices()
-            );
-            cubeMesh.render();
+            Cube.render();
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -134,7 +123,7 @@ public class EquirectangularMap {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Solve diffuse integral
-        irradianceShader = new ShaderProgram();
+        irradianceShader = new ShaderProgram("Irradiance");
         irradianceShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
         irradianceShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/irradiance_convolution.frag").toPath(), StandardCharsets.US_ASCII));
         irradianceShader.link();
@@ -157,7 +146,7 @@ public class EquirectangularMap {
             framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            cubeMesh.render();
+            Cube.render();
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -180,7 +169,7 @@ public class EquirectangularMap {
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
         // Prefilter environment map with different roughness values over multiple mipmap levels
-        prefilterShader = new ShaderProgram();
+        prefilterShader = new ShaderProgram("Prefilter");
         prefilterShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
         prefilterShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/prefilter.frag").toPath(), StandardCharsets.US_ASCII));
         prefilterShader.link();
@@ -214,7 +203,7 @@ public class EquirectangularMap {
                 framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                cubeMesh.render();
+                Cube.render();
             }
         }
 
@@ -230,7 +219,7 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Render it
-        brdfShader = new ShaderProgram();
+        brdfShader = new ShaderProgram("BRDF");
         brdfShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/brdf.vert").toPath(), StandardCharsets.US_ASCII));
         brdfShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/brdf.frag").toPath(), StandardCharsets.US_ASCII));
         brdfShader.link();
@@ -249,7 +238,7 @@ public class EquirectangularMap {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Set up background shader
-        backgroundShader = new ShaderProgram();
+        backgroundShader = new ShaderProgram("Background");
         backgroundShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/background.vert").toPath(), StandardCharsets.US_ASCII));
         backgroundShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/background.frag").toPath(), StandardCharsets.US_ASCII));
         backgroundShader.link();
@@ -269,7 +258,7 @@ public class EquirectangularMap {
         backgroundShader.setUniform("view", camera.calculateViewMatrix());
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
-        cubeMesh.render();
+        Cube.render();
     }
 
     public void updateTexture(Texture texture) throws Exception {

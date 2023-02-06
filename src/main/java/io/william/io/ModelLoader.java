@@ -16,13 +16,13 @@ import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class ModelLoader {
 
-    public static MaterialMesh[] load(String modelPath, String texturesPath) throws Exception {
-        return load(modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
+    public static Model load(Scene scene, String modelPath, String texturesPath) throws Exception {
+        return load(scene, modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
             | aiProcess_Triangulate | aiProcess_FixInfacingNormals
             | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     }
 
-    public static MaterialMesh[] load(String modelPath, String texturesPath, int flags) throws Exception {
+    public static Model load(Scene scene, String modelPath, String texturesPath, int flags) throws Exception {
         AIScene aiScene = aiImportFile(modelPath, flags);
         if (aiScene == null) {
             throw new RuntimeException("Failed to load model: " + modelPath);
@@ -36,8 +36,13 @@ public class ModelLoader {
         List<PBRMaterial> pbrMaterials = new ArrayList<>();
         for (int i = 0; i < numMaterials; i++) {
             AIMaterial aiMaterial = AIMaterial.create(aiMaterials.get(i));
-//            processMaterial(aiMaterial, materials, texturesPath);
-            processPBRMaterial(aiMaterial, pbrMaterials, texturesPath);
+            PBRMaterial material = processPBRMaterial(aiMaterial, texturesPath);
+            if (material.isEmpty()) {
+                System.out.println("Material " + i + " is empty");
+                continue;
+            }
+            pbrMaterials.add(material);
+            scene.addPBRMaterial(material);
         }
 
         // If none of the materials have any textures, use the default material
@@ -50,17 +55,20 @@ public class ModelLoader {
         int numMeshes = aiScene.mNumMeshes();
         System.out.println("Number of meshes: " + numMeshes);
         PointerBuffer aiMeshes = aiScene.mMeshes();
-        MaterialMesh[] meshes = new MaterialMesh[numMeshes];
+        List<MeshData> meshDatas = new ArrayList<>();
+
         for (int i = 0; i < numMeshes; i++) {
             AIMesh aiMesh = AIMesh.create(aiMeshes.get(i));
-//            meshes[i] = processMesh(aiMesh, materials);
-            meshes[i] = new MaterialMesh(
-                processMesh(aiMesh),
-                pbrMaterials.get(aiMesh.mMaterialIndex())
-            );
+            MeshData meshData = processMesh(aiMesh);
+
+            int materialIndex = aiMesh.mMaterialIndex();
+            meshData.setMaterialID(pbrMaterials.get(materialIndex).getID());
+            System.out.println("materialIndex: " + materialIndex + " (" + pbrMaterials.get(materialIndex).getID() + ")");
+
+            meshDatas.add(meshData);
         }
 
-        return meshes;
+        return new Model(meshDatas);
     }
 
     private static void processMaterial(AIMaterial aiMaterial, List<Material> materials, String texturesDir) throws Exception {
@@ -105,7 +113,7 @@ public class ModelLoader {
         }
     }
 
-    private static void processPBRMaterial(AIMaterial aiMaterial, List<PBRMaterial> materials, String texturesDir) throws Exception {
+    private static PBRMaterial processPBRMaterial(AIMaterial aiMaterial, String texturesDir) throws Exception {
         // Albedo map
         AIString path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, path, (IntBuffer) null, null, null, null, null, null);
@@ -182,21 +190,22 @@ public class ModelLoader {
             System.out.println(i + ": " + path.dataString());
         }
 
-        PBRMaterial material = new PBRMaterial(
+        return new PBRMaterial(
             albedoTexture,
             normalTexture,
             metallicTexture,
             roughnessTexture,
             metallicRoughnessTexture,
             aoTexture,
-            emissiveTexture);
-        materials.add(material);
+            emissiveTexture
+        );
     }
 
-    private static Mesh processMesh(AIMesh aiMesh) {
+    private static MeshData processMesh(AIMesh aiMesh) {
         List<Float> vertices = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> tangents = new ArrayList<>();
+        List<Float> bitangents = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
 
@@ -227,6 +236,15 @@ public class ModelLoader {
             tangents.add(aiTangent.z());
         }
 
+        // Process bitangents
+        AIVector3D.Buffer aiBitangents = aiMesh.mBitangents();
+        while (aiBitangents.hasRemaining()) {
+            AIVector3D aiBitangent = aiBitangents.get();
+            bitangents.add(aiBitangent.x());
+            bitangents.add(aiBitangent.y());
+            bitangents.add(aiBitangent.z());
+        }
+
         // Process texture coordinates
         AIVector3D.Buffer aiTexCoords = aiMesh.mTextureCoords(0);
         while (aiTexCoords.hasRemaining()) {
@@ -254,9 +272,11 @@ public class ModelLoader {
             }
         }
 
-        return new Mesh(
+        return new MeshData(
             floatListToArray(vertices),
             floatListToArray(normals),
+            floatListToArray(tangents),
+            floatListToArray(bitangents),
             floatListToArray(texCoords),
             intListToArray(indices)
         );

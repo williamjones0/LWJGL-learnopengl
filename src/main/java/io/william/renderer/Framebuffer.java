@@ -10,6 +10,9 @@ public class Framebuffer {
     private Texture texture;
     private TextureArray textureArray;
 
+    private int width;
+    private int height;
+
     public Framebuffer(Texture texture, int framebufferAttachment, boolean draw) {
         this.texture = texture;
 
@@ -33,6 +36,8 @@ public class Framebuffer {
 
     public Framebuffer(Texture texture, int internalFormat, int framebufferAttachment, int renderbufferAttachment) {
         this.texture = texture;
+        this.width = texture.getWidth();
+        this.height = texture.getHeight();
 
         ID = glGenFramebuffers();
         glBindFramebuffer(GL_FRAMEBUFFER, ID);
@@ -127,4 +132,11 @@ public class Framebuffer {
         return texture;
     }
 
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
 }

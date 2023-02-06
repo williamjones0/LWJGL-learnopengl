@@ -63,12 +63,14 @@ public class SpotLight {
     public SpotLight(Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f color, float intensity) {
         Cylinder cylinder = new Cylinder(0f, 0.5f, 1f, 32);
 
-        this.mesh = new Mesh(
+        this.mesh = new Mesh(new MeshData(
             cylinder.getPositions(),
             cylinder.getNormals(),
             cylinder.getTexCoords(),
+            new float[]{},
+            new float[]{},
             cylinder.getIndices()
-        );
+        ));
 
         this.position = position;
         this.direction = direction;

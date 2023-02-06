@@ -13,14 +13,14 @@ public class MasterRenderer {
     private SpotlightShadowRenderer spotlightShadowRenderer;
     private GUI gui;
 
-    public void init(Window window, Renderer renderer, Camera camera, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, SpotlightShadowRenderer spotlightShadowRenderer, GUI gui) throws Exception {
+    public void init(Window window, Renderer renderer, Scene scene, Camera camera, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, SpotlightShadowRenderer spotlightShadowRenderer, GUI gui) throws Exception {
         this.renderer = renderer;
         this.shadowRenderer = shadowRenderer;
         this.omnidirectionalShadowRenderer = omnidirectionalShadowRenderer;
         this.spotlightShadowRenderer = spotlightShadowRenderer;
         this.gui = gui;
 
-        renderer.init(window, camera);
+        renderer.init(window, camera, scene);
         gui.init(window.getWindowHandle());
     }
 

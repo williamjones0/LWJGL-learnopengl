@@ -20,11 +20,16 @@ public class Mesh {
     private int indicesVBO;
     private int indexCount;
 
-    public Mesh(float[] positions, float[] normals, float[] texCoords, int[] indices) {
-        init(positions, normals, texCoords, indices);
+    public Mesh(MeshData meshData) {
+        init(meshData);
     }
 
-    private void init(float[] positions, float[] normals, float[] texCoords, int[] indices) {
+    private void init(MeshData meshData) {
+        float[] positions = meshData.getPositions();
+        float[] normals = meshData.getNormals();
+        float[] texCoords = meshData.getTexCoords();
+        int[] indices = meshData.getIndices();
+
         indexCount = indices.length;
 
         // Create VAO and bind it

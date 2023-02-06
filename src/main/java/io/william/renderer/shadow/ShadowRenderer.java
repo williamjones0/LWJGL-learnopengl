@@ -27,7 +27,7 @@ public class ShadowRenderer {
     private float size = 40.0f;
 
     public ShadowRenderer() throws Exception {
-        shaderProgram = new ShaderProgram();
+        shaderProgram = new ShaderProgram("DirectionalShadow");
         shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/shadow/shadow.vert").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/shadow.frag").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();
@@ -74,6 +74,10 @@ public class ShadowRenderer {
         shaderProgram.unbind();
 
         glDepthFunc(GL_LEQUAL);
+    }
+
+    public int getResolution() {
+        return resolution;
     }
 
     public Matrix4f getLightSpaceMatrix() {

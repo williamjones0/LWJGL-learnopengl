@@ -9,6 +9,8 @@ import java.util.List;
 
 public class Entity {
 
+    private int ID;
+
     private final MaterialMesh[] meshes;
 
     private Vector3f position;
@@ -178,6 +180,14 @@ public class Entity {
         for (MaterialMesh mesh : meshes) {
             mesh.render();
         }
+    }
+
+    public int getID() {
+        return ID;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     public Vector3f getWorldPosition() {

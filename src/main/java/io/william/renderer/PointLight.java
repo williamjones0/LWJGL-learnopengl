@@ -28,14 +28,16 @@ public class PointLight {
     }
 
     public PointLight(Vector3f position, Vector3f color, float intensity) {
-        UVSphere uvSphere = new UVSphere(0.5f, 32, 32);
+        UVSphere uvSphere = new UVSphere(0.1f, 32, 32);
 
-        this.mesh = new Mesh(
+        this.mesh = new Mesh(new MeshData(
             uvSphere.getPositions(),
             uvSphere.getNormals(),
             uvSphere.getTexCoords(),
+            new float[] {},
+            new float[] {},
             uvSphere.getIndices()
-        );
+        ));
 
         this.position = position;
 
@@ -49,12 +51,14 @@ public class PointLight {
     public PointLight(Vector3f position, Vector3f color) {
         UVSphere uvSphere = new UVSphere(0.5f, 32, 32);
 
-        this.mesh = new Mesh(
+        this.mesh = new Mesh(new MeshData(
             uvSphere.getPositions(),
             uvSphere.getNormals(),
             uvSphere.getTexCoords(),
+            new float[] {},
+            new float[] {},
             uvSphere.getIndices()
-        );
+        ));
 
         this.position = position;
 

@@ -10,6 +10,8 @@ import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class PBRMaterial {
 
+    private int ID;
+
     // Textures or Vector3fs/floats for each of the PBR material properties
     private Texture albedo;
     private Vector3f albedoColor = new Vector3f(1.0f, 1.0f, 1.0f);
@@ -29,7 +31,7 @@ public class PBRMaterial {
     private Texture emissive;
     private Vector3f emissiveColor = new Vector3f(0, 0, 0);
 
-    private Map<String, Boolean> usesTextures = new HashMap<>();
+    private final Map<String, Boolean> usesTextures = new HashMap<>();
 
     public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
         this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
@@ -67,6 +69,24 @@ public class PBRMaterial {
 
     public PBRMaterial() {
         this(new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
+    }
+
+    public boolean isEmpty() {
+        for (Map.Entry<String, Boolean> entry : usesTextures.entrySet()) {
+            if (entry.getValue()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public int getID() {
+        return ID;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     public Texture getAlbedo() {

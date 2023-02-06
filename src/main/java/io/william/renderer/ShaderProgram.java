@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL32.GL_GEOMETRY_SHADER;
+import static org.lwjgl.opengl.GL43.*;
 
 public class ShaderProgram {
 
@@ -20,11 +21,16 @@ public class ShaderProgram {
     private int geometryShaderID;
     private final Map<String, Integer> uniforms;
 
-    public ShaderProgram() {
+    private final String label;
+
+    public ShaderProgram(String label) {
         programID = glCreateProgram();
         if (programID == 0) {
             System.out.println("Could not create shader");
         }
+
+        this.label = label;
+        glObjectLabel(GL_PROGRAM, programID, label);
 
         uniforms = new HashMap<>();
     }
@@ -166,6 +172,8 @@ public class ShaderProgram {
         if (shaderID == 0) {
             System.out.println("Error creating shader: " + shaderType);
         }
+
+        glObjectLabel(GL_SHADER, shaderID, label + " " + (shaderType == GL_VERTEX_SHADER ? "Vertex" : shaderType == GL_FRAGMENT_SHADER ? "Fragment" : "Geometry"));
 
         glShaderSource(shaderID, source);
         glCompileShader(shaderID);

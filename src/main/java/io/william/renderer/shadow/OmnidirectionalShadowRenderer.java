@@ -30,7 +30,7 @@ public class OmnidirectionalShadowRenderer {
     private float farPlane = 200.0f;
 
     public OmnidirectionalShadowRenderer() throws Exception {
-        shaderProgram = new ShaderProgram();
+        shaderProgram = new ShaderProgram("OmnidirectionalShadow");
         shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.vert").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.createGeometryShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.geom").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.frag").toPath(), StandardCharsets.US_ASCII));
@@ -125,6 +125,10 @@ public class OmnidirectionalShadowRenderer {
         shaderProgram.unbind();
 
         glDepthFunc(GL_LEQUAL);
+    }
+
+    public int getResolution() {
+        return resolution;
     }
 
     public int getTextureArrayID() {

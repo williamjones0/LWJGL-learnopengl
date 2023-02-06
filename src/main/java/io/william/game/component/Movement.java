@@ -1,9 +1,6 @@
 package io.william.game.component;
 
-import io.william.renderer.Entity;
-import io.william.renderer.MaterialMesh;
-import io.william.renderer.Mesh;
-import io.william.renderer.PBRMaterial;
+import io.william.renderer.*;
 import io.william.renderer.primitive.UVSphere;
 import org.joml.Vector3f;
 
@@ -27,13 +24,6 @@ public class Movement {
         DECELERATION
     }
 
-    public enum KeyboardMode {
-        CONSTANT,
-        SMOOTH
-    }
-
-    private Vector3f velocity;
-
     private Type type;
     private Mode mode;
 
@@ -56,8 +46,8 @@ public class Movement {
     private boolean stopAtZeroSpeed;
 
     // Points
-    private List<Vector3f> points;
-    private int currentPoint = 0;
+    private List<Vector3f> path;
+    private int pathIndex = 0;
 
     // Keyboard
     private float deceleration;
@@ -66,7 +56,7 @@ public class Movement {
     private final List<Entity> pointEntities;
     private final MaterialMesh pointMesh;
 
-    private Movement(Type type, Mode mode, float speed, float deceleration, Vector3f center, Vector3f axis, float radius, float anglePerSecond, Vector3f origin, Vector3f direction, float acceleration, float distance, List<Vector3f> points) {
+    private Movement(Type type, Mode mode, float speed, float deceleration, Vector3f center, Vector3f axis, float radius, float anglePerSecond, Vector3f origin, Vector3f direction, float acceleration, float distance, List<Vector3f> path) {
         this.type = type;
         this.mode = mode;
         this.speed = speed;
@@ -79,12 +69,12 @@ public class Movement {
         this.direction = direction;
         this.acceleration = acceleration;
         this.distance = distance;
-        this.points = points;
+        this.path = path;
 
         this.pointEntities = new ArrayList<>();
 
         UVSphere sphere = new UVSphere(0.1f, 10, 10);
-        this.pointMesh = new MaterialMesh(new Mesh(sphere.getPositions(), sphere.getNormals(), sphere.getTexCoords(), sphere.getIndices()), new PBRMaterial());
+        this.pointMesh = new MaterialMesh(new Mesh(new MeshData(sphere.getPositions(), sphere.getNormals(), sphere.getTexCoords(), new float[] {}, new float[] {}, sphere.getIndices())), new PBRMaterial());
     }
 
     // Orbits are initialised with a center point, a rotation axis, a radius, and a speed or rotation angle per second
@@ -98,7 +88,7 @@ public class Movement {
     // Keyboard movement is updated by moving the entity in the direction of the velocity vector by the speed
 
     public static Movement none(Movement movement) {
-        return new Movement(Type.NONE, Mode.CONSTANT, movement.getSpeed(), movement.getDeceleration(), movement.getCenter(), movement.getAxis(), movement.getRadius(), movement.getAnglePerSecond(), movement.getOrigin(), movement.getDirection(), movement.getAcceleration(), movement.getDistance(), movement.getPoints());
+        return new Movement(Type.NONE, Mode.CONSTANT, movement.getSpeed(), movement.getDeceleration(), movement.getCenter(), movement.getAxis(), movement.getRadius(), movement.getAnglePerSecond(), movement.getOrigin(), movement.getDirection(), movement.getAcceleration(), movement.getDistance(), movement.getPath());
     }
 
     public static Movement none() {
@@ -206,22 +196,22 @@ public class Movement {
     }
 
     public void pointUpdate(Entity entity, float deltaTime) {
-        if (points == null || points.size() == 0) {
+        if (path == null || path.size() == 0) {
             return;
         }
 
-        if (currentPoint >= points.size()) {
-            currentPoint = 0;
+        if (pathIndex >= path.size()) {
+            pathIndex = 0;
         }
 
         Vector3f position = entity.getPosition();
 
-        Vector3f target = points.get(currentPoint);
+        Vector3f target = path.get(pathIndex);
 
         Vector3f direction = new Vector3f(target).sub(position);
 
         if (direction.length() < 0.01f * speed) {
-            currentPoint++;
+            pathIndex++;
             return;
         }
 
@@ -230,7 +220,7 @@ public class Movement {
         entity.setPosition(position);
 
         if (position.sub(target, new Vector3f()).length() < 0.1f) {
-            currentPoint++;
+            pathIndex++;
         }
     }
 
@@ -363,39 +353,39 @@ public class Movement {
         this.stopAtZeroSpeed = stopAtZeroSpeed;
     }
 
-    public List<Vector3f> getPoints() {
-        return points;
+    public List<Vector3f> getPath() {
+        return path;
     }
 
-    public void setPoints(List<Vector3f> points) {
-        this.points = points;
+    public void setPath(List<Vector3f> path) {
+        this.path = path;
     }
 
     public void addPoint(Vector3f point) {
-        if (points == null) {
-            points = new ArrayList<>();
+        if (path == null) {
+            path = new ArrayList<>();
         }
-        points.add(point);
+        path.add(point);
 
         Entity pointEntity = new Entity(new MaterialMesh[] {pointMesh}, new Vector3f(point), new Vector3f(), 1);
         pointEntities.add(pointEntity);
     }
 
     public void setPoint(int index, Vector3f point) {
-        if (points == null) {
-            points = new ArrayList<>();
+        if (path == null) {
+            path = new ArrayList<>();
         }
-        points.set(index, point);
+        path.set(index, point);
 
         Entity pointEntity = pointEntities.get(index);
         pointEntity.setPosition(point);
     }
 
     public void removePoint(int index) {
-        if (points == null) {
-            points = new ArrayList<>();
+        if (path == null) {
+            path = new ArrayList<>();
         }
-        points.remove(index);
+        path.remove(index);
         pointEntities.remove(index);
     }
 

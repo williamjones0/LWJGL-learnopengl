@@ -50,7 +50,7 @@ public class GUI {
     private boolean showSpotLightWindow = false;
     private boolean showSettingsWindow = false;
 
-    private ImInt debugTextureID = new ImInt(1);
+    private final ImInt debugTextureID = new ImInt(1);
 
     private PointLight newPointLight = new PointLight(
         new Vector3f(0, 0, 0),
@@ -165,12 +165,14 @@ public class GUI {
             if (ImGui.beginMenu("2D Primitives")) {
                 if (ImGui.menuItem("Quad")) {
                     Quad quad = new Quad();
-                    Mesh quadMesh = new Mesh(
+                    Mesh quadMesh = new Mesh(new MeshData(
                         quad.getPositions(),
                         quad.getNormals(),
                         quad.getTexCoords(),
+                        new float[]{},
+                        new float[]{},
                         quad.getIndices()
-                    );
+                    ));
 
                     entities.add(new Entity(new MaterialMesh(quadMesh, null)));
                 }
@@ -198,8 +200,8 @@ public class GUI {
                 String texturesPath = openFolder();
 
                 if (modelPath != null && texturesPath != null) {
-                    MaterialMesh[] meshes = ModelLoader.load(modelPath, texturesPath);
-                    entities.add(new Entity(meshes));
+                    Model model = ModelLoader.load(scene, modelPath, texturesPath);
+//                    entities.add(new Entity(meshes));
                 }
             }
 
@@ -317,12 +319,14 @@ public class GUI {
             if (ImGui.button("Add", 120, 0)) {
                 if (Objects.equals(newEntityType, "Cube")) {
                     Cube cube = new Cube();
-                    Mesh cubeMesh = new Mesh(
+                    Mesh cubeMesh = new Mesh(new MeshData(
                         cube.getPositions(),
                         cube.getNormals(),
                         cube.getTexCoords(),
+                        new float[]{},
+                        new float[]{},
                         cube.getIndices()
-                    );
+                    ));
 
                     entities.add(new Entity(
                         new MaterialMesh(cubeMesh, null),
@@ -333,12 +337,14 @@ public class GUI {
                     ));
                 } else if (Objects.equals(newEntityType, "Cylinder")) {
                     newCylinder.update();
-                    Mesh cylinderMesh = new Mesh(
+                    Mesh cylinderMesh = new Mesh(new MeshData(
                         newCylinder.getPositions(),
                         newCylinder.getNormals(),
                         newCylinder.getTexCoords(),
+                        new float[]{},
+                        new float[]{},
                         newCylinder.getIndices()
-                    );
+                    ));
 
                     entities.add(new Entity(
                         new MaterialMesh(cylinderMesh, null),
@@ -349,12 +355,14 @@ public class GUI {
                     ));
                 } else if (Objects.equals(newEntityType, "Sphere")) {
                     newSphere.update();
-                    Mesh sphereMesh = new Mesh(
+                    Mesh sphereMesh = new Mesh(new MeshData(
                         newSphere.getPositions(),
                         newSphere.getNormals(),
                         newSphere.getTexCoords(),
+                        new float[]{},
+                        new float[]{},
                         newSphere.getIndices()
-                    );
+                    ));
 
                     entities.add(new Entity(
                         new MaterialMesh(sphereMesh, null),
@@ -522,7 +530,7 @@ public class GUI {
                     float[] shadowMinBias = new float[] {settings.getShadowMinBias()};
                     float[] shadowMaxBias = new float[] {settings.getShadowMaxBias()};
 
-                    if (ImGui.dragFloat("Near plane##Directional", nearPlane, 0.1f, 0f, Float.MAX_VALUE)) {
+                    if (ImGui.dragFloat("Near plane##Directional", nearPlane, 0.1f, -40f, Float.MAX_VALUE)) {
                         shadowRenderer.setNearPlane(nearPlane[0]);
                     }
                     if (ImGui.dragFloat("Far plane##Directional", farPlane, 0.1f, 0f, Float.MAX_VALUE)) {
@@ -621,6 +629,8 @@ public class GUI {
                     ImGui.text("Entity " + (selected.get("entity") + 1));
                 }
 
+                ImGui.text("ID: " + entity.getID());
+
                 ImGui.separator();
                 if (ImGui.dragFloat3("Position", position, 0.1f)) entity.setPosition(new Vector3f(position[0], position[1], position[2]));
                 if (ImGui.inputText("Name", name)) entity.setName(name.get());
@@ -692,7 +702,7 @@ public class GUI {
                                 case 3 -> {
                                     movement.setType(Movement.Type.POINTS);
                                     if (movement.getSpeed() == 0) movement.setSpeed(1);
-                                    if (movement.getPoints() == null) movement.setPoints(new ArrayList<>() {});
+                                    if (movement.getPath() == null) movement.setPath(new ArrayList<>() {});
                                 }
                                 case 4 -> {
                                     movement.setType(Movement.Type.KEYBOARD);
@@ -769,7 +779,7 @@ public class GUI {
                     if (ImGui.button("Reset##Origin", 60, 0)) entity.setPosition(new Vector3f(movement.getOrigin()));
                 } else if (movement.getType() == Movement.Type.POINTS) {
                     float[] speed = new float[] { movement.getSpeed() };
-                    List<Vector3f> points = movement.getPoints();
+                    List<Vector3f> points = movement.getPath();
 
                     if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
 
@@ -870,7 +880,7 @@ public class GUI {
 
             ImGui.text("Point Light " + (selected.get("pointLight") + 1));
             if (ImGui.dragFloat3("Position: ", position, 0.1f)) light.setPosition(new Vector3f(position[0], position[1], position[2]));
-            if (ImGui.button("Set to camera position")) light.setPosition(camera.getPosition());
+            if (ImGui.button("Set to camera position")) light.setPosition(new Vector3f(camera.getPosition()));
             if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
             if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
 
@@ -895,9 +905,9 @@ public class GUI {
 
             ImGui.text("Spot Light " + (selected.get("spotLight") + 1));
             if (ImGui.dragFloat3("Position: ", position, 0.1f)) light.setPosition(new Vector3f(position[0], position[1], position[2]));
-            if (ImGui.button("Set to camera position")) light.setPosition(camera.getPosition());
+            if (ImGui.button("Set to camera position")) light.setPosition(new Vector3f(camera.getPosition()));
             if (ImGui.dragFloat3("Direction: ", direction, 0.01f, -1f, 1f))  light.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
-            if (ImGui.button("Set to camera direction")) light.setDirection(camera.getFront());
+            if (ImGui.button("Set to camera direction")) light.setDirection(new Vector3f(camera.getFront()));
             if (ImGui.dragFloat("Azimuth: ", azimuth, 0.2f, 0f, 360f)) light.setAzimuth(azimuth[0]);
             if (ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f)) light.setElevation(elevation[0]);
             if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));

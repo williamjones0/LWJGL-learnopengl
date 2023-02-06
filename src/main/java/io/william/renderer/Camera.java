@@ -17,7 +17,7 @@ public class Camera {
 
     private float FOV = (float) Math.toRadians(60.0);
 
-    private float movementSpeed = 500f;
+    private float movementSpeed = 200.0f;
     private float mouseSensitivity = 0.02f;
     private float deceleration = 0.95f;
 

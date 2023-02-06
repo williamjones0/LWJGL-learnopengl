@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
+import static org.lwjgl.opengl.ARBBindlessTexture.glGetTextureHandleARB;
+import static org.lwjgl.opengl.ARBBindlessTexture.glMakeTextureHandleResidentARB;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
@@ -14,8 +16,11 @@ import static org.lwjgl.stb.STBImage.*;
 public class Texture {
 
     private final int ID;
+    private long handle;
     private int width;
     private int height;
+
+    private String path;
 
     public Texture(String fileName, int internalFormat, int pixelFormat, int type, boolean flip) throws Exception {
         ID = loadTexture(fileName, internalFormat, pixelFormat, type, flip);
@@ -50,6 +55,8 @@ public class Texture {
     }
 
     private int loadTexture(String fileName, int internalFormat, int pixelFormat, int type, boolean flip) throws Exception {
+        path = fileName;
+
         ByteBuffer buffer = null;
         FloatBuffer floatBuffer = null;
 
@@ -95,6 +102,11 @@ public class Texture {
         }
         glGenerateMipmap(GL_TEXTURE_2D);
 
+        // Generate texture handle
+        handle = glGetTextureHandleARB(textureID);
+        glMakeTextureHandleResidentARB(handle);
+
+        // Free image memory
         if (type == GL_FLOAT) {
             stbi_image_free(floatBuffer);
         } else {
@@ -115,11 +127,20 @@ public class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Generate texture handle
+        handle = glGetTextureHandleARB(textureID);
+        glMakeTextureHandleResidentARB(handle);
+
         return textureID;
     }
 
     public int getID() {
         return ID;
+    }
+
+    public long getHandle() {
+        return handle;
     }
 
     public int getTarget() {
@@ -132,6 +153,10 @@ public class Texture {
 
     public int getHeight() {
         return height;
+    }
+
+    public String getPath() {
+        return path;
     }
 
 }
