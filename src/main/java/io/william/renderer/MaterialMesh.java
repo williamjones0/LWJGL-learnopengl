@@ -11,7 +11,7 @@ public class MaterialMesh {
 
     public MaterialMesh(Mesh mesh, PBRMaterial pbrMaterial) {
         this.mesh = mesh;
-        this.pbrMaterial = pbrMaterial == null ? new PBRMaterial() : pbrMaterial;
+        this.pbrMaterial = pbrMaterial == null ? new PBRMaterial(null) : pbrMaterial;
     }
 
     public void render() {

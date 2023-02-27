@@ -4,9 +4,13 @@ import io.william.io.ModelLoader;
 import io.william.renderer.*;
 import io.william.io.Input;
 import io.william.io.Window;
+import io.william.renderer.primitive.Cylinder;
+import io.william.renderer.primitive.Quad;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
+import io.william.util.Maths;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.*;
 import io.william.renderer.primitive.UVSphere;
@@ -73,16 +77,20 @@ public class Main {
 
         scene = new Scene();
 
-//        PBRMaterial rustedIron = new PBRMaterial(
-//            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
-//            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
-//            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
-//            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
-//            null,
-//            null,
-//            null
-//        );
-//
+        PBRMaterial defaultMaterial = new PBRMaterial("Default");
+        scene.addPBRMaterial(defaultMaterial);
+
+        PBRMaterial rustedIron = new PBRMaterial(
+            "Rusted Iron",
+            new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/rusted_iron/roughness.png", GL_RGBA),
+            null,
+            null,
+            null
+        );
+
 //        PBRMaterial red = new PBRMaterial(
 //            null,
 //            null,
@@ -114,6 +122,7 @@ public class Main {
 //        );
 
         PBRMaterial brushedMetal = new PBRMaterial(
+            "Brushed Metal",
             new Texture("src/main/resources/textures/PBR/brushed_metal/albedo.png", GL_SRGB_ALPHA),
             new Texture("src/main/resources/textures/PBR/brushed_metal/normal.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/brushed_metal/metallic.png", GL_RGBA),
@@ -122,6 +131,9 @@ public class Main {
             new Texture("src/main/resources/textures/PBR/brushed_metal/ao.png", GL_RGBA),
             null
         );
+
+        scene.addPBRMaterial(rustedIron);
+        scene.addPBRMaterial(brushedMetal);
 
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
@@ -190,46 +202,141 @@ public class Main {
 //        entities.add(backpack);
 //
 
-//        // Sponza
-//        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
+        // Shaderball
+        Model shaderballModel = ModelLoader.load(scene, "src/main/resources/models/shaderball/shaderball.obj", "");
+        // Set all meshes to use the brushed metal material
+        for (MeshData meshData : shaderballModel.getMeshDatas()) {
+            meshData.setMaterialID(brushedMetal.getID());
+        }
+        Entity shaderball = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Shaderball");
+        shaderballModel.addEntity(shaderball);
+        scene.addEntity(shaderball);
+        scene.addModel(shaderballModel);
+        shaderball.setModelID(shaderballModel.getID());
+
+        // Sponza
+        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/Sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
+        scene.addModel(sponzaModel);
+
+        for (int x = 0; x < 4; x++) {
+            for (int z = 0; z < 4; z++) {
+                Entity sponza = new Entity(new Vector3f(x * 400, 0, z * 200), new Vector3f(0, 0, 0), 10f, "Sponza");
+                sponzaModel.addEntity(sponza);
+                scene.addEntity(sponza);
+                sponza.setModelID(sponzaModel.getID());
+            }
+        }
+
 //        Entity sponza = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
 //        sponzaModel.addEntity(sponza);
 //        scene.addEntity(sponza);
-//        scene.addModel(sponzaModel);
+//        sponza.setModelID(sponzaModel.getID());
 
-        // Backpack
-        Model backpackModel = ModelLoader.load(scene, "src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
-        Entity backpack = new Entity(
-            new Vector3f(0, 0, 10),
-            new Vector3f(0, 0, 0),
-            0.01f,
-            "Backpack"
-        );
-        backpackModel.addEntity(backpack);
-        scene.addEntity(backpack);
-        scene.addModel(backpackModel);
 
-        // Helmet
-        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        // Helmet
+//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
+//        helmetModel.addEntity(helmetEntity);
+//        scene.addEntity(helmetEntity);
+//        scene.addModel(helmetModel);
+//        helmetEntity.setModelID(helmetModel.getID());
 
-        // Add 1000 helmets in a cube
-        int numDirection = 10;
-        float spacingDirection = 2.5f;
-        for (int x = 0; x < numDirection; x++) {
-            for (int y = 0; y < numDirection; y++) {
-                for (int z = 0; z < numDirection; z++) {
-                    Entity entity = new Entity(
-                        new Vector3f((x - (float) (numDirection / 2)) * spacingDirection, (y - (float) (numDirection / 2)) * spacingDirection, (z - (float) (numDirection / 2)) * spacingDirection),
-                        new Vector3f(0, 0, 0),
-                        1f,
-                        "Entity" + x + y + z
-                    );
-                    helmetModel.addEntity(entity);
-                    scene.addEntity(entity);
-                }
-            }
-        }
-        scene.addModel(helmetModel);
+//        // Cylinder
+//        Cylinder newCylinder = new Cylinder(
+//                1f,
+//                1f,
+//                1f,
+//                32
+//        );
+//
+//        Model cylinderModel = new Model(new MeshData(
+//                newCylinder.getPositions(),
+//                newCylinder.getNormals(),
+//                new float[]{},
+//                new float[]{},
+//                newCylinder.getTexCoords(),
+//                newCylinder.getIndices()
+//        ));
+//
+//        cylinderModel.getMeshDatas().get(0).setMaterialID(rustedIron.getID());
+//        System.out.println("Cylinder Material ID: " + cylinderModel.getMeshDatas().get(0).getMaterialID());
+//
+//        Entity cylinderEntity = new Entity(new Vector3f(0, 15, 0), new Vector3f(0, 0, 0), 1f, "Cylinder");
+//        cylinderModel.addEntity(cylinderEntity);
+//        scene.addEntity(cylinderEntity);
+//        scene.addModel(cylinderModel);
+//        cylinderEntity.setModelID(cylinderModel.getID());
+//
+//        System.out.println("Scene cylinder material ID: " + scene.getModels().get(1).getMeshDatas().get(0).getMaterialID());
+
+//        // Backpack
+//        Model backpackModel = ModelLoader.load(scene, "src/main/resources/models/backpack_original/scene.gltf", "src/main/resources/models/backpack_original");
+//        Entity backpack = new Entity(
+//            new Vector3f(0, 0, 10),
+//            new Vector3f(0, 0, 0),
+//            0.01f,
+//            "Backpack"
+//        );
+//        backpackModel.addEntity(backpack);
+//        scene.addEntity(backpack);
+//        scene.addModel(backpackModel);
+
+//        // Helmet
+//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//
+//        // Add 1000 helmets in a cube
+//        int numDirection = 10;
+//        float spacingDirection = 2.5f;
+//        for (int x = 0; x < numDirection; x++) {
+//            for (int y = 0; y < numDirection; y++) {
+//                for (int z = 0; z < numDirection; z++) {
+//                    Entity entity = new Entity(
+//                        new Vector3f((x - (float) (numDirection / 2)) * spacingDirection, (y - (float) (numDirection / 2)) * spacingDirection, (z - (float) (numDirection / 2)) * spacingDirection),
+//                        new Vector3f(0, 0, 0),
+//                        1f,
+//                        "Entity" + x + y + z
+//                    );
+//                    helmetModel.addEntity(entity);
+//                    scene.addEntity(entity);
+//                }
+//            }
+//        }
+
+//        // Add 80 * 80 helmets in a square
+//        int numDirection = 80;
+//        float spacing = 2.5f;
+//        for (int row = 0; row < numDirection; row++) {
+//            for (int column = 0; column < numDirection; column++) {
+//                Entity helmet = new Entity(
+//                        new Vector3f((column - (float) (numDirection / 2)) * spacing, (row - (float) (numDirection / 2)) * spacing, 0),
+//                        new Vector3f(0, 0, 0),
+//                        1f,
+//                        "Damaged Helmet" + row + column
+//                );
+//                helmetModel.addEntity(helmet);
+//                scene.addEntity(helmet);
+//            }
+//        }
+//        scene.addModel(helmetModel);
+
+//        // Quad
+//        Quad quad = new Quad();
+//        Model quadModel = new Model(new MeshData(
+//            quad.getPositions(),
+//            quad.getNormals(),
+//            new float[]{},
+//            new float[]{},
+//            quad.getTexCoords(),
+//            quad.getIndices()
+//        ));
+//
+//        quadModel.getMeshDatas().get(0).setMaterialID(0);
+//
+//        Entity quadEntity = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 20f, "Quad");
+//        quadModel.addEntity(quadEntity);
+//        scene.addEntity(quadEntity);
+//        scene.addModel(quadModel);
+//        quadEntity.setModelID(quadModel.getID());
 
         DirLight dirLight = new DirLight(
             new Vector3f(2f, 5f, 2f).normalize(),
@@ -244,28 +351,7 @@ public class Main {
             500.0f
         );
 
-        PointLight pointLight2 = new PointLight(
-            new Vector3f(8.0f, 8.0f, 8.0f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-            150.0f
-        );
-
-        PointLight pointLight3 = new PointLight(
-            new Vector3f(-8.0f, -8.0f, 8.0f),
-            new Vector3f(1.0f, 1.0f, 1.0f),
-            150.0f
-        );
-
-        PointLight pointLight4 = new PointLight(
-            new Vector3f(8.0f, -8.0f, 8.0f),
-            new Vector3f(1.0f, 0.0f, 0.0f),
-            150.0f
-        );
-
         scene.addPointLight(pointLight1);
-//        scene.addPointLight(pointLight2);
-//        scene.addPointLight(pointLight3);
-//        scene.addPointLight(pointLight4);
 
         SpotLight spotLight = new SpotLight(
             sphereMesh,
@@ -345,7 +431,154 @@ public class Main {
         window.update();
         camera.update(deltaTime);
 
+        updateEntities();
+//        Entity entity0 = scene.getEntities().get(0);
+//        renderer.updateModelMeshInstance(0, Maths.calculateModelMatrix(entity0.getPosition(), entity0.getRotation(), entity0.getScale()));
+
         processInput();
+    }
+
+    private void updateEntities() {
+        int firstEntityIndex = -1;
+        int lastEntityIndex = -1;
+
+        int firstModelMeshInstanceIndex = -1;
+        int lastModelMeshInstanceIndex = -1;
+
+        for (int i = 0; i < scene.getEntities().size(); i++) {
+            Entity entity = scene.getEntities().get(i);
+            if (entity.isUpdated()) {
+                firstEntityIndex = i;
+                break;
+            }
+        }
+
+        for (int i = scene.getEntities().size() - 1; i >= 0; i--) {
+            Entity entity = scene.getEntities().get(i);
+            if (entity.isUpdated()) {
+                lastEntityIndex = i;
+                break;
+            }
+        }
+
+        if (firstEntityIndex == -1 || lastEntityIndex == -1) {
+            return;
+        }
+
+        int count = 0;
+//        for (Entity entity : scene.getEntities()) {
+//            if (entity.isUpdated()) {
+//                firstModelMeshInstanceIndex = count;
+//                break;
+//            }
+//            count += scene.getModelByID(entity.getModelID()).getMeshDatas().size();
+//        }
+//
+//        count = -1;
+//        for (Entity entity : scene.getEntities()) {
+//            Model model = scene.getModelByID(entity.getModelID());
+//            int increment = model.getMeshDatas().size();
+//            count += increment;
+//
+//            if (entity.isUpdated()) {
+//                lastModelMeshInstanceIndex = count;
+//            }
+//        }
+
+        List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
+        int firstEntityIndexRelativeToModel = -1;
+        outerloop:
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                int entityCount = 0;
+                for (Entity entity : entities) {
+                    if (entity.isUpdated()) {
+                        firstModelMeshInstanceIndex = count;
+                        firstEntityIndexRelativeToModel = entityCount;
+                        break outerloop;
+                    }
+                    count++;
+                    entityCount++;
+                }
+            }
+        }
+
+        count = 0;
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                for (Entity entity : entities) {
+                    if (entity.isUpdated()) {
+                        lastModelMeshInstanceIndex = count;
+                    }
+                    count++;
+                }
+            }
+        }
+
+        System.out.println("Updating " + (lastEntityIndex - firstEntityIndex + 1) + " entities");
+        System.out.println("First entity index: " + firstEntityIndex);
+        System.out.println("Last entity index: " + lastEntityIndex);
+        System.out.println("First model mesh instance index: " + firstModelMeshInstanceIndex);
+        System.out.println("Last model mesh instance index: " + lastModelMeshInstanceIndex);
+
+        Matrix4f[] worldMatrices = new Matrix4f[lastModelMeshInstanceIndex - firstModelMeshInstanceIndex + 1];
+        int[] materialIDs = new int[lastModelMeshInstanceIndex - firstModelMeshInstanceIndex + 1];
+
+//        for (int i = firstEntityIndex; i <= lastEntityIndex; i++) {
+//            System.out.println("Updating entity " + i);
+//            Entity entity = scene.getEntities().get(i);
+//
+//            // Update all model mesh instances
+//            for (int j = firstModelMeshInstanceIndex; j <= lastModelMeshInstanceIndex; j++) {
+//                System.out.println("Updating model mesh instance " + (j - firstModelMeshInstanceIndex));
+//                worldMatrices[j - firstModelMeshInstanceIndex] = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+//                int materialID = scene.getModelByID(entity.getModelID()).getMeshDatas().get((j - firstModelMeshInstanceIndex) % scene.getModelByID(entity.getModelID()).getMeshDatas().size()).getMaterialID();
+////                int materialID = scene.getModelByID(entity.getModelID()).getMeshDatas().get(j - firstModelMeshInstanceIndex).getMaterialID();
+//                materialIDs[j - firstModelMeshInstanceIndex] = materialID;
+//            }
+//
+//            entity.setUpdated(false);
+//        }
+        for (int i = firstModelMeshInstanceIndex; i <= lastModelMeshInstanceIndex; i++) {
+            System.out.println("Updating model mesh instance " + i);
+            // Calculate entity index from model mesh instance index
+            int entityIndex = calculateEntityIndexFromModelMeshInstanceIndex(i);
+
+            Entity entity = scene.getEntities().get(entityIndex);
+
+            worldMatrices[i - firstModelMeshInstanceIndex] = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+
+//            int meshDataIndex = (i - firstModelMeshInstanceIndex) % scene.getModelByID(entity.getModelID()).getMeshDatas().size();
+//            meshDataIndex /= scene.getModelByID(entity.getModelID()).getEntities().size();
+            int meshDataIndex = (i - (firstModelMeshInstanceIndex - firstEntityIndexRelativeToModel)) / scene.getModelByID(entity.getModelID()).getEntities().size();
+
+            int materialID = scene.getModelByID(entity.getModelID()).getMeshDatas().get(meshDataIndex).getMaterialID();
+            materialIDs[i - firstModelMeshInstanceIndex] = materialID;
+
+            entity.setUpdated(false);
+        }
+
+        renderer.updateModelMeshInstances(firstModelMeshInstanceIndex, lastModelMeshInstanceIndex, worldMatrices, materialIDs);
+    }
+
+    private int calculateEntityIndexFromModelMeshInstanceIndex(int index) {
+        List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
+        int count = 0;
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                for (Entity entity : entities) {
+                    if (count == index) {
+                        return scene.getEntities().indexOf(entity);
+                    }
+                    count++;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private void processInput() {

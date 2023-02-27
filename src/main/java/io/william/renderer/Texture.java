@@ -102,10 +102,6 @@ public class Texture {
         }
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        // Generate texture handle
-        handle = glGetTextureHandleARB(textureID);
-        glMakeTextureHandleResidentARB(handle);
-
         // Free image memory
         if (type == GL_FLOAT) {
             stbi_image_free(floatBuffer);
@@ -128,11 +124,12 @@ public class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        // Generate texture handle
-        handle = glGetTextureHandleARB(textureID);
-        glMakeTextureHandleResidentARB(handle);
-
         return textureID;
+    }
+
+    public void generateHandle() {
+        handle = glGetTextureHandleARB(ID);
+        glMakeTextureHandleResidentARB(handle);
     }
 
     public int getID() {

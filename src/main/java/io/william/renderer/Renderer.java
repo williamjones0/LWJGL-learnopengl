@@ -71,9 +71,8 @@ public class Renderer {
         );
 
         sceneMesh = new SceneMesh();
-        sceneMesh.loadModels(scene);
 
-        setupIndirectBuffer(scene);
+        setupBuffers(scene);
 
         shaderSettings = new ShaderSettings();
 
@@ -143,10 +142,6 @@ public class Renderer {
         hdrShader.createUniform("hdrBuffer");
         hdrShader.createUniform("exposure");
         hdrShader.createUniform("toneMapping");
-
-        // SSBO
-        modelMeshInstanceBuffer = glGenBuffers();
-        materialBuffer = glGenBuffers();
     }
 
     public void render(Camera camera, Scene scene, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
@@ -308,108 +303,6 @@ public class Renderer {
         shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
 
         // Render entities (indirect drawing)
-
-        // ModelMeshInstanceBuffer
-        List<Model> models = scene.getModels();
-
-        // Calculate buffer capacity - 20 * number of entities
-        int capacity = 0;
-        for (Model model : models) {
-            List<Entity> entities = model.getEntities();
-            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
-                capacity += (16 + 4) * entities.size();
-            }
-        }
-
-        ByteBuffer mmib = MemoryUtil.memAlloc(capacity * 8);
-        for (Model model : models) {
-            List<Entity> entities = model.getEntities();
-            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
-                for (Entity entity : entities) {
-                    Matrix4f m = Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale());
-                    mmib.putFloat(m.m00());
-                    mmib.putFloat(m.m01());
-                    mmib.putFloat(m.m02());
-                    mmib.putFloat(m.m03());
-                    mmib.putFloat(m.m10());
-                    mmib.putFloat(m.m11());
-                    mmib.putFloat(m.m12());
-                    mmib.putFloat(m.m13());
-                    mmib.putFloat(m.m20());
-                    mmib.putFloat(m.m21());
-                    mmib.putFloat(m.m22());
-                    mmib.putFloat(m.m23());
-                    mmib.putFloat(m.m30());
-                    mmib.putFloat(m.m31());
-                    mmib.putFloat(m.m32());
-                    mmib.putFloat(m.m33());
-                    mmib.putInt(meshDrawData.materialID());
-                    mmib.putInt(0);
-                    mmib.putInt(0);
-                    mmib.putInt(0);
-                }
-            }
-        }
-        mmib.flip();
-
-        // Bind SSBO
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMeshInstanceBuffer);
-        glObjectLabel(GL_BUFFER, modelMeshInstanceBuffer, "ModelMeshInstanceBuffer");
-        glBufferData(GL_SHADER_STORAGE_BUFFER, mmib, GL_STATIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelMeshInstanceBuffer);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-        // MaterialBuffer (ByteBuffer)
-        capacity = 0;
-        for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
-            capacity += 7 + 12 + 7;
-        }
-
-        ByteBuffer bb = BufferUtils.createByteBuffer(capacity * 8);
-        for (PBRMaterial material : scene.getPBRMaterials()) {
-            Map<String, Boolean> usesTextures = material.getUsesTextures();
-
-            bb.putFloat(material.getAlbedoColor().x);
-            bb.putFloat(material.getAlbedoColor().y);
-            bb.putFloat(material.getAlbedoColor().z);
-            bb.putFloat(0);
-            bb.putFloat(material.getEmissiveColor().x);
-            bb.putFloat(material.getEmissiveColor().y);
-            bb.putFloat(material.getEmissiveColor().z);
-            bb.putFloat(0);
-
-            bb.putLong(usesTextures.get("albedo") ? material.getAlbedo().getHandle() : 0);
-            bb.putLong(usesTextures.get("normal") ? material.getNormal().getHandle() : 0);
-
-            bb.putLong(usesTextures.get("metallic") ? material.getMetallic().getHandle() : 0);
-            bb.putLong(usesTextures.get("roughness") ? material.getRoughness().getHandle() : 0);
-
-            bb.putLong(usesTextures.get("metallicRoughness") ? material.getMetallicRoughness().getHandle() : 0);
-            bb.putLong(usesTextures.get("ao") ? material.getAo().getHandle() : 0);
-
-            bb.putLong(usesTextures.get("emissive") ? material.getEmissive().getHandle() : 0);
-            bb.putFloat(material.getMetallicFactor());
-            bb.putFloat(material.getRoughnessFactor());
-
-            bb.putInt(usesTextures.get("albedo") ? 1 : 0);
-            bb.putInt(usesTextures.get("normal") ? 1 : 0);
-            bb.putInt(usesTextures.get("metallic") ? 1 : 0);
-            bb.putInt(usesTextures.get("roughness") ? 1 : 0);
-
-            bb.putInt(usesTextures.get("metallicRoughness") ? 1 : 0);
-            bb.putInt(usesTextures.get("ao") ? 1 : 0);
-            bb.putInt(usesTextures.get("emissive") ? 1 : 0);
-            bb.putInt(0);
-        }
-        bb.flip();
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialBuffer);
-        glObjectLabel(GL_BUFFER, materialBuffer, "MaterialBuffer");
-        glBufferData(GL_SHADER_STORAGE_BUFFER, bb, GL_STATIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, materialBuffer);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-        // Draw
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
         glBindVertexArray(sceneMesh.getVAO());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
@@ -484,21 +377,357 @@ public class Renderer {
         io.william.util.renderer.Quad.render();
     }
 
+    // Buffers:
+    //  - Indirect buffer (draw commands)
+    //  - SceneMeshIndicesBuffer (indices)
+    //  - ModelMeshInstanceBuffer (world matrix, material id)
+    //  - MaterialBuffer (material data)
+
+    // Types of buffer updates:
+    //  - Entity added/removed (ModelMeshInstanceBuffer)
+    //  - Entity changed (ModelMeshInstanceBuffer)
+    //  - Material added/removed (MaterialBuffer)
+    //  - Material changed (MaterialBuffer)
+    //  - Model added/removed (ModelMeshInstanceBuffer, SceneMeshIndicesBuffer)
+    //  - Model changed (ModelMeshInstanceBuffer, SceneMeshIndicesBuffer)
+
+    // Entity added/removed
+    public void recreateModelMeshInstanceBuffer(List<Model> models) {
+        // Calculate buffer capacity - 20 * number of entities
+        int capacity = 0;
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                capacity += (16 + 4) * entities.size();
+            }
+        }
+
+        ByteBuffer mmib = MemoryUtil.memAlloc(capacity * 4);
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                for (Entity entity : entities) {
+                    Matrix4f m = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+                    mmib.putFloat(m.m00());
+                    mmib.putFloat(m.m01());
+                    mmib.putFloat(m.m02());
+                    mmib.putFloat(m.m03());
+                    mmib.putFloat(m.m10());
+                    mmib.putFloat(m.m11());
+                    mmib.putFloat(m.m12());
+                    mmib.putFloat(m.m13());
+                    mmib.putFloat(m.m20());
+                    mmib.putFloat(m.m21());
+                    mmib.putFloat(m.m22());
+                    mmib.putFloat(m.m23());
+                    mmib.putFloat(m.m30());
+                    mmib.putFloat(m.m31());
+                    mmib.putFloat(m.m32());
+                    mmib.putFloat(m.m33());
+                    mmib.putInt(meshDrawData.materialID());
+                    mmib.putInt(0);
+                    mmib.putInt(0);
+                    mmib.putInt(0);
+                }
+            }
+        }
+        mmib.flip();
+
+        // Bind SSBO
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMeshInstanceBuffer);
+        glObjectLabel(GL_BUFFER, modelMeshInstanceBuffer, "ModelMeshInstanceBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, mmib, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelMeshInstanceBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(mmib);
+    }
+
+    public void updateModelMeshInstances(int firstIndex, int lastIndex, Matrix4f[] worlds, int[] materialIDs) {
+        ByteBuffer buffer = MemoryUtil.memAlloc((lastIndex - firstIndex + 1) * 20 * 4);
+        for (int i = 0; i < worlds.length; i++) {
+            buffer.putFloat(worlds[i].m00());
+            buffer.putFloat(worlds[i].m01());
+            buffer.putFloat(worlds[i].m02());
+            buffer.putFloat(worlds[i].m03());
+            buffer.putFloat(worlds[i].m10());
+            buffer.putFloat(worlds[i].m11());
+            buffer.putFloat(worlds[i].m12());
+            buffer.putFloat(worlds[i].m13());
+            buffer.putFloat(worlds[i].m20());
+            buffer.putFloat(worlds[i].m21());
+            buffer.putFloat(worlds[i].m22());
+            buffer.putFloat(worlds[i].m23());
+            buffer.putFloat(worlds[i].m30());
+            buffer.putFloat(worlds[i].m31());
+            buffer.putFloat(worlds[i].m32());
+            buffer.putFloat(worlds[i].m33());
+
+            // Material ID
+            buffer.putInt(materialIDs[i]);
+            buffer.putInt(0);
+            buffer.putInt(0);
+            buffer.putInt(0);
+        }
+        buffer.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMeshInstanceBuffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, firstIndex * 80L, buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(buffer);
+    }
+
+    // Material added/removed
+    public void recreateMaterialBuffer(List<PBRMaterial> materials) {
+        int capacity = 0;
+        for (int i = 0; i < materials.size(); i++) {
+            capacity += (4 * 10) + (8 * 7) + (4 * 8);
+        }
+
+        ByteBuffer mb = MemoryUtil.memAlloc(capacity);
+        for (PBRMaterial material : materials) {
+            Map<String, Boolean> usesTextures = material.getUsesTextures();
+
+            mb.putFloat(material.getAlbedoColor().x);
+            mb.putFloat(material.getAlbedoColor().y);
+            mb.putFloat(material.getAlbedoColor().z);
+            mb.putFloat(0);
+            mb.putFloat(material.getEmissiveColor().x);
+            mb.putFloat(material.getEmissiveColor().y);
+            mb.putFloat(material.getEmissiveColor().z);
+            mb.putFloat(0);
+
+            mb.putLong(usesTextures.get("albedo") ? material.getAlbedo().getHandle() : 0);
+            mb.putLong(usesTextures.get("normal") ? material.getNormal().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("metallic") ? material.getMetallic().getHandle() : 0);
+            mb.putLong(usesTextures.get("roughness") ? material.getRoughness().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("metallicRoughness") ? material.getMetallicRoughness().getHandle() : 0);
+            mb.putLong(usesTextures.get("ao") ? material.getAo().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("emissive") ? material.getEmissive().getHandle() : 0);
+            mb.putFloat(material.getMetallicFactor());
+            mb.putFloat(material.getRoughnessFactor());
+
+            mb.putInt(usesTextures.get("albedo") ? 1 : 0);
+            mb.putInt(usesTextures.get("normal") ? 1 : 0);
+            mb.putInt(usesTextures.get("metallic") ? 1 : 0);
+            mb.putInt(usesTextures.get("roughness") ? 1 : 0);
+
+            mb.putInt(usesTextures.get("metallicRoughness") ? 1 : 0);
+            mb.putInt(usesTextures.get("ao") ? 1 : 0);
+            mb.putInt(usesTextures.get("emissive") ? 1 : 0);
+            mb.putInt(0);
+        }
+        mb.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialBuffer);
+        glObjectLabel(GL_BUFFER, materialBuffer, "MaterialBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, mb, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, materialBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(mb);
+    }
+
+    // Material changed
+    public void updateMaterial(int index, PBRMaterial material) {
+        ByteBuffer buffer = MemoryUtil.memAlloc((4 * 10) + (8 * 7) + (4 * 8));
+        Map<String, Boolean> usesTextures = material.getUsesTextures();
+
+        buffer.putFloat(material.getAlbedoColor().x);
+        buffer.putFloat(material.getAlbedoColor().y);
+        buffer.putFloat(material.getAlbedoColor().z);
+        buffer.putFloat(0);
+        buffer.putFloat(material.getEmissiveColor().x);
+        buffer.putFloat(material.getEmissiveColor().y);
+        buffer.putFloat(material.getEmissiveColor().z);
+        buffer.putFloat(0);
+
+        buffer.putLong(usesTextures.get("albedo") ? material.getAlbedo().getHandle() : 0);
+        buffer.putLong(usesTextures.get("normal") ? material.getNormal().getHandle() : 0);
+
+        buffer.putLong(usesTextures.get("metallic") ? material.getMetallic().getHandle() : 0);
+        buffer.putLong(usesTextures.get("roughness") ? material.getRoughness().getHandle() : 0);
+
+        buffer.putLong(usesTextures.get("metallicRoughness") ? material.getMetallicRoughness().getHandle() : 0);
+        buffer.putLong(usesTextures.get("ao") ? material.getAo().getHandle() : 0);
+
+        buffer.putLong(usesTextures.get("emissive") ? material.getEmissive().getHandle() : 0);
+        buffer.putFloat(material.getMetallicFactor());
+        buffer.putFloat(material.getRoughnessFactor());
+
+        buffer.putInt(usesTextures.get("albedo") ? 1 : 0);
+        buffer.putInt(usesTextures.get("normal") ? 1 : 0);
+        buffer.putInt(usesTextures.get("metallic") ? 1 : 0);
+        buffer.putInt(usesTextures.get("roughness") ? 1 : 0);
+
+        buffer.putInt(usesTextures.get("metallicRoughness") ? 1 : 0);
+        buffer.putInt(usesTextures.get("ao") ? 1 : 0);
+        buffer.putInt(usesTextures.get("emissive") ? 1 : 0);
+        buffer.putInt(0);
+
+        buffer.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialBuffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * ((4 * 10) + (8 * 7) + (4 * 8)), buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(buffer);
+    }
+
+    // Model added/removed
+    // SceneMesh.loadModels()
+    public void recreateSceneMeshIndicesBuffer(Scene scene) {
+        sceneMesh.loadModels(scene);
+    }
+
+    // Model changed
+    // For now, just reload the whole buffer
+    // In the future, only update the changed model with glBufferSubData
+
+    public void setupBuffers(Scene scene) {
+        System.out.println(scene.getPBRMaterials());
+
+        sceneMesh.loadModels(scene);
+
+        setupIndirectBuffer(scene);
+
+        // SSBO
+        modelMeshInstanceBuffer = glGenBuffers();
+        materialBuffer = glGenBuffers();
+
+        // ModelMeshInstanceBuffer
+        List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
+
+        // Calculate buffer capacity - 20 * number of entities
+        int capacity = 0;
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                capacity += (16 + 4) * entities.size();
+            }
+        }
+
+        ByteBuffer mmib = MemoryUtil.memAlloc(capacity * 4);
+        for (Model model : models) {
+            List<Entity> entities = model.getEntities();
+            for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
+                for (Entity entity : entities) {
+                    Matrix4f m = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
+                    mmib.putFloat(m.m00());
+                    mmib.putFloat(m.m01());
+                    mmib.putFloat(m.m02());
+                    mmib.putFloat(m.m03());
+                    mmib.putFloat(m.m10());
+                    mmib.putFloat(m.m11());
+                    mmib.putFloat(m.m12());
+                    mmib.putFloat(m.m13());
+                    mmib.putFloat(m.m20());
+                    mmib.putFloat(m.m21());
+                    mmib.putFloat(m.m22());
+                    mmib.putFloat(m.m23());
+                    mmib.putFloat(m.m30());
+                    mmib.putFloat(m.m31());
+                    mmib.putFloat(m.m32());
+                    mmib.putFloat(m.m33());
+                    mmib.putInt(meshDrawData.materialID());
+                    mmib.putInt(0);
+                    mmib.putInt(0);
+                    mmib.putInt(0);
+                }
+            }
+        }
+        mmib.flip();
+
+        // Bind SSBO
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMeshInstanceBuffer);
+        glObjectLabel(GL_BUFFER, modelMeshInstanceBuffer, "ModelMeshInstanceBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, mmib, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, modelMeshInstanceBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(mmib);
+
+        System.out.println("ModelMeshInstanceBuffer size: " + capacity * 8 + " bytes");
+
+        // MaterialBuffer (ByteBuffer)
+        capacity = 0;
+        for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
+            capacity += (4 * 10) + (8 * 7) + (4 * 8);
+        }
+
+        System.out.println("Number of materials: " + scene.getPBRMaterials().size());
+        System.out.println("MaterialBuffer size: " + capacity + " bytes");
+
+        ByteBuffer mb = MemoryUtil.memAlloc(capacity);
+        for (PBRMaterial material : scene.getPBRMaterials()) {
+            Map<String, Boolean> usesTextures = material.getUsesTextures();
+
+            mb.putFloat(material.getAlbedoColor().x);
+            mb.putFloat(material.getAlbedoColor().y);
+            mb.putFloat(material.getAlbedoColor().z);
+            mb.putFloat(0);
+            mb.putFloat(material.getEmissiveColor().x);
+            mb.putFloat(material.getEmissiveColor().y);
+            mb.putFloat(material.getEmissiveColor().z);
+            mb.putFloat(0);
+
+            mb.putLong(usesTextures.get("albedo") ? material.getAlbedo().getHandle() : 0);
+            mb.putLong(usesTextures.get("normal") ? material.getNormal().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("metallic") ? material.getMetallic().getHandle() : 0);
+            mb.putLong(usesTextures.get("roughness") ? material.getRoughness().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("metallicRoughness") ? material.getMetallicRoughness().getHandle() : 0);
+            mb.putLong(usesTextures.get("ao") ? material.getAo().getHandle() : 0);
+
+            mb.putLong(usesTextures.get("emissive") ? material.getEmissive().getHandle() : 0);
+            mb.putFloat(material.getMetallicFactor());
+            mb.putFloat(material.getRoughnessFactor());
+
+            mb.putInt(usesTextures.get("albedo") ? 1 : 0);
+            mb.putInt(usesTextures.get("normal") ? 1 : 0);
+            mb.putInt(usesTextures.get("metallic") ? 1 : 0);
+            mb.putInt(usesTextures.get("roughness") ? 1 : 0);
+
+            mb.putInt(usesTextures.get("metallicRoughness") ? 1 : 0);
+            mb.putInt(usesTextures.get("ao") ? 1 : 0);
+            mb.putInt(usesTextures.get("emissive") ? 1 : 0);
+            mb.putInt(0);
+        }
+        mb.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialBuffer);
+        glObjectLabel(GL_BUFFER, materialBuffer, "MaterialBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, mb, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, materialBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(mb);
+
+        System.out.println("MaterialBuffer size: " + capacity + " bytes");
+    }
+
     public void setupIndirectBuffer(Scene scene) {
-        List<Model> models = scene.getModels();
+        List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
+
         int numCommands = 0;
         for (Model model : models) {
-            for (Entity entity : model.getEntities()) {
-                numCommands += model.getMeshDrawDatas().size();
-            }
+            numCommands += model.getMeshDrawDatas().size();
         }
 
         int firstIndex = 0;
         int baseInstance = 0;
-        ByteBuffer indirectBuffer = BufferUtils.createByteBuffer(numCommands * 5 * 4);
+        System.out.println("Num commands: " + numCommands);
+        ByteBuffer indirectBuffer = MemoryUtil.memAlloc(numCommands * 5 * 4);
         for (Model model : models) {
             List<Entity> entities = model.getEntities();
             int numEntities = entities.size();
+
+            System.out.println("mesh draw datas size: " + model.getMeshDrawDatas().size());
             for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
                 // Count
                 indirectBuffer.putInt(meshDrawData.vertices());
@@ -522,7 +751,7 @@ public class Renderer {
 
         indirectBuffer.flip();
 
-        drawCount = indirectBuffer.remaining() / 5 / 4;
+        drawCount = indirectBuffer.remaining() / (5 * 4);
         System.out.println("Draw count: " + drawCount);
 
         this.indirectBuffer = glGenBuffers();

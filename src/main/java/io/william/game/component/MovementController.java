@@ -7,7 +7,7 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Movement {
+public class MovementController {
 
     // Movement types: orbit, move in a direction, move between points, keyboard controls
     public enum Type {
@@ -54,9 +54,9 @@ public class Movement {
 
     // Rendering
     private final List<Entity> pointEntities;
-    private final MaterialMesh pointMesh;
+    private final Model pointModel;
 
-    private Movement(Type type, Mode mode, float speed, float deceleration, Vector3f center, Vector3f axis, float radius, float anglePerSecond, Vector3f origin, Vector3f direction, float acceleration, float distance, List<Vector3f> path) {
+    private MovementController(Scene scene, Type type, Mode mode, float speed, float deceleration, Vector3f center, Vector3f axis, float radius, float anglePerSecond, Vector3f origin, Vector3f direction, float acceleration, float distance, List<Vector3f> path) {
         this.type = type;
         this.mode = mode;
         this.speed = speed;
@@ -74,7 +74,16 @@ public class Movement {
         this.pointEntities = new ArrayList<>();
 
         UVSphere sphere = new UVSphere(0.1f, 10, 10);
-        this.pointMesh = new MaterialMesh(new Mesh(new MeshData(sphere.getPositions(), sphere.getNormals(), sphere.getTexCoords(), new float[] {}, new float[] {}, sphere.getIndices())), new PBRMaterial());
+        Model sphereModel = new Model(new MeshData(
+                sphere.getPositions(),
+                sphere.getNormals(),
+                new float[] {},
+                new float[] {},
+                sphere.getTexCoords(),
+                sphere.getIndices()
+        ), "Point");
+        scene.addModel(sphereModel);
+        this.pointModel = sphereModel;
     }
 
     // Orbits are initialised with a center point, a rotation axis, a radius, and a speed or rotation angle per second
@@ -87,32 +96,8 @@ public class Movement {
     // Point movement is updated by moving the entity to the next point in the list by the speed
     // Keyboard movement is updated by moving the entity in the direction of the velocity vector by the speed
 
-    public static Movement none(Movement movement) {
-        return new Movement(Type.NONE, Mode.CONSTANT, movement.getSpeed(), movement.getDeceleration(), movement.getCenter(), movement.getAxis(), movement.getRadius(), movement.getAnglePerSecond(), movement.getOrigin(), movement.getDirection(), movement.getAcceleration(), movement.getDistance(), movement.getPath());
-    }
-
-    public static Movement none() {
-        return new Movement(Type.NONE, Mode.CONSTANT, 0, 0, null, null, 0, 0, null, null, 0, 0, null);
-    }
-
-    public static Movement orbit(Mode mode, float speed, Vector3f center, Vector3f axis, float radius) {
-        return new Movement(Type.ORBIT, mode, speed, 0, center, axis, radius, 0, null, null, 0, 0, null);
-    }
-
-    public static Movement orbit(Mode mode, Vector3f center, Vector3f axis, float radius, float anglePerSecond) {
-        return new Movement(Type.ORBIT, mode, radius * anglePerSecond, 0, center, axis, radius, anglePerSecond, null, null, 0, 0, null);
-    }
-
-    public static Movement direction(Mode mode, float speed, Vector3f origin, Vector3f direction, float acceleration, float distance) {
-        return new Movement(Type.DIRECTION, mode, speed, 0, null, null, 0, 0, origin, direction, distance, acceleration, null);
-    }
-
-    public static Movement points(Mode mode, float speed, List<Vector3f> points) {
-        return new Movement(Type.POINTS, mode, speed, 0, null, null, 0, 0, null, null, 0, 0, points);
-    }
-
-    public static Movement keyboard(Mode mode, float speed, float deceleration) {
-        return new Movement(Type.KEYBOARD, mode, speed, deceleration, null, null, 0, 0, null, null, 0, 0, null);
+    public static MovementController none(Scene scene) {
+        return new MovementController(scene, Type.NONE, Mode.CONSTANT, 0, 0, null, null, 0, 0, null, null, 0, 0, null);
     }
 
     public void orbitUpdate(Entity entity, float deltaTime) {
@@ -126,7 +111,13 @@ public class Movement {
             reset = true;
         }
 
-        Vector3f v = new Vector3f(position).sub(center);
+        Vector3f v;
+        if (position.equals(center)) {
+            v = new Vector3f(1, 1, 1);
+        } else {
+            v = new Vector3f(position).sub(center);
+        }
+
         Vector3f k = new Vector3f(axis).normalize();
         float angle = anglePerSecond * deltaTime;
 
@@ -361,13 +352,15 @@ public class Movement {
         this.path = path;
     }
 
-    public void addPoint(Vector3f point) {
+    public void addPoint(Vector3f point, Scene scene) {
         if (path == null) {
             path = new ArrayList<>();
         }
         path.add(point);
 
-        Entity pointEntity = new Entity(new MaterialMesh[] {pointMesh}, new Vector3f(point), new Vector3f(), 1);
+        Entity pointEntity = new Entity(point, new Vector3f(), 1);
+        pointModel.addEntity(pointEntity);
+        scene.addEntity(pointEntity);
         pointEntities.add(pointEntity);
     }
 

@@ -37,6 +37,10 @@ public class ModelLoader {
         for (int i = 0; i < numMaterials; i++) {
             AIMaterial aiMaterial = AIMaterial.create(aiMaterials.get(i));
             PBRMaterial material = processPBRMaterial(aiMaterial, texturesPath);
+            if (material == null) {
+                System.out.println("Material " + i + " is null");
+                continue;
+            }
             if (material.isEmpty()) {
                 System.out.println("Material " + i + " is empty");
                 continue;
@@ -45,7 +49,6 @@ public class ModelLoader {
             scene.addPBRMaterial(material);
         }
 
-        // If none of the materials have any textures, use the default material
         if (materials.size() == 0) {
             Material material = new Material(null, null, 32.0f, null);
             materials.add(material);
@@ -61,9 +64,15 @@ public class ModelLoader {
             AIMesh aiMesh = AIMesh.create(aiMeshes.get(i));
             MeshData meshData = processMesh(aiMesh);
 
+            if (pbrMaterials.size() == 0) {
+                meshData.setMaterialID(0);
+                meshDatas.add(meshData);
+                continue;
+            }
+
             int materialIndex = aiMesh.mMaterialIndex();
             meshData.setMaterialID(pbrMaterials.get(materialIndex).getID());
-            System.out.println("materialIndex: " + materialIndex + " (" + pbrMaterials.get(materialIndex).getID() + ")");
+            System.out.println("Material ID: " + pbrMaterials.get(materialIndex).getID());
 
             meshDatas.add(meshData);
         }
@@ -80,31 +89,31 @@ public class ModelLoader {
         // Diffuse map
         AIString path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, path, (IntBuffer) null, null, null, null, null, null);
-        String textPath = path.dataString();
+        String texturePath = path.dataString();
         Texture diffuseTexture = null;
-        System.out.println(texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            diffuseTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
+        System.out.println(texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            diffuseTexture = new Texture(texturesDir + "/" + texturePath, GL_SRGB_ALPHA);
         }
 
         // Specular map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SPECULAR, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture specularTexture = null;
-        System.out.println(texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            specularTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println(texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            specularTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // Normal map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_NORMALS, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture normalTexture = null;
-        System.out.println(texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            normalTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println(texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            normalTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         if (hasDiffuseMap) {
@@ -114,74 +123,79 @@ public class ModelLoader {
     }
 
     private static PBRMaterial processPBRMaterial(AIMaterial aiMaterial, String texturesDir) throws Exception {
+        if (texturesDir == null || texturesDir.length() == 0) {
+            System.out.println("textures dir is null or length is zero");
+            return null;
+        }
+
         // Albedo map
         AIString path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, path, (IntBuffer) null, null, null, null, null, null);
-        String textPath = path.dataString();
+        String texturePath = path.dataString();
         Texture albedoTexture = null;
-        System.out.println("Albedo map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            albedoTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
+        System.out.println("Albedo map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            albedoTexture = new Texture(texturesDir + "/" + texturePath, GL_SRGB_ALPHA);
         }
 
         // Normal map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_NORMALS, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture normalTexture = null;
-        System.out.println("Normal map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            normalTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println("Normal map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            normalTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // Metallic map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_METALNESS, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture metallicTexture = null;
-        System.out.println("Metallic map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            metallicTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println("Metallic map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            metallicTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // Roughness map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_SHININESS, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture roughnessTexture = null;
-        System.out.println("Roughness map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            roughnessTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println("Roughness map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            roughnessTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // Metallic roughness map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_UNKNOWN, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture metallicRoughnessTexture = null;
-        System.out.println("Metallic roughness map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            metallicRoughnessTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println("Metallic roughness map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            metallicRoughnessTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // AO map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_LIGHTMAP, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture aoTexture = null;
-        System.out.println("AO map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            aoTexture = new Texture(texturesDir + "/" + textPath, GL_RGBA);
+        System.out.println("AO map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            aoTexture = new Texture(texturesDir + "/" + texturePath, GL_RGBA);
         }
 
         // Emissive map
         path = AIString.calloc();
         Assimp.aiGetMaterialTexture(aiMaterial, aiTextureType_EMISSIVE, 0, path, (IntBuffer) null, null, null, null, null, null);
-        textPath = path.dataString();
+        texturePath = path.dataString();
         Texture emissiveTexture = null;
-        System.out.println("Emissive map: " + texturesDir + "/" + textPath);
-        if (textPath.length() > 0) {
-            emissiveTexture = new Texture(texturesDir + "/" + textPath, GL_SRGB_ALPHA);
+        System.out.println("Emissive map: " + texturesDir + "/" + texturePath);
+        if (texturePath.length() > 0) {
+            emissiveTexture = new Texture(texturesDir + "/" + texturePath, GL_SRGB_ALPHA);
         }
 
         for (int i = 0; i < 21; i++) {
@@ -191,6 +205,7 @@ public class ModelLoader {
         }
 
         return new PBRMaterial(
+            null,
             albedoTexture,
             normalTexture,
             metallicTexture,

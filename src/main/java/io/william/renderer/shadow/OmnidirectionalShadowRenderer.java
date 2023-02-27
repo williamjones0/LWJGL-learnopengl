@@ -114,7 +114,7 @@ public class OmnidirectionalShadowRenderer {
 
             for (Entity entity : scene.getEntities()) {
                 if (entity.getMaterialMeshes() != null && entity.getMaterialMeshes().length > 0) {
-                    shaderProgram.setUniform("model", Maths.calculateModelMatrix(entity.getWorldPosition(), entity.getRotation(), entity.getScale()));
+                    shaderProgram.setUniform("model", Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale()));
                     entity.render();
                 }
             }

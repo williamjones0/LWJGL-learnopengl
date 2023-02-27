@@ -35,15 +35,24 @@ public class SceneMesh {
         int indicesCount = 0;
         int offset = 0;
 
-        List<Model> models = scene.getModels();
+        List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
         System.out.println("Loading " + models.size() + " models");
         for (Model model : models) {
             List<MeshDrawData> meshDrawDatas = model.getMeshDrawDatas();
+            meshDrawDatas.clear();
+
+//            boolean loaded = meshDrawDatas.size() > 0;
+
             for (MeshData meshData : model.getMeshDatas()) {
                 positionsCount += meshData.getPositions().length;
                 normalsCount += meshData.getNormals().length;
                 texCoordsCount += meshData.getTexCoords().length;
                 indicesCount += meshData.getIndices().length;
+
+//                if (loaded) {
+//                    offset = positionsCount / 3;
+//                    continue;
+//                }
 
                 int meshSizeBytes = (meshData.getPositions().length + meshData.getNormals().length + meshData.getTexCoords().length) * Float.BYTES;
                 meshDrawDatas.add(new MeshDrawData(

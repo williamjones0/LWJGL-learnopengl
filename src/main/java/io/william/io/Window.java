@@ -6,12 +6,14 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLUtil;
 
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL43.GL_DEBUG_OUTPUT_SYNCHRONOUS;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
@@ -117,6 +119,10 @@ public class Window {
         GLFW.glfwSetCursorPosCallback(windowHandle, input.getMouseMoveCallback());
         GLFW.glfwSetMouseButtonCallback(windowHandle, input.getMouseButtonsCallback());
         GLFW.glfwSetScrollCallback(windowHandle, input.getMouseScrollCallback());
+
+//        // Debug callback
+//        GLUtil.setupDebugMessageCallback(System.err);
+//        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     }
 
     public void destroy() {

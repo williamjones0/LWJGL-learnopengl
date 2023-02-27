@@ -25,6 +25,15 @@ public class Scene {
         this.spotLights = new ArrayList<>();
     }
 
+    public Model getModelByID(int id) {
+        for (Model model : models) {
+            if (model.getID() == id) {
+                return model;
+            }
+        }
+        return null;
+    }
+
     public List<Model> getModels() {
         return models;
     }
@@ -53,6 +62,10 @@ public class Scene {
         entity.setID(currentEntityID);
         currentEntityID++;
         entities.add(entity);
+    }
+
+    public void removeEntity(Entity entity) {
+        entities.remove(entity);
     }
 
     public DirLight getDirLight() {

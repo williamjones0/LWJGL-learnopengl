@@ -1,6 +1,6 @@
 package io.william.renderer;
 
-import io.william.game.component.Movement;
+import io.william.game.component.MovementController;
 import io.william.game.component.RotationController;
 import org.joml.Vector3f;
 
@@ -11,7 +11,9 @@ public class Entity {
 
     private int ID;
 
-    private final MaterialMesh[] meshes;
+    private int modelID;
+
+    private boolean updated;
 
     private Vector3f position;
     private Vector3f rotation;
@@ -22,119 +24,26 @@ public class Entity {
     private Entity parent;
     private final List<Entity> children;
 
-    private Movement movement;
+    private MovementController movementController;
     private RotationController rotationController;
 
-    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name, Entity parent) {
-        this.meshes = meshes;
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = name;
-        this.parent = parent;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, Entity parent) {
-        this.meshes = meshes;
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = null;
-        this.parent = parent;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale) {
-        this.meshes = meshes;
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = null;
-        this.parent = null;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh, Vector3f position, Vector3f rotation, float scale, String name, Entity parent) {
-        this.meshes = new MaterialMesh[] { mesh };
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = name;
-        this.parent = parent;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh, Vector3f position, Vector3f rotation, float scale, Entity parent) {
-        this.meshes = new MaterialMesh[] { mesh };
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = null;
-        this.parent = parent;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh, Vector3f position, Vector3f rotation, float scale, String name) {
-        this.meshes = new MaterialMesh[] { mesh };
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = name;
-        this.parent = null;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh, Vector3f position, Vector3f rotation, float scale) {
-        this.meshes = new MaterialMesh[] { mesh };
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.name = null;
-        this.parent = null;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh, String name) {
-        this.meshes = new MaterialMesh[] { mesh };
-        this.position = new Vector3f();
-        this.rotation = new Vector3f();
-        this.scale = 1f;
-        this.name = name;
-        this.parent = null;
-        this.children = new ArrayList<>();
-    }
-
-    public Entity(MaterialMesh mesh) {
-        this(mesh, new Vector3f(), new Vector3f(), 1.0f);
-    }
-
-    public Entity(MaterialMesh[] meshes) {
-        this(meshes, new Vector3f(), new Vector3f(), 1.0f);
-    }
-
-    public Entity(MaterialMesh[] meshes, Vector3f position, Vector3f rotation, float scale, String name) {
-        this.meshes = meshes;
-
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-
-        this.name = name;
-
-        this.parent = null;
-        this.children = new ArrayList<>();
-    }
-
-    // Used when creating a new entity in the GUI
     public Entity(Vector3f position, Vector3f rotation, float scale, String name) {
-        this.meshes = new MaterialMesh[] {};
-
         this.position = position;
         this.rotation = rotation;
         this.scale = scale;
 
         this.name = name;
+
+        this.parent = null;
+        this.children = new ArrayList<>();
+    }
+
+    public Entity(Vector3f position, Vector3f rotation, float scale) {
+        this.position = position;
+        this.rotation = rotation;
+        this.scale = scale;
+
+        this.name = "Entity";
 
         this.parent = null;
         this.children = new ArrayList<>();
@@ -142,7 +51,6 @@ public class Entity {
 
     // Placeholder parent entity constructor
     public Entity(Vector3f position, String name, Entity parent) {
-        this.meshes = null;
         this.position = position;
         this.rotation = new Vector3f();
         this.scale = 1.0f;
@@ -152,7 +60,6 @@ public class Entity {
     }
 
     public Entity(Vector3f position, String name) {
-        this.meshes = null;
         this.position = position;
         this.rotation = new Vector3f();
         this.scale = 1.0f;
@@ -163,23 +70,23 @@ public class Entity {
     }
 
     public void update(float deltaTime) {
-        if (movement != null) {
-            switch (movement.getType()) {
-                case ORBIT -> movement.orbitUpdate(this, deltaTime);
-                case DIRECTION -> movement.directionUpdate(this, deltaTime);
-                case POINTS -> movement.pointUpdate(this, deltaTime);
+        if (movementController != null) {
+            switch (movementController.getType()) {
+                case ORBIT -> movementController.orbitUpdate(this, deltaTime);
+                case DIRECTION -> movementController.directionUpdate(this, deltaTime);
+                case POINTS -> movementController.pointUpdate(this, deltaTime);
             }
+            this.updated = true;
         }
 
         if (rotationController != null) {
             rotationController.update(this, deltaTime);
+            this.updated = true;
         }
     }
 
     public void render() {
-        for (MaterialMesh mesh : meshes) {
-            mesh.render();
-        }
+        // LOL
     }
 
     public int getID() {
@@ -190,19 +97,39 @@ public class Entity {
         this.ID = ID;
     }
 
-    public Vector3f getWorldPosition() {
+    public Vector3f getPosition() {
         if (parent != null) {
-            return new Vector3f(position).add(parent.getWorldPosition());
+            return new Vector3f(position).add(parent.getPosition());
         } else {
             return position;
         }
     }
 
-    public MaterialMesh[] getMaterialMeshes() {
-        return meshes;
+    public int getModelID() {
+        return modelID;
     }
 
-    public Vector3f getPosition() {
+    public void setModelID(int modelID) {
+        this.modelID = modelID;
+    }
+
+    public boolean isUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(boolean updated) {
+        this.updated = updated;
+        for (Entity child : children) {
+            child.setUpdated(updated);
+        }
+    }
+
+    public MaterialMesh[] getMaterialMeshes() {
+        // LOL
+        return new MaterialMesh[] {};
+    }
+
+    public Vector3f getRelativePosition() {
         return position;
     }
 
@@ -258,12 +185,12 @@ public class Entity {
         children.remove(child);
     }
 
-    public Movement getMovement() {
-        return movement;
+    public MovementController getMovement() {
+        return movementController;
     }
 
-    public void setMovement(Movement movement) {
-        this.movement = movement;
+    public void setMovement(MovementController movementController) {
+        this.movementController = movementController;
     }
 
     public RotationController getRotationController() {

@@ -12,6 +12,8 @@ public class PBRMaterial {
 
     private int ID;
 
+    private String name;
+
     // Textures or Vector3fs/floats for each of the PBR material properties
     private Texture albedo;
     private Vector3f albedoColor = new Vector3f(1.0f, 1.0f, 1.0f);
@@ -33,7 +35,9 @@ public class PBRMaterial {
 
     private final Map<String, Boolean> usesTextures = new HashMap<>();
 
-    public PBRMaterial(Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
+    public PBRMaterial(String name, Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
+        this.name = name != null ? name : "PBRMaterial";
+
         this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
         this.normal = normal != null ? normal : new Texture("src/main/resources/textures/PBR/default_normal.png", GL_RGBA);
         this.metallic = metallic != null ? metallic : new Texture("src/main/resources/textures/PBR/default_metallic.png", GL_RGBA);
@@ -49,10 +53,21 @@ public class PBRMaterial {
         this.usesTextures.put("metallicRoughness", metallicRoughness != null);
         this.usesTextures.put("ao", ao != null);
         this.usesTextures.put("emissive", emissive != null);
+
+        // Generate all texture handles
+        this.albedo.generateHandle();
+        this.normal.generateHandle();
+        this.metallic.generateHandle();
+        this.roughness.generateHandle();
+        this.metallicRoughness.generateHandle();
+        this.ao.generateHandle();
+        this.emissive.generateHandle();
     }
 
     // PBR material without textures
-    public PBRMaterial(Vector3f albedo, float metallic, float roughness, Vector3f emissive) {
+    public PBRMaterial(String name, Vector3f albedo, float metallic, float roughness, Vector3f emissive) {
+        this.name = name;
+
         this.albedoColor = albedo;
         this.metallicFactor = metallic;
         this.roughnessFactor = roughness;
@@ -67,8 +82,8 @@ public class PBRMaterial {
         this.usesTextures.put("emissive", false);
     }
 
-    public PBRMaterial() {
-        this(new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
+    public PBRMaterial(String name) {
+        this(name, new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
     }
 
     public boolean isEmpty() {
@@ -87,6 +102,14 @@ public class PBRMaterial {
 
     public void setID(int ID) {
         this.ID = ID;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Texture getAlbedo() {

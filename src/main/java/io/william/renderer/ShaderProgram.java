@@ -194,7 +194,7 @@ public class ShaderProgram {
 
         glDetachShader(programID, vertexShaderID);
         glDetachShader(programID, fragmentShaderID);
-        glDetachShader(programID, geometryShaderID);
+        if (geometryShaderID != 0) glDetachShader(programID, geometryShaderID);
 
         glValidateProgram(programID);
         if (glGetProgrami(programID, GL_VALIDATE_STATUS) == 0) {

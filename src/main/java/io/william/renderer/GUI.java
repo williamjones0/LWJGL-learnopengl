@@ -1,6 +1,6 @@
 package io.william.renderer;
 
-import io.william.game.component.Movement;
+import io.william.game.component.MovementController;
 import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
@@ -87,14 +87,20 @@ public class GUI {
         32
     );
 
+    private PBRMaterial newPbrMaterial = new PBRMaterial(
+        "New Material",
+        new Vector3f(1.0f, 1.0f, 1.0f),
+        0.0f,
+        1.0f,
+        new Vector3f(0.0f, 0.0f, 0.0f)
+    );
+
     // GUI configuration
     private final float PADDING = 20;
     private final float HIERARCHY_WIDTH = 200;
-    private final float HIERARCHY_HEIGHT = 800;
+    private final float HIERARCHY_HEIGHT = 600;
     private final float INSPECTOR_WIDTH = 400;
     private final float INSPECTOR_HEIGHT = 600;
-    private final float MATERIAL_WIDTH = 480;
-    private final float MATERIAL_HEIGHT = 400;
 
     public void init(long windowHandle) {
         ImGui.createContext();
@@ -113,6 +119,8 @@ public class GUI {
         selected.put("dirLight", -1);
         selected.put("camera", -1);
         selected.put("skybox", -1);
+        selected.put("model", -1);
+        selected.put("material", -1);
     }
 
     public void render(Scene scene, Camera camera, Renderer renderer, ShadowRenderer shadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) throws Exception {
@@ -152,6 +160,8 @@ public class GUI {
         }
 
         if (ImGui.beginMenu("Add")) {
+            ImGui.menuItem("Entity", null, false, false);
+
             if (ImGui.menuItem("Empty")) {
                 int count = 0;
                 for (Entity entity : entities) {
@@ -162,19 +172,39 @@ public class GUI {
                 entities.add(new Entity(new Vector3f(0, 0, 0), "Entity " + count));
             }
 
+            if (ImGui.beginMenu("From Model...")) {
+                for (Model model : scene.getModels()) {
+                    if (ImGui.menuItem(model.getName() + " (ID: " + model.getID() + ")" + " (" + model.getEntities().size() + " usages)")) {
+                        Entity entity = new Entity(new Vector3f(0, 0, 0), model.getName());
+                        model.addEntity(entity);
+                        scene.addEntity(entity);
+                        entity.setModelID(model.getID());
+                        renderer.setupBuffers(scene);
+                    }
+                }
+                ImGui.endMenu();
+            }
+
             if (ImGui.beginMenu("2D Primitives")) {
                 if (ImGui.menuItem("Quad")) {
                     Quad quad = new Quad();
-                    Mesh quadMesh = new Mesh(new MeshData(
-                        quad.getPositions(),
-                        quad.getNormals(),
-                        quad.getTexCoords(),
-                        new float[]{},
-                        new float[]{},
-                        quad.getIndices()
-                    ));
+                    Model quadModel = new Model(new MeshData(
+                            quad.getPositions(),
+                            quad.getNormals(),
+                            new float[]{},
+                            new float[]{},
+                            quad.getTexCoords(),
+                            quad.getIndices()
+                    ), "Quad");
 
-                    entities.add(new Entity(new MaterialMesh(quadMesh, null)));
+                    quadModel.getMeshDatas().get(0).setMaterialID(0);
+
+                    Entity quadEntity = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 1f, "Quad");
+                    quadModel.addEntity(quadEntity);
+                    scene.addEntity(quadEntity);
+                    scene.addModel(quadModel);
+
+                    renderer.setupBuffers(scene);
                 }
                 ImGui.endMenu();
             }
@@ -201,28 +231,40 @@ public class GUI {
 
                 if (modelPath != null && texturesPath != null) {
                     Model model = ModelLoader.load(scene, modelPath, texturesPath);
-//                    entities.add(new Entity(meshes));
+                    Entity entity = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 1f, "3D Model");
+                    model.addEntity(entity);
+                    scene.addEntity(entity);
+                    scene.addModel(model);
+                    entity.setModelID(model.getID());
+
+                    renderer.setupBuffers(scene);
                 }
             }
 
-            if (ImGui.beginMenu("Lights")) {
-                if (pointLights.size() < 8) {
-                    if (ImGui.menuItem("Point Light")) {
-                        showPointLightWindow = true;
-                    }
-                } else {
-                    ImGui.menuItem("Point Light", null, false, false);
-                }
+            ImGui.separator();
+            ImGui.menuItem("Light", null, false, false);
 
-                if (spotLights.size() < 4) {
-                    if (ImGui.menuItem("Spot Light")) {
-                        showSpotLightWindow = true;
-                    }
-                } else {
-                    ImGui.menuItem("Spot Light", null, false, false);
+            if (pointLights.size() < 8) {
+                if (ImGui.menuItem("Point Light")) {
+                    showPointLightWindow = true;
                 }
+            } else {
+                ImGui.menuItem("Point Light", null, false, false);
+            }
 
-                ImGui.endMenu();
+            if (spotLights.size() < 4) {
+                if (ImGui.menuItem("Spot Light")) {
+                    showSpotLightWindow = true;
+                }
+            } else {
+                ImGui.menuItem("Spot Light", null, false, false);
+            }
+
+            ImGui.separator();
+            ImGui.menuItem("Material", null, false, false);
+
+            if (ImGui.menuItem("PBR Material")) {
+                showMaterialWindow = true;
             }
 
             ImGui.endMenu();
@@ -319,58 +361,62 @@ public class GUI {
             if (ImGui.button("Add", 120, 0)) {
                 if (Objects.equals(newEntityType, "Cube")) {
                     Cube cube = new Cube();
-                    Mesh cubeMesh = new Mesh(new MeshData(
+                    Model cubeModel = new Model(new MeshData(
                         cube.getPositions(),
                         cube.getNormals(),
+                        new float[]{},
+                        new float[]{},
                         cube.getTexCoords(),
-                        new float[]{},
-                        new float[]{},
                         cube.getIndices()
-                    ));
+                    ), "Cube");
 
-                    entities.add(new Entity(
-                        new MaterialMesh(cubeMesh, null),
-                        Utils.arrayToVector3f(position),
-                        Utils.arrayToVector3f(rotation),
-                        scale.get(),
-                        name.get()
-                    ));
+                    cubeModel.getMeshDatas().get(0).setMaterialID(0);
+
+                    Entity cubeEntity = new Entity(Utils.arrayToVector3f(position), Utils.arrayToVector3f(rotation), scale.get(), name.get());
+                    cubeModel.addEntity(cubeEntity);
+                    scene.addEntity(cubeEntity);
+                    scene.addModel(cubeModel);
+                    cubeEntity.setModelID(cubeModel.getID());
+
+                    renderer.setupBuffers(scene);
                 } else if (Objects.equals(newEntityType, "Cylinder")) {
                     newCylinder.update();
-                    Mesh cylinderMesh = new Mesh(new MeshData(
+                    Model cylinderModel = new Model(new MeshData(
                         newCylinder.getPositions(),
                         newCylinder.getNormals(),
+                        new float[]{},
+                        new float[]{},
                         newCylinder.getTexCoords(),
-                        new float[]{},
-                        new float[]{},
                         newCylinder.getIndices()
-                    ));
+                    ), "Cylinder");
 
-                    entities.add(new Entity(
-                        new MaterialMesh(cylinderMesh, null),
-                        Utils.arrayToVector3f(position),
-                        Utils.arrayToVector3f(rotation),
-                        scale.get(),
-                        name.get()
-                    ));
+                    cylinderModel.getMeshDatas().get(0).setMaterialID(0);
+
+                    Entity cylinderEntity = new Entity(Utils.arrayToVector3f(position), Utils.arrayToVector3f(rotation), scale.get(), name.get());
+                    cylinderModel.addEntity(cylinderEntity);
+                    scene.addEntity(cylinderEntity);
+                    scene.addModel(cylinderModel);
+
+                    renderer.setupBuffers(scene);
                 } else if (Objects.equals(newEntityType, "Sphere")) {
                     newSphere.update();
-                    Mesh sphereMesh = new Mesh(new MeshData(
+                    Model sphereModel = new Model(new MeshData(
                         newSphere.getPositions(),
                         newSphere.getNormals(),
+                        new float[]{},
+                        new float[]{},
                         newSphere.getTexCoords(),
-                        new float[]{},
-                        new float[]{},
                         newSphere.getIndices()
-                    ));
+                    ), "Sphere");
 
-                    entities.add(new Entity(
-                        new MaterialMesh(sphereMesh, null),
-                        Utils.arrayToVector3f(position),
-                        Utils.arrayToVector3f(rotation),
-                        scale.get(),
-                        name.get()
-                    ));
+                    sphereModel.getMeshDatas().get(0).setMaterialID(0);
+
+                    Entity sphereEntity = new Entity(Utils.arrayToVector3f(position), Utils.arrayToVector3f(rotation), scale.get(), name.get());
+                    sphereModel.addEntity(sphereEntity);
+                    scene.addEntity(sphereEntity);
+                    scene.addModel(sphereModel);
+
+                    renderer.setupBuffers(scene);
                 }
 
                 showEntityWindow = false;
@@ -613,7 +659,8 @@ public class GUI {
         // Inspector window
         ImGui.setNextWindowPos(window.getWidth() - INSPECTOR_WIDTH - PADDING, 2 * PADDING, ImGuiCond.FirstUseEver);
         ImGui.setNextWindowSize(INSPECTOR_WIDTH, INSPECTOR_HEIGHT, ImGuiCond.FirstUseEver);
-        ImGui.begin("Inspector", ImGuiWindowFlags.AlwaysAutoResize);
+        ImGui.setNextWindowSizeConstraints(INSPECTOR_WIDTH, 400, INSPECTOR_WIDTH, 700);
+        ImGui.begin("Inspector");
 
         if (selectedEntity != null && selected.get("entity") != -1) {
             Entity entity = selectedEntity;
@@ -622,6 +669,8 @@ public class GUI {
                 // Placeholder parent entity
                 float[] position = Utils.vector3fToArray(entity.getPosition());
                 ImString name = new ImString(entity.getName(), 128);
+
+                Vector3f initialPosition = new Vector3f(entity.getPosition());
 
                 if (entity.getName() != null && !Objects.equals(entity.getName(), "null")) {
                     ImGui.text(entity.getName());
@@ -632,8 +681,14 @@ public class GUI {
                 ImGui.text("ID: " + entity.getID());
 
                 ImGui.separator();
-                if (ImGui.dragFloat3("Position", position, 0.1f)) entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                if (ImGui.dragFloat3("Position", position, 0.1f)) {
+                    entity.setPosition(new Vector3f(position[0], position[1], position[2]));
+                }
                 if (ImGui.inputText("Name", name)) entity.setName(name.get());
+
+                if (!entity.getChildren().isEmpty() && !initialPosition.equals(entity.getPosition())) {
+                    entity.setUpdated(true);
+                }
             } else {
                 float[] position = Utils.vector3fToArray(entity.getPosition());
                 float[] rotation = Utils.vector3fToArray(entity.getRotation());
@@ -641,7 +696,14 @@ public class GUI {
                 ImString name = new ImString(entity.getName(), 128);
                 ImBoolean focused = new ImBoolean(camera.getFocus() == entity);
 
-                PBRMaterial pbrMaterial = entity.getMaterialMeshes()[0].getPbrMaterial();
+                Vector3f initialPosition = new Vector3f(entity.getPosition());
+                Vector3f initialRotation = new Vector3f(entity.getRotation());
+                float initialScale = entity.getScale();
+
+                List<PBRMaterial> pbrMaterials = new ArrayList<>();
+                for (MeshData meshData : scene.getModelByID(entity.getModelID()).getMeshDatas()) {
+                    pbrMaterials.add(scene.getPBRMaterials().get(meshData.getMaterialID()));
+                }
 
                 if (entity.getName() != null && !Objects.equals(entity.getName(), "null")) {
                     ImGui.text(entity.getName());
@@ -660,10 +722,60 @@ public class GUI {
                 if (ImGui.inputText("Name: ", name)) entity.setName(name.get());
                 if (ImGui.checkbox("Focused: ", focused)) camera.setFocus(focused.get() ? entity : null);
 
-                if (pbrMaterial != null) {
-                    if (ImGui.button("Change material")) {
-                        showMaterialWindow = true;
+                ImGui.separator();
+                ImGui.text("Model: " + scene.getModelByID(entity.getModelID()).getName());
+
+                ImGui.separator();
+                ImGui.text("Materials (" + pbrMaterials.size() + ")");
+                for (PBRMaterial pbrMaterial : pbrMaterials) {
+                    ImGui.text(pbrMaterial.getName() + " (ID: " + pbrMaterial.getID() + ")");
+
+                    ImGui.sameLine();
+                    if (ImGui.button("Edit##" + pbrMaterial.getID())) {
+                        setSelected("material", pbrMaterial.getID());
                     }
+
+                    ImGui.sameLine();
+
+                    if (ImGui.button("Change##" + pbrMaterial.getID())) {
+                        ImGui.openPopup("Change##" + pbrMaterial.getID());
+                    }
+
+                    if (ImGui.beginPopup("Change##" + pbrMaterial.getID())) {
+                        for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
+                            PBRMaterial material = scene.getPBRMaterials().get(i);
+                            if (ImGui.menuItem(material.getName() + " (ID: " + material.getID() + ")")) {
+                                // Set the corresponding mesh data to use the new material
+                                scene.getModelByID(entity.getModelID()).getMeshDatas().get(pbrMaterials.indexOf(pbrMaterial)).setMaterialID(material.getID());
+                                entity.setUpdated(true);
+                            }
+                        }
+                        ImGui.endPopup();
+                    }
+
+//                    List<String> names = new ArrayList<>();
+//                    for (PBRMaterial material : scene.getPBRMaterials()) {
+//                        names.add(material.getName() + " (ID: " + material.getID() + ")");
+//                    }
+//
+//                    System.out.println("Names: " + names);
+//
+//                    int[] currentItem = new int[] {pbrMaterials.indexOf(pbrMaterial)};
+//                    if (ImGui.beginCombo("Material " + (pbrMaterials.indexOf(pbrMaterial) + 1), names.get(currentItem[0]))) {
+//                        for (int i = 0; i < names.size(); i++) {
+//                            boolean isSelected = currentItem[0] == i;
+//                            if (ImGui.selectable(names.get(i), isSelected)) {
+//                                currentItem[0] = i;
+//                                scene.getModels().get(entity.getModelID()).getMeshDatas().get(pbrMaterials.indexOf(pbrMaterial)).setMaterialID(scene.getPBRMaterials().get(i).getID());
+//                                entity.setUpdated(true);
+//                            }
+//                        }
+//                        ImGui.endCombo();
+//                    }
+                }
+
+                if (!initialPosition.equals(entity.getPosition()) || !initialRotation.equals(entity.getRotation()) || initialScale != entity.getScale()) {
+                    entity.setUpdated(true);
                 }
             }
 
@@ -672,8 +784,8 @@ public class GUI {
             ImGui.text("Components");
             ImGui.separator();
 
-            Movement movement = entity.getMovement();
-            if (movement != null) {
+            MovementController movementController = entity.getMovement();
+            if (movementController != null) {
                 ImGui.text("Movement");
 
                 ImInt currentItem = new ImInt(entity.getMovement().getType().ordinal());
@@ -684,30 +796,30 @@ public class GUI {
                         if (ImGui.selectable(items[i], isSelected)) {
                             currentItem.set(i);
                             switch (i) {
-                                case 0 -> movement.setType(Movement.Type.NONE);  // Preserve the movement attributes
+                                case 0 -> movementController.setType(MovementController.Type.NONE);  // Preserve the movement attributes
                                 case 1 -> {
-                                    movement.setType(Movement.Type.ORBIT);
-                                    if (movement.getCenter() == null) movement.setCenter(new Vector3f(0, 0, 0));
-                                    if (movement.getAxis() == null) movement.setAxis(new Vector3f(0, 1, 0));
-                                    if (movement.getRadius() == 0) movement.setRadius(1);
-                                    if (movement.getAnglePerSecond() == 0) movement.setAnglePerSecond((float) Math.toRadians(90.0f));
+                                    movementController.setType(MovementController.Type.ORBIT);
+                                    if (movementController.getCenter() == null) movementController.setCenter(new Vector3f(0, 0, 0));
+                                    if (movementController.getAxis() == null) movementController.setAxis(new Vector3f(0, 1, 0));
+                                    if (movementController.getRadius() == 0) movementController.setRadius(1);
+                                    if (movementController.getAnglePerSecond() == 0) movementController.setAnglePerSecond((float) Math.toRadians(90.0f));
                                 }
                                 case 2 -> {
-                                    movement.setType(Movement.Type.DIRECTION);
-                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
-                                    if (movement.getOrigin() == null) movement.setOrigin(new Vector3f(0, 0, 0));
-                                    if (movement.getDirection() == null) movement.setDirection(new Vector3f(0, 0, 1));
-                                    if (movement.getDistance() == 0) movement.setDistance(0);
+                                    movementController.setType(MovementController.Type.DIRECTION);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getOrigin() == null) movementController.setOrigin(new Vector3f(0, 0, 0));
+                                    if (movementController.getDirection() == null) movementController.setDirection(new Vector3f(0, 0, 1));
+                                    if (movementController.getDistance() == 0) movementController.setDistance(0);
                                 }
                                 case 3 -> {
-                                    movement.setType(Movement.Type.POINTS);
-                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
-                                    if (movement.getPath() == null) movement.setPath(new ArrayList<>() {});
+                                    movementController.setType(MovementController.Type.POINTS);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getPath() == null) movementController.setPath(new ArrayList<>() {});
                                 }
                                 case 4 -> {
-                                    movement.setType(Movement.Type.KEYBOARD);
-                                    if (movement.getSpeed() == 0) movement.setSpeed(1);
-                                    if (movement.getDeceleration() == 0) movement.setDeceleration(0.95f);
+                                    movementController.setType(MovementController.Type.KEYBOARD);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getDeceleration() == 0) movementController.setDeceleration(0.95f);
                                 }
                             }
                         }
@@ -718,21 +830,21 @@ public class GUI {
                     ImGui.endCombo();
                 }
 
-                if (movement.getType() == Movement.Type.ORBIT) {
-                    float[] center = Utils.vector3fToArray(movement.getCenter());
-                    float[] axis = Utils.vector3fToArray(movement.getAxis());
-                    float[] radius = new float[] { movement.getRadius() };
-                    float[] speed = new float[] { movement.getSpeed() };
-                    float[] anglePerSecond = new float[] { (float) Math.toDegrees(movement.getAnglePerSecond()) };
-                    ImBoolean pointTowardsCenter = new ImBoolean(movement.isPointTowardsCenter());
+                if (movementController.getType() == MovementController.Type.ORBIT) {
+                    float[] center = Utils.vector3fToArray(movementController.getCenter());
+                    float[] axis = Utils.vector3fToArray(movementController.getAxis());
+                    float[] radius = new float[] { movementController.getRadius() };
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] anglePerSecond = new float[] { (float) Math.toDegrees(movementController.getAnglePerSecond()) };
+                    ImBoolean pointTowardsCenter = new ImBoolean(movementController.isPointTowardsCenter());
 
-                    if (ImGui.dragFloat3("Center: ", center, 0.1f)) movement.setCenter(new Vector3f(center[0], center[1], center[2]));
-                    if (ImGui.dragFloat3("Axis: ", axis, 0.1f)) movement.setAxis(new Vector3f(axis[0], axis[1], axis[2]));
-                    if (ImGui.dragFloat("Radius: ", radius, 0.1f, 0.01f, Float.MAX_VALUE)) movement.setRadius(radius[0]);
-                    if (ImGui.dragFloat("Speed: ", speed, 0.1f, 0.01f, Float.MAX_VALUE)) movement.setSpeed(speed[0]);
-                    if (ImGui.dragFloat("Angle per second: ", anglePerSecond, 0.1f)) movement.setAnglePerSecond((float) Math.toRadians(anglePerSecond[0]));
-                    if (ImGui.checkbox("Point towards center: ", pointTowardsCenter)) movement.setPointTowardsCenter(pointTowardsCenter.get());
-                } else if (movement.getType() == Movement.Type.DIRECTION) {
+                    if (ImGui.dragFloat3("Center: ", center, 0.1f)) movementController.setCenter(new Vector3f(center[0], center[1], center[2]));
+                    if (ImGui.dragFloat3("Axis: ", axis, 0.1f)) movementController.setAxis(new Vector3f(axis[0], axis[1], axis[2]));
+                    if (ImGui.dragFloat("Radius: ", radius, 0.1f, 0.01f, Float.MAX_VALUE)) movementController.setRadius(radius[0]);
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f, 0.01f, Float.MAX_VALUE)) movementController.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Angle per second: ", anglePerSecond, 0.1f)) movementController.setAnglePerSecond((float) Math.toRadians(anglePerSecond[0]));
+                    if (ImGui.checkbox("Point towards center: ", pointTowardsCenter)) movementController.setPointTowardsCenter(pointTowardsCenter.get());
+                } else if (movementController.getType() == MovementController.Type.DIRECTION) {
                     ImInt currentMode = new ImInt(entity.getMovement().getMode().ordinal());
                     String[] modes = { "Constant", "Acceleration", "Deceleration" };
                     if (ImGui.beginCombo("Movement mode", modes[currentMode.get()])) {
@@ -741,9 +853,9 @@ public class GUI {
                             if (ImGui.selectable(modes[i], isSelected)) {
                                 currentMode.set(i);
                                 switch (i) {
-                                    case 0 -> movement.setMode(Movement.Mode.CONSTANT);
-                                    case 1 -> movement.setMode(Movement.Mode.ACCELERATION);
-                                    case 2 -> movement.setMode(Movement.Mode.DECELERATION);
+                                    case 0 -> movementController.setMode(MovementController.Mode.CONSTANT);
+                                    case 1 -> movementController.setMode(MovementController.Mode.ACCELERATION);
+                                    case 2 -> movementController.setMode(MovementController.Mode.DECELERATION);
                                 }
                             }
                             if (isSelected) {
@@ -753,53 +865,53 @@ public class GUI {
                         ImGui.endCombo();
                     }
 
-                    float[] origin = Utils.vector3fToArray(movement.getOrigin());
-                    float[] direction = Utils.vector3fToArray(movement.getDirection());
-                    float[] speed = new float[] { movement.getSpeed() };
-                    float[] acceleration = new float[] { movement.getAcceleration() };
-                    float[] distance = new float[] { movement.getDistance() };
-                    ImBoolean noMaxDistance = new ImBoolean(movement.isNoMaxDistance());
-                    ImBoolean stopAtZeroSpeed = new ImBoolean(movement.isStopAtZeroSpeed());
+                    float[] origin = Utils.vector3fToArray(movementController.getOrigin());
+                    float[] direction = Utils.vector3fToArray(movementController.getDirection());
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] acceleration = new float[] { movementController.getAcceleration() };
+                    float[] distance = new float[] { movementController.getDistance() };
+                    ImBoolean noMaxDistance = new ImBoolean(movementController.isNoMaxDistance());
+                    ImBoolean stopAtZeroSpeed = new ImBoolean(movementController.isStopAtZeroSpeed());
 
-                    if (ImGui.dragFloat3("Origin: ", origin, 0.1f)) movement.setOrigin(new Vector3f(origin[0], origin[1], origin[2]));
-                    if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) movement.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
-                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
-                    if (movement.getMode() == Movement.Mode.ACCELERATION) {
-                        if (ImGui.dragFloat("Acceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
-                    } else if (movement.getMode() == Movement.Mode.DECELERATION) {
-                        if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movement.setAcceleration(acceleration[0]);
+                    if (ImGui.dragFloat3("Origin: ", origin, 0.1f)) movementController.setOrigin(new Vector3f(origin[0], origin[1], origin[2]));
+                    if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) movementController.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
+                    if (movementController.getMode() == MovementController.Mode.ACCELERATION) {
+                        if (ImGui.dragFloat("Acceleration: ", acceleration, 0.1f)) movementController.setAcceleration(acceleration[0]);
+                    } else if (movementController.getMode() == MovementController.Mode.DECELERATION) {
+                        if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movementController.setAcceleration(acceleration[0]);
                     }
-                    if (movement.getMode() != Movement.Mode.CONSTANT) {
-                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movement.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                    if (movementController.getMode() != MovementController.Mode.CONSTANT) {
+                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movementController.setStopAtZeroSpeed(stopAtZeroSpeed.get());
                     }
-                    if (!movement.isNoMaxDistance()) {
-                        if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movement.setDistance(distance[0]);
+                    if (!movementController.isNoMaxDistance()) {
+                        if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movementController.setDistance(distance[0]);
                     }
-                    if (ImGui.checkbox("No max distance: ", noMaxDistance)) movement.setNoMaxDistance(noMaxDistance.get());
-                    if (ImGui.button("Reset##Origin", 60, 0)) entity.setPosition(new Vector3f(movement.getOrigin()));
-                } else if (movement.getType() == Movement.Type.POINTS) {
-                    float[] speed = new float[] { movement.getSpeed() };
-                    List<Vector3f> points = movement.getPath();
+                    if (ImGui.checkbox("No max distance: ", noMaxDistance)) movementController.setNoMaxDistance(noMaxDistance.get());
+                    if (ImGui.button("Reset##Origin", 60, 0)) entity.setPosition(new Vector3f(movementController.getOrigin()));
+                } else if (movementController.getType() == MovementController.Type.POINTS) {
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    List<Vector3f> points = movementController.getPath();
 
-                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
 
                     ImGui.text("Points");
                     for (int i = 0; i < points.size(); i++) {
                         float[] point = Utils.vector3fToArray(points.get(i));
-                        if (ImGui.dragFloat3("Point " + (i + 1), point, 0.1f)) movement.setPoint(i, new Vector3f(point[0], point[1], point[2]));
+                        if (ImGui.dragFloat3("Point " + (i + 1), point, 0.1f)) movementController.setPoint(i, new Vector3f(point[0], point[1], point[2]));
                         ImGui.sameLine();
-                        if (ImGui.button("Remove")) movement.removePoint(i);
+                        if (ImGui.button("Remove")) movementController.removePoint(i);
                     }
 
                     if (ImGui.button("Add point")) {
-                        movement.addPoint(new Vector3f(0, 0, 0));
+                        movementController.addPoint(new Vector3f(0, 0, 0), scene);
                     }
-                } else if (movement.getType() == Movement.Type.KEYBOARD) {
-                    float[] speed = new float[] { movement.getSpeed() };
-                    float[] deceleration = new float[] { movement.getDeceleration() };
+                } else if (movementController.getType() == MovementController.Type.KEYBOARD) {
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] deceleration = new float[] { movementController.getDeceleration() };
 
-                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movement.setSpeed(speed[0]);
-                    if (ImGui.dragFloat("Deceleration: ", deceleration, 0.1f)) movement.setDeceleration(deceleration[0]);
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Deceleration: ", deceleration, 0.1f)) movementController.setDeceleration(deceleration[0]);
                 }
             }
 
@@ -857,7 +969,7 @@ public class GUI {
 
             if (ImGui.beginPopup("Add component")) {
                 if (ImGui.menuItem("Movement")) {
-                    entity.setMovement(Movement.none());
+                    entity.setMovement(MovementController.none(scene));
                 }
                 if (ImGui.menuItem("Rotation")) {
                     entity.setRotationController(new RotationController());
@@ -866,7 +978,9 @@ public class GUI {
             }
 
             if (ImGui.button("Remove")) {
-                entities.remove(entity);
+                scene.getModelByID(entity.getModelID()).removeEntity(entity);
+                scene.removeEntity(entity);
+                renderer.setupBuffers(scene);
                 selected.put("entity", -1);
             }
         }
@@ -930,10 +1044,15 @@ public class GUI {
 
         if (selected.get("dirLight") != -1) {
             float[] direction = Utils.vector3fToArray(dirLight.getDirection());
+            float[] azimuth = new float[] { dirLight.getAzimuth() };
+            float[] elevation = new float[] { dirLight.getElevation() };
             float[] color = Utils.vector3fToArray(dirLight.getColor());
 
             ImGui.text("Directional Light");
             if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) dirLight.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+            if (ImGui.button("Set to camera direction")) dirLight.setDirection(new Vector3f(camera.getFront()));
+            if (ImGui.dragFloat("Azimuth: ", azimuth, 0.2f, 0f, 360f)) dirLight.setAzimuth(azimuth[0]);
+            if (ImGui.dragFloat("Elevation: ", elevation, 0.1f, -90f, 90f)) dirLight.setElevation(elevation[0]);
             if (ImGui.colorPicker3("Color: ", color)) dirLight.setColor(new Vector3f(color[0], color[1], color[2]));
         }
 
@@ -986,142 +1105,423 @@ public class GUI {
 
         }
 
+        if (selected.get("model") != -1) {
+            Model model = scene.getModels().get(selected.get("model"));
+
+            ImGui.text("Model " + model.getID());
+
+            ImGui.text("Material ID: " + model.getMeshDatas().get(0).getMaterialID());
+
+            ImString name = new ImString(model.getName(), 128);
+            if (ImGui.inputText("Name: ", name)) model.setName(name.get());
+
+            ImGui.separator();
+
+            ImGui.text("Entities:");
+            for (Entity entity : model.getEntities()) {
+                ImGui.text(entity.getName() + " (ID: " + entity.getID() + ")");
+            }
+        }
+
+        if (selected.get("material") != -1) {
+            PBRMaterial pbrMaterial = scene.getPBRMaterials().get(selected.get("material"));
+
+            ImBoolean useAlbedoTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("albedo"));
+            ImBoolean useNormalTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("normal"));
+            ImBoolean useMetallicTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("metallic"));
+            ImBoolean useRoughnessTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("roughness"));
+            ImBoolean useMetallicRoughnessTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("metallicRoughness"));
+            ImBoolean useAoTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("ao"));
+            ImBoolean useEmissiveTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("emissive"));
+
+            ImString name = new ImString(pbrMaterial.getName(), 128);
+            if (ImGui.inputText("Name: ", name)) pbrMaterial.setName(name.get());
+
+            ImGui.separator();
+
+            // Albedo
+            ImGui.text("Albedo");
+            if (pbrMaterial.getAlbedo() != null)
+                ImGui.image(pbrMaterial.getAlbedo().getID(), 128, 128);
+            if (ImGui.button("Change texture##Albedo")) {
+                String albedoPath = openSingle("png,jpg,jpeg");
+                if (albedoPath != null) {
+                    Texture texture = new Texture(albedoPath, GL_SRGB_ALPHA, true);
+                    texture.generateHandle();
+                    pbrMaterial.setAlbedo(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+
+            float[] albedo = new float[] { pbrMaterial.getAlbedoColor().x, pbrMaterial.getAlbedoColor().y, pbrMaterial.getAlbedoColor().z };
+            if (ImGui.colorPicker3("Albedo color: ", albedo)) {
+                pbrMaterial.setAlbedoColor(new Vector3f(albedo[0], albedo[1], albedo[2]));
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+
+            if (ImGui.checkbox("Use texture##Albedo", useAlbedoTexture) && pbrMaterial.getAlbedo() != null) {
+                pbrMaterial.setUseTexture("albedo", useAlbedoTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+
+            ImGui.newLine();
+
+            // Normal
+            ImGui.text("Normal");
+            if (pbrMaterial.getNormal() != null)
+                ImGui.image(pbrMaterial.getNormal().getID(), 128, 128);
+            if (ImGui.button("Change texture##Normal")) {
+                String normalPath = openSingle("png,jpg,jpeg");
+                if (normalPath != null) {
+                    Texture texture = new Texture(normalPath, GL_RGB, true);
+                    texture.generateHandle();
+                    pbrMaterial.setNormal(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+
+            if (ImGui.checkbox("Use texture##Normal", useNormalTexture) && pbrMaterial.getNormal() != null) {
+                pbrMaterial.setUseTexture("normal", useNormalTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+            ImGui.newLine();
+
+            // Metallic
+            ImGui.text("Metallic");
+            if (pbrMaterial.getMetallic() != null)
+                ImGui.image(pbrMaterial.getMetallic().getID(), 128, 128);
+            if (ImGui.button("Change texture##Metallic")) {
+                String metallicPath = openSingle("png,jpg,jpeg");
+                if (metallicPath != null) {
+                    Texture texture = new Texture(metallicPath, GL_RED, true);
+                    texture.generateHandle();
+                    pbrMaterial.setMetallic(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+            float[] metallic = new float[] { pbrMaterial.getMetallicFactor() };
+            if (ImGui.dragFloat("Metallic factor: ", metallic, 0.001f, 0.0f, 1.0f)) {
+                pbrMaterial.setMetallicFactor(metallic[0]);
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+
+            if (ImGui.checkbox("Use texture##Metallic", useMetallicTexture) && pbrMaterial.getMetallic() != null) {
+                pbrMaterial.setUseTexture("metallic", useMetallicTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+            ImGui.newLine();
+
+            // Roughness
+            ImGui.text("Roughness");
+            if (pbrMaterial.getRoughness() != null)
+                ImGui.image(pbrMaterial.getRoughness().getID(), 128, 128);
+            if (ImGui.button("Change texture##Roughness")) {
+                String roughnessPath = openSingle("png,jpg,jpeg");
+                if (roughnessPath != null) {
+                    Texture texture = new Texture(roughnessPath, GL_RED, true);
+                    texture.generateHandle();
+                    pbrMaterial.setRoughness(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+            float[] roughness = new float[] { pbrMaterial.getRoughnessFactor() };
+            if (ImGui.dragFloat("Roughness factor: ", roughness, 0.001f, 0.0f, 1.0f)) {
+                pbrMaterial.setRoughnessFactor(roughness[0]);
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+
+            if (ImGui.checkbox("Use texture##Roughness", useRoughnessTexture) && pbrMaterial.getRoughness() != null) {
+                pbrMaterial.setUseTexture("roughness", useRoughnessTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+            ImGui.newLine();
+
+            // Metallic roughness
+            ImGui.text("Metallic Roughness");
+            if (pbrMaterial.getMetallicRoughness() != null)
+                ImGui.image(pbrMaterial.getMetallicRoughness().getID(), 128, 128);
+            if (ImGui.button("Change texture##MetallicRoughness")) {
+                String metallicRoughnessPath = openSingle("png,jpg,jpeg");
+                if (metallicRoughnessPath != null) {
+                    Texture texture = new Texture(metallicRoughnessPath, GL_RGBA, true);
+                    texture.generateHandle();
+                    pbrMaterial.setMetallicRoughness(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+            if (ImGui.checkbox("Use texture##MetallicRoughness", useMetallicRoughnessTexture) && pbrMaterial.getMetallicRoughness() != null) {
+                pbrMaterial.setUseTexture("metallicRoughness", useMetallicRoughnessTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+            ImGui.newLine();
+
+            // Ambient occlusion
+            ImGui.text("Ambient Occlusion");
+            if (pbrMaterial.getAo() != null)
+                ImGui.image(pbrMaterial.getAo().getID(), 128, 128);
+            if (ImGui.button("Change texture##AmbientOcclusion")) {
+                String aoPath = openSingle("png,jpg,jpeg");
+                if (aoPath != null) {
+                    Texture texture = new Texture(aoPath, GL_RED, true);
+                    texture.generateHandle();
+                    pbrMaterial.setAo(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+            if (ImGui.checkbox("Use texture##AmbientOcclusion", useAoTexture)) {
+                pbrMaterial.setUseTexture("ao", useAoTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+            ImGui.newLine();
+
+            // Emissive
+            ImGui.text("Emissive");
+            if (pbrMaterial.getEmissive() != null)
+                ImGui.image(pbrMaterial.getEmissive().getID(), 128, 128);
+            if (ImGui.button("Change texture##Emissive")) {
+                String emissivePath = openSingle("png,jpg,jpeg");
+                if (emissivePath != null) {
+                    Texture texture = new Texture(emissivePath, GL_RGB, true);
+                    texture.generateHandle();
+                    pbrMaterial.setEmissive(texture);
+                    renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+                }
+            }
+
+            float[] emissive = new float[] { pbrMaterial.getEmissiveColor().x, pbrMaterial.getEmissiveColor().y, pbrMaterial.getEmissiveColor().z };
+            if (ImGui.colorEdit3("Emissive color: ", emissive)) {
+                pbrMaterial.setEmissiveColor(new Vector3f(emissive[0], emissive[1], emissive[2]));
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+
+            if (ImGui.checkbox("Use texture##Emissive", useEmissiveTexture) && pbrMaterial.getEmissive() != null) {
+                pbrMaterial.setUseTexture("emissive", useEmissiveTexture.get());
+                renderer.updateMaterial(pbrMaterial.getID(), pbrMaterial);
+            }
+        }
+
+        ImGui.end();
+
+        // Scene stuff lists window
+        ImGui.setNextWindowPos(PADDING, 1080 - PADDING - 300, ImGuiCond.FirstUseEver);
+        ImGui.setNextWindowSize(200, 300, ImGuiCond.FirstUseEver);
+        ImGui.setNextWindowSizeConstraints(200, 100, 200, 500);
+        ImGui.begin("Scene Stuff Lists");
+        if (ImGui.beginTabBar("Scene Stuff Lists")) {
+            if (ImGui.beginTabItem("Models")) {
+                for (int i = 0; i < scene.getModels().size(); i++) {
+                    Model model = scene.getModels().get(i);
+                    if (ImGui.selectable(model.getName() + " (ID: " + model.getID() + ")", selected.get("model") == i)) {
+                        setSelected("model", i);
+                    }
+                }
+                ImGui.endTabItem();
+            }
+
+            if (ImGui.beginTabItem("Materials")) {
+                for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
+                    PBRMaterial pbrMaterial = scene.getPBRMaterials().get(i);
+                    if (ImGui.selectable(pbrMaterial.getName() + " (ID: " + pbrMaterial.getID() + ")", selected.get("material") == i)) {
+                        setSelected("material", i);
+                    }
+                }
+                ImGui.endTabItem();
+            }
+
+            ImGui.endTabBar();
+        }
         ImGui.end();
 
         // Material editor window
         if (showMaterialWindow) {
-            ImGui.setNextWindowPos(1920 - MATERIAL_WIDTH - PADDING, window.getHeight() - MATERIAL_HEIGHT - PADDING, ImGuiCond.FirstUseEver);
-            ImGui.setNextWindowSize(MATERIAL_WIDTH, MATERIAL_HEIGHT, ImGuiCond.FirstUseEver);
-            ImGui.begin("Material Editor");
+            ImGui.begin("New Material", ImGuiWindowFlags.AlwaysAutoResize);
 
-            if (selectedEntity != null) {
-                Entity entity = selectedEntity;
-                PBRMaterial pbrMaterial = entity.getMaterialMeshes()[0].getPbrMaterial();
-                ImBoolean useAlbedoTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("albedo"));
-                ImBoolean useNormalTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("normal"));
-                ImBoolean useMetallicTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("metallic"));
-                ImBoolean useRoughnessTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("roughness"));
-                ImBoolean useMetallicRoughnessTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("metallicRoughness"));
-                ImBoolean useAoTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("ao"));
-                ImBoolean useEmissiveTexture = new ImBoolean(pbrMaterial.getUsesTextures().get("emissive"));
+            ImBoolean useAlbedoTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("albedo"));
+            ImBoolean useNormalTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("normal"));
+            ImBoolean useMetallicTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("metallic"));
+            ImBoolean useRoughnessTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("roughness"));
+            ImBoolean useMetallicRoughnessTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("metallicRoughness"));
+            ImBoolean useAoTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("ao"));
+            ImBoolean useEmissiveTexture = new ImBoolean(newPbrMaterial.getUsesTextures().get("emissive"));
 
-                // Albedo
-                ImGui.text("Albedo");
-                if (pbrMaterial.getAlbedo() != null)
-                    ImGui.image(pbrMaterial.getAlbedo().getID(), 128, 128);
-                if (ImGui.button("Change texture##Albedo")) {
-                    String albedoPath = openSingle("png,jpg,jpeg");
-                    if (albedoPath != null) {
-                        pbrMaterial.setAlbedo(new Texture(albedoPath, GL_SRGB_ALPHA, true));
-                    }
+            ImString name = new ImString(newPbrMaterial.getName(), 128);
+            if (ImGui.inputText("Name: ", name)) newPbrMaterial.setName(name.get());
+
+            ImGui.separator();
+
+            // Albedo
+            ImGui.text("Albedo");
+            if (newPbrMaterial.getAlbedo() != null)
+                ImGui.image(newPbrMaterial.getAlbedo().getID(), 128, 128);
+            if (ImGui.button("Change texture##Albedo")) {
+                String albedoPath = openSingle("png,jpg,jpeg");
+                if (albedoPath != null) {
+                    Texture texture = new Texture(albedoPath, GL_SRGB_ALPHA, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setAlbedo(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
+            }
 
-                float[] albedo = new float[] { pbrMaterial.getAlbedoColor().x, pbrMaterial.getAlbedoColor().y, pbrMaterial.getAlbedoColor().z };
-                ImGui.colorPicker3("Albedo color: ", albedo);
-                pbrMaterial.setAlbedoColor(new Vector3f(albedo[0], albedo[1], albedo[2]));
+            float[] albedo = new float[] { newPbrMaterial.getAlbedoColor().x, newPbrMaterial.getAlbedoColor().y, newPbrMaterial.getAlbedoColor().z };
+            if (ImGui.colorPicker3("Albedo color: ", albedo)) {
+                newPbrMaterial.setAlbedoColor(new Vector3f(albedo[0], albedo[1], albedo[2]));
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
 
-                if (ImGui.checkbox("Use texture##Albedo", useAlbedoTexture) && pbrMaterial.getAlbedo() != null) {
-                    pbrMaterial.setUseTexture("albedo", useAlbedoTexture.get());
-                }
+            if (ImGui.checkbox("Use texture##Albedo", useAlbedoTexture) && newPbrMaterial.getAlbedo() != null) {
+                newPbrMaterial.setUseTexture("albedo", useAlbedoTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
 
-                ImGui.newLine();
+            ImGui.newLine();
 
-                // Normal
-                ImGui.text("Normal");
-                if (pbrMaterial.getNormal() != null)
-                    ImGui.image(pbrMaterial.getNormal().getID(), 128, 128);
-                if (ImGui.button("Change texture##Normal")) {
-                    String normalPath = openSingle("png,jpg,jpeg");
-                    if (normalPath != null) {
-                        pbrMaterial.setNormal(new Texture(normalPath, GL_RGB, true));
-                    }
+            // Normal
+            ImGui.text("Normal");
+            if (newPbrMaterial.getNormal() != null)
+                ImGui.image(newPbrMaterial.getNormal().getID(), 128, 128);
+            if (ImGui.button("Change texture##Normal")) {
+                String normalPath = openSingle("png,jpg,jpeg");
+                if (normalPath != null) {
+                    Texture texture = new Texture(normalPath, GL_RGB, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setNormal(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
+            }
 
-                if (ImGui.checkbox("Use texture##Normal", useNormalTexture) && pbrMaterial.getNormal() != null) {
-                    pbrMaterial.setUseTexture("normal", useNormalTexture.get());
-                }
-                ImGui.newLine();
+            if (ImGui.checkbox("Use texture##Normal", useNormalTexture) && newPbrMaterial.getNormal() != null) {
+                newPbrMaterial.setUseTexture("normal", useNormalTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+            ImGui.newLine();
 
-                // Metallic
-                ImGui.text("Metallic");
-                if (pbrMaterial.getMetallic() != null)
-                    ImGui.image(pbrMaterial.getMetallic().getID(), 128, 128);
-                if (ImGui.button("Change texture##Metallic")) {
-                    String metallicPath = openSingle("png,jpg,jpeg");
-                    if (metallicPath != null) {
-                        pbrMaterial.setMetallic(new Texture(metallicPath, GL_RED, true));
-                    }
+            // Metallic
+            ImGui.text("Metallic");
+            if (newPbrMaterial.getMetallic() != null)
+                ImGui.image(newPbrMaterial.getMetallic().getID(), 128, 128);
+            if (ImGui.button("Change texture##Metallic")) {
+                String metallicPath = openSingle("png,jpg,jpeg");
+                if (metallicPath != null) {
+                    Texture texture = new Texture(metallicPath, GL_RED, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setMetallic(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
-                float[] metallic = new float[] { pbrMaterial.getMetallicFactor() };
-                if (ImGui.dragFloat("Metallic factor: ", metallic, 0.001f, 0.0f, 1.0f)) pbrMaterial.setMetallicFactor(metallic[0]);
+            }
+            float[] metallic = new float[] { newPbrMaterial.getMetallicFactor() };
+            if (ImGui.dragFloat("Metallic factor: ", metallic, 0.001f, 0.0f, 1.0f)) {
+                newPbrMaterial.setMetallicFactor(metallic[0]);
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
 
-                if (ImGui.checkbox("Use texture##Metallic", useMetallicTexture) && pbrMaterial.getMetallic() != null) pbrMaterial.setUseTexture("metallic", useMetallicTexture.get());
-                ImGui.newLine();
+            if (ImGui.checkbox("Use texture##Metallic", useMetallicTexture) && newPbrMaterial.getMetallic() != null) {
+                newPbrMaterial.setUseTexture("metallic", useMetallicTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+            ImGui.newLine();
 
-                // Roughness
-                ImGui.text("Roughness");
-                if (pbrMaterial.getRoughness() != null)
-                    ImGui.image(pbrMaterial.getRoughness().getID(), 128, 128);
-                if (ImGui.button("Change texture##Roughness")) {
-                    String roughnessPath = openSingle("png,jpg,jpeg");
-                    if (roughnessPath != null) {
-                        pbrMaterial.setRoughness(new Texture(roughnessPath, GL_RED, true));
-                    }
+            // Roughness
+            ImGui.text("Roughness");
+            if (newPbrMaterial.getRoughness() != null)
+                ImGui.image(newPbrMaterial.getRoughness().getID(), 128, 128);
+            if (ImGui.button("Change texture##Roughness")) {
+                String roughnessPath = openSingle("png,jpg,jpeg");
+                if (roughnessPath != null) {
+                    Texture texture = new Texture(roughnessPath, GL_RED, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setRoughness(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
-                float[] roughness = new float[] { pbrMaterial.getRoughnessFactor() };
-                if (ImGui.dragFloat("Roughness factor: ", roughness, 0.001f, 0.0f, 1.0f)) pbrMaterial.setRoughnessFactor(roughness[0]);
+            }
+            float[] roughness = new float[] { newPbrMaterial.getRoughnessFactor() };
+            if (ImGui.dragFloat("Roughness factor: ", roughness, 0.001f, 0.0f, 1.0f)) {
+                newPbrMaterial.setRoughnessFactor(roughness[0]);
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
 
-                if (ImGui.checkbox("Use texture##Roughness", useRoughnessTexture) && pbrMaterial.getRoughness() != null) {
-                    pbrMaterial.setUseTexture("roughness", useRoughnessTexture.get());
-                }
-                ImGui.newLine();
+            if (ImGui.checkbox("Use texture##Roughness", useRoughnessTexture) && newPbrMaterial.getRoughness() != null) {
+                newPbrMaterial.setUseTexture("roughness", useRoughnessTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+            ImGui.newLine();
 
-                // Metallic roughness
-                ImGui.text("Metallic Roughness");
-                if (pbrMaterial.getMetallicRoughness() != null)
-                    ImGui.image(pbrMaterial.getMetallicRoughness().getID(), 128, 128);
-                if (ImGui.button("Change texture##MetallicRoughness")) {
-                    String metallicRoughnessPath = openSingle("png,jpg,jpeg");
-                    if (metallicRoughnessPath != null) {
-                        pbrMaterial.setMetallicRoughness(new Texture(metallicRoughnessPath, GL_RGBA, true));
-                    }
+            // Metallic roughness
+            ImGui.text("Metallic Roughness");
+            if (newPbrMaterial.getMetallicRoughness() != null)
+                ImGui.image(newPbrMaterial.getMetallicRoughness().getID(), 128, 128);
+            if (ImGui.button("Change texture##MetallicRoughness")) {
+                String metallicRoughnessPath = openSingle("png,jpg,jpeg");
+                if (metallicRoughnessPath != null) {
+                    Texture texture = new Texture(metallicRoughnessPath, GL_RGBA, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setMetallicRoughness(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
-                if (ImGui.checkbox("Use texture##MetallicRoughness", useMetallicRoughnessTexture) && pbrMaterial.getMetallicRoughness() != null) {
-                    pbrMaterial.setUseTexture("metallicRoughness", useMetallicRoughnessTexture.get());
-                }
-                ImGui.newLine();
+            }
+            if (ImGui.checkbox("Use texture##MetallicRoughness", useMetallicRoughnessTexture) && newPbrMaterial.getMetallicRoughness() != null) {
+                newPbrMaterial.setUseTexture("metallicRoughness", useMetallicRoughnessTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+            ImGui.newLine();
 
-                // Ambient occlusion
-                ImGui.text("Ambient Occlusion");
-                if (pbrMaterial.getAo() != null)
-                    ImGui.image(pbrMaterial.getAo().getID(), 128, 128);
-                if (ImGui.button("Change texture##AmbientOcclusion")) {
-                    String aoPath = openSingle("png,jpg,jpeg");
-                    if (aoPath != null) {
-                        pbrMaterial.setAo(new Texture(aoPath, GL_RED, true));
-                    }
+            // Ambient occlusion
+            ImGui.text("Ambient Occlusion");
+            if (newPbrMaterial.getAo() != null)
+                ImGui.image(newPbrMaterial.getAo().getID(), 128, 128);
+            if (ImGui.button("Change texture##AmbientOcclusion")) {
+                String aoPath = openSingle("png,jpg,jpeg");
+                if (aoPath != null) {
+                    Texture texture = new Texture(aoPath, GL_RED, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setAo(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
-                if (ImGui.checkbox("Use texture##AmbientOcclusion", useAoTexture)) {
-                    pbrMaterial.setUseTexture("ao", useAoTexture.get());
-                }
-                ImGui.newLine();
+            }
+            if (ImGui.checkbox("Use texture##AmbientOcclusion", useAoTexture)) {
+                newPbrMaterial.setUseTexture("ao", useAoTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+            ImGui.newLine();
 
-                // Emissive
-                ImGui.text("Emissive");
-                if (pbrMaterial.getEmissive() != null)
-                    ImGui.image(pbrMaterial.getEmissive().getID(), 128, 128);
-                if (ImGui.button("Change texture##Emissive")) {
-                    String emissivePath = openSingle("png,jpg,jpeg");
-                    if (emissivePath != null) {
-                        pbrMaterial.setEmissive(new Texture(emissivePath, GL_RGB, true));
-                    }
+            // Emissive
+            ImGui.text("Emissive");
+            if (newPbrMaterial.getEmissive() != null)
+                ImGui.image(newPbrMaterial.getEmissive().getID(), 128, 128);
+            if (ImGui.button("Change texture##Emissive")) {
+                String emissivePath = openSingle("png,jpg,jpeg");
+                if (emissivePath != null) {
+                    Texture texture = new Texture(emissivePath, GL_RGB, true);
+                    texture.generateHandle();
+                    newPbrMaterial.setEmissive(texture);
+                    renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
                 }
-                float[] emissive = new float[] { pbrMaterial.getEmissiveColor().x, pbrMaterial.getEmissiveColor().y, pbrMaterial.getEmissiveColor().z };
-                if (ImGui.checkbox("Use texture##Emissive", useEmissiveTexture) && pbrMaterial.getEmissive() != null) {
-                    pbrMaterial.setUseTexture("emissive", useEmissiveTexture.get());
-                } else {
-                    pbrMaterial.setEmissiveColor(new Vector3f(emissive[0], emissive[1], emissive[2]));
-                }
+            }
+            float[] emissive = new float[] { newPbrMaterial.getEmissiveColor().x, newPbrMaterial.getEmissiveColor().y, newPbrMaterial.getEmissiveColor().z };
+            if (ImGui.colorEdit3("Emissive color: ", emissive)) {
+                newPbrMaterial.setEmissiveColor(new Vector3f(emissive[0], emissive[1], emissive[2]));
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+
+            if (ImGui.checkbox("Use texture##Emissive", useEmissiveTexture) && newPbrMaterial.getEmissive() != null) {
+                newPbrMaterial.setUseTexture("emissive", useEmissiveTexture.get());
+                renderer.updateMaterial(newPbrMaterial.getID(), newPbrMaterial);
+            }
+
+            if (ImGui.button("Add", 120, 0)) {
+                scene.addPBRMaterial(newPbrMaterial);
+                showMaterialWindow = false;
+            }
+
+            if (ImGui.button("Cancel", 120, 0)) {
+                showMaterialWindow = false;
+                newPbrMaterial = new PBRMaterial(
+                    "New Material",
+                    new Vector3f(1.0f, 1.0f, 1.0f),
+                    0.0f,
+                    1.0f,
+                    new Vector3f(0.0f, 0.0f, 0.0f)
+                );
             }
 
             ImGui.end();
