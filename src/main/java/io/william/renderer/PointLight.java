@@ -16,6 +16,8 @@ public class PointLight {
 
     private boolean enabled;
 
+    private MovementController movementController;
+
     public PointLight(Vector3f position, Vector3f color, float intensity) {
         UVSphere uvSphere = new UVSphere(0.1f, 32, 32);
 
@@ -39,6 +41,16 @@ public class PointLight {
 
     public PointLight(Vector3f position, Vector3f color) {
         this(position, color, 1.0f);
+    }
+
+    public void update(float deltaTime) {
+        if (movementController != null) {
+            switch (movementController.getType()) {
+                case ORBIT -> movementController.orbitUpdate(this, deltaTime);
+                case DIRECTION -> movementController.directionUpdate(this, deltaTime);
+                case PATH -> movementController.pathUpdate(this, deltaTime);
+            }
+        }
     }
 
     public void updateRadius(float radius) {
@@ -96,5 +108,13 @@ public class PointLight {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public MovementController getMovementController() {
+        return movementController;
+    }
+
+    public void setMovementController(MovementController movementController) {
+        this.movementController = movementController;
     }
 }

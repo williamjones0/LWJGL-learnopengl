@@ -491,6 +491,12 @@ public class Main {
             entity.update(deltaTime);
         }
 
+        // Update light positions
+        for (int i = 0; i < scene.getPointLights().size(); i++) {
+            PointLight pointLight = scene.getPointLights().get(i);
+            pointLight.update(deltaTime);
+        }
+
         window.update();
         camera.update(deltaTime);
 
@@ -598,6 +604,7 @@ public class Main {
 
         Matrix4f[] worldMatrices = new Matrix4f[lastModelMeshInstanceIndex - firstModelMeshInstanceIndex + 1];
         int[] materialIDs = new int[lastModelMeshInstanceIndex - firstModelMeshInstanceIndex + 1];
+        float[] emissionStrengths = new float[lastModelMeshInstanceIndex - firstModelMeshInstanceIndex + 1];
 
 //        for (int i = firstEntityIndex; i <= lastEntityIndex; i++) {
 //            System.out.println("Updating entity " + i);
@@ -632,10 +639,13 @@ public class Main {
             int materialID = scene.getModelByID(entity.getModelID()).getMeshDatas().get(meshDataIndex).getMaterialID();
             materialIDs[i - firstModelMeshInstanceIndex] = materialID;
 
+            float emissionStrength = scene.getModelByID(entity.getModelID()).getMeshDatas().get(meshDataIndex).getEmissionStrength();
+            emissionStrengths[i - firstModelMeshInstanceIndex] = emissionStrength;
+
             entity.setUpdated(false);
         }
 
-        masterRenderer.updateModelMeshInstances(firstModelMeshInstanceIndex, lastModelMeshInstanceIndex, worldMatrices, materialIDs);
+        masterRenderer.updateModelMeshInstances(firstModelMeshInstanceIndex, lastModelMeshInstanceIndex, worldMatrices, materialIDs, emissionStrengths);
     }
 
     private int calculateEntityIndexFromModelMeshInstanceIndex(int index) {

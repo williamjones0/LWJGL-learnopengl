@@ -100,11 +100,10 @@ public class MasterRenderer {
             List<Entity> entities = model.getEntities();
             for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
                 for (Entity entity : entities) {
-
                     Matrix4f m = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
                     putMatrix4f(mmib, m);
                     mmib.putInt(meshDrawData.materialID());
-                    mmib.putInt(0);
+                    mmib.putFloat(meshDrawData.emissionStrength());
                     mmib.putInt(0);
                     mmib.putInt(0);
                 }
@@ -234,7 +233,7 @@ public class MasterRenderer {
                     Matrix4f m = Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale());
                     putMatrix4f(mmib, m);
                     mmib.putInt(meshDrawData.materialID());
-                    mmib.putInt(0);
+                    mmib.putFloat(meshDrawData.emissionStrength());
                     mmib.putInt(0);
                     mmib.putInt(0);
                 }
@@ -252,7 +251,7 @@ public class MasterRenderer {
         MemoryUtil.memFree(mmib);
     }
 
-    public void updateModelMeshInstances(int firstIndex, int lastIndex, Matrix4f[] worlds, int[] materialIDs) {
+    public void updateModelMeshInstances(int firstIndex, int lastIndex, Matrix4f[] worlds, int[] materialIDs, float[] emissionStrengths) {
         ByteBuffer buffer = MemoryUtil.memAlloc((lastIndex - firstIndex + 1) * 20 * 4);
         for (int i = 0; i < worlds.length; i++) {
             buffer.putFloat(worlds[i].m00());
@@ -274,7 +273,7 @@ public class MasterRenderer {
 
             // Material ID
             buffer.putInt(materialIDs[i]);
-            buffer.putInt(0);
+            buffer.putFloat(emissionStrengths[i]);
             buffer.putInt(0);
             buffer.putInt(0);
         }

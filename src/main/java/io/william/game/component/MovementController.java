@@ -1,13 +1,10 @@
 package io.william.game.component;
 
 import io.william.renderer.*;
-import io.william.renderer.primitive.UVSphere;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MovementController {
 
@@ -188,6 +185,53 @@ public class MovementController {
         if (reset) axis = new Vector3f(0, 0, 0);
     }
 
+    public void orbitUpdate(PointLight pointLight, float deltaTime) {
+        Vector3f position = pointLight.getPosition();
+        float threshold = 0.01f;
+
+        // Avoid errors when the axis is the zero vector
+        boolean reset = false;
+        if (axis.x == 0 && axis.y == 0 && axis.z == 0) {
+            axis = new Vector3f(0, 1, 0);
+            reset = true;
+        }
+
+        Vector3f v;
+        if (position.equals(center)) {
+            v = new Vector3f(1, 1, 1);
+        } else {
+            v = new Vector3f(position).sub(center);
+        }
+
+        Vector3f k = new Vector3f(axis).normalize();
+        float angle = anglePerSecond * deltaTime;
+
+        // If light is not in the orbit plane, move it to the orbit plane
+        if (Math.abs(v.dot(k)) > threshold) {
+            System.out.println("Entity is not in orbit plane");
+            v.cross(k);
+            v.normalize().mul(radius);
+        }
+
+        // If light is not at the correct radius, move it to the correct radius
+        if (Math.abs(v.length() - radius) > threshold) {
+            System.out.println("Entity is not at correct radius");
+            v.normalize().mul(radius);
+        }
+
+        // Use Rodrigues' rotation formula to rotate the vector
+        // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+//        Vector3f t1 = v.mul((float) Math.cos(angle), new Vector3f());
+//        Vector3f t2 = k.cross(v, new Vector3f()).mul((float) Math.sin(angle), new Vector3f());
+//        Vector3f t3 = k.mul(k.dot(v) * (1 - (float) Math.cos(angle)), new Vector3f());
+//        Vector3f rotated = t1.add(t2).add(t3);
+        v.rotateAxis(angle, k.x, k.y, k.z);
+//        v = new Vector3f(rotated);
+        pointLight.setPosition(new Vector3f(center).add(v));
+
+        if (reset) axis = new Vector3f(0, 0, 0);
+    }
+
     public void directionUpdate(Entity entity, float deltaTime) {
         Vector3f position = entity.getPosition();
         if (noMaxDistance || position.distance(origin) < distance) {
@@ -211,7 +255,30 @@ public class MovementController {
         }
     }
 
-    public void pointUpdate(Entity entity, float deltaTime) {
+    public void directionUpdate(PointLight pointLight, float deltaTime) {
+        Vector3f position = pointLight.getPosition();
+        if (noMaxDistance || position.distance(origin) < distance) {
+            switch (mode) {
+                case ACCELERATION -> {
+                    if (stopAtZeroSpeed && speed + acceleration * deltaTime <= 0) {
+                        speed = 0;
+                    } else {
+                        speed += acceleration * deltaTime;
+                    }
+                }
+                case DECELERATION -> {
+                    if (stopAtZeroSpeed && speed - acceleration * deltaTime <= 0) {
+                        speed = 0;
+                    } else {
+                        speed -= acceleration * deltaTime;
+                    }
+                }
+            }
+            position.add(new Vector3f(direction).normalize().mul(speed * deltaTime));
+        }
+    }
+
+    public void pathUpdate(Entity entity, float deltaTime) {
         if (path == null || path.size() == 0) {
             return;
         }
@@ -234,6 +301,35 @@ public class MovementController {
         position.add(direction.normalize().mul(speed * deltaTime));
 
         entity.setPosition(position);
+
+        if (position.sub(target, new Vector3f()).length() < 0.1f) {
+            pathIndex++;
+        }
+    }
+
+    public void pathUpdate(PointLight pointLight, float deltaTime) {
+        if (path == null || path.size() == 0) {
+            return;
+        }
+
+        if (pathIndex >= path.size()) {
+            pathIndex = 0;
+        }
+
+        Vector3f position = pointLight.getPosition();
+
+        Vector3f target = path.get(pathIndex);
+
+        Vector3f direction = new Vector3f(target).sub(position);
+
+        if (direction.length() < 0.01f * speed) {
+            pathIndex++;
+            return;
+        }
+
+        position.add(direction.normalize().mul(speed * deltaTime));
+
+        pointLight.setPosition(position);
 
         if (position.sub(target, new Vector3f()).length() < 0.1f) {
             pathIndex++;

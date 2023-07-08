@@ -610,6 +610,12 @@ public class GUI {
                     // Settings
                     ImGui.text("Settings");
 
+                    // Bloom
+                    float[] bloomStrength = new float[] { settings.getBloomStrength() };
+                    if (ImGui.dragFloat("Bloom strength", bloomStrength, 0.001f, 0f, Float.MAX_VALUE)) {
+                        settings.setBloomStrength(bloomStrength[0]);
+                    }
+
                     // Occlusion
                     ImBoolean specularOcclusion = new ImBoolean(settings.isSpecularOcclusion());
                     if (ImGui.checkbox("Specular Occlusion", specularOcclusion)) {
@@ -820,6 +826,13 @@ public class GUI {
                             }
                         }
                         ImGui.endPopup();
+                    }
+
+                    float[] emissionStrength = new float[] {scene.getModelByID(entity.getModelID()).getMeshDatas().get(pbrMaterials.indexOf(pbrMaterial)).getEmissionStrength()};
+                    if (ImGui.dragFloat("Emission Strength##" + pbrMaterial.getID(), emissionStrength, 0.01f, 0.0f, Float.MAX_VALUE)) {
+                        scene.getModelByID(entity.getModelID()).getMeshDatas().get(pbrMaterials.indexOf(pbrMaterial)).setEmissionStrength(emissionStrength[0]);
+                        masterRenderer.setupBuffers(scene);
+                        entity.setUpdated(true);
                     }
 
 //                    List<String> names = new ArrayList<>();
@@ -1068,6 +1081,154 @@ public class GUI {
             if (ImGui.button("Set to camera position")) light.setPosition(new Vector3f(camera.getPosition()));
             if (ImGui.colorPicker3("Color: ", color)) light.setColor(new Vector3f(color[0], color[1], color[2]));
             if (ImGui.dragFloat("Intensity: ", intensity, 0.1f, 0f, Float.MAX_VALUE)) light.setIntensity(intensity[0]);
+
+            // Components
+            ImGui.separator();
+            ImGui.text("Components");
+            ImGui.separator();
+
+            MovementController movementController = light.getMovementController();
+            if (movementController != null) {
+                ImGui.text("Movement");
+
+                ImInt currentItem = new ImInt(light.getMovementController().getType().ordinal());
+                String[] items = { "None", "Orbit", "Direction", "Points", "Keyboard" };
+                if (ImGui.beginCombo("Movement type", items[currentItem.get()])) {
+                    for (int i = 0; i < items.length; i++) {
+                        boolean isSelected = currentItem.get() == i;
+                        if (ImGui.selectable(items[i], isSelected)) {
+                            currentItem.set(i);
+                            switch (i) {
+                                case 0 -> movementController.setType(MovementController.Type.NONE);  // Preserve the movement attributes
+                                case 1 -> {
+                                    movementController.setType(MovementController.Type.ORBIT);
+                                    if (movementController.getCenter() == null) movementController.setCenter(new Vector3f(0, 0, 0));
+                                    if (movementController.getAxis() == null) movementController.setAxis(new Vector3f(0, 1, 0));
+                                    if (movementController.getRadius() == 0) movementController.setRadius(1);
+                                    if (movementController.getAnglePerSecond() == 0) movementController.setAnglePerSecond((float) Math.toRadians(90.0f));
+                                }
+                                case 2 -> {
+                                    movementController.setType(MovementController.Type.DIRECTION);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getOrigin() == null) movementController.setOrigin(new Vector3f(0, 0, 0));
+                                    if (movementController.getDirection() == null) movementController.setDirection(new Vector3f(0, 0, 1));
+                                    if (movementController.getDistance() == 0) movementController.setDistance(0);
+                                }
+                                case 3 -> {
+                                    movementController.setType(MovementController.Type.PATH);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getPath() == null) movementController.setPath(new ArrayList<>() {});
+                                }
+                                case 4 -> {
+                                    movementController.setType(MovementController.Type.KEYBOARD);
+                                    if (movementController.getSpeed() == 0) movementController.setSpeed(1);
+                                    if (movementController.getDeceleration() == 0) movementController.setDeceleration(0.95f);
+                                }
+                            }
+                        }
+                        if (isSelected) {
+                            ImGui.setScrollHereY();
+                        }
+                    }
+                    ImGui.endCombo();
+                }
+
+                if (movementController.getType() == MovementController.Type.ORBIT) {
+                    float[] center = Utils.vector3fToArray(movementController.getCenter());
+                    float[] axis = Utils.vector3fToArray(movementController.getAxis());
+                    float[] radius = new float[] { movementController.getRadius() };
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] anglePerSecond = new float[] { (float) Math.toDegrees(movementController.getAnglePerSecond()) };
+                    ImBoolean pointTowardsCenter = new ImBoolean(movementController.isPointTowardsCenter());
+
+                    if (ImGui.dragFloat3("Center: ", center, 0.1f)) movementController.setCenter(new Vector3f(center[0], center[1], center[2]));
+                    if (ImGui.dragFloat3("Axis: ", axis, 0.1f)) movementController.setAxis(new Vector3f(axis[0], axis[1], axis[2]));
+                    if (ImGui.dragFloat("Radius: ", radius, 0.1f, 0.01f, Float.MAX_VALUE)) movementController.setRadius(radius[0]);
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f, 0.01f, Float.MAX_VALUE)) movementController.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Angle per second: ", anglePerSecond, 0.1f)) movementController.setAnglePerSecond((float) Math.toRadians(anglePerSecond[0]));
+                    if (ImGui.checkbox("Point towards center: ", pointTowardsCenter)) movementController.setPointTowardsCenter(pointTowardsCenter.get());
+                } else if (movementController.getType() == MovementController.Type.DIRECTION) {
+                    ImInt currentMode = new ImInt(light.getMovementController().getMode().ordinal());
+                    String[] modes = { "Constant", "Acceleration", "Deceleration" };
+                    if (ImGui.beginCombo("Movement mode", modes[currentMode.get()])) {
+                        for (int i = 0; i < modes.length; i++) {
+                            boolean isSelected = currentMode.get() == i;
+                            if (ImGui.selectable(modes[i], isSelected)) {
+                                currentMode.set(i);
+                                switch (i) {
+                                    case 0 -> movementController.setMode(MovementController.Mode.CONSTANT);
+                                    case 1 -> movementController.setMode(MovementController.Mode.ACCELERATION);
+                                    case 2 -> movementController.setMode(MovementController.Mode.DECELERATION);
+                                }
+                            }
+                            if (isSelected) {
+                                ImGui.setScrollHereY();
+                            }
+                        }
+                        ImGui.endCombo();
+                    }
+
+                    float[] origin = Utils.vector3fToArray(movementController.getOrigin());
+                    float[] direction = Utils.vector3fToArray(movementController.getDirection());
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] acceleration = new float[] { movementController.getAcceleration() };
+                    float[] distance = new float[] { movementController.getDistance() };
+                    ImBoolean noMaxDistance = new ImBoolean(movementController.isNoMaxDistance());
+                    ImBoolean stopAtZeroSpeed = new ImBoolean(movementController.isStopAtZeroSpeed());
+
+                    if (ImGui.dragFloat3("Origin: ", origin, 0.1f)) movementController.setOrigin(new Vector3f(origin[0], origin[1], origin[2]));
+                    if (ImGui.dragFloat3("Direction: ", direction, 0.1f)) movementController.setDirection(new Vector3f(direction[0], direction[1], direction[2]));
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
+                    if (movementController.getMode() == MovementController.Mode.ACCELERATION) {
+                        if (ImGui.dragFloat("Acceleration: ", acceleration, 0.1f)) movementController.setAcceleration(acceleration[0]);
+                    } else if (movementController.getMode() == MovementController.Mode.DECELERATION) {
+                        if (ImGui.dragFloat("Deceleration: ", acceleration, 0.1f)) movementController.setAcceleration(acceleration[0]);
+                    }
+                    if (movementController.getMode() != MovementController.Mode.CONSTANT) {
+                        if (ImGui.checkbox("Stop at zero speed: ", stopAtZeroSpeed)) movementController.setStopAtZeroSpeed(stopAtZeroSpeed.get());
+                    }
+                    if (!movementController.isNoMaxDistance()) {
+                        if (ImGui.dragFloat("Distance: ", distance, 0.1f)) movementController.setDistance(distance[0]);
+                    }
+                    if (ImGui.checkbox("No max distance: ", noMaxDistance)) movementController.setNoMaxDistance(noMaxDistance.get());
+                    if (ImGui.button("Reset##Origin", 60, 0)) light.setPosition(new Vector3f(movementController.getOrigin()));
+                } else if (movementController.getType() == MovementController.Type.PATH) {
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    List<Vector3f> points = movementController.getPath();
+
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
+
+                    ImGui.text("Points");
+                    for (int i = 0; i < points.size(); i++) {
+                        float[] point = Utils.vector3fToArray(points.get(i));
+                        if (ImGui.dragFloat3("Point " + (i + 1), point, 0.1f)) movementController.setPoint(i, new Vector3f(point[0], point[1], point[2]));
+                        ImGui.sameLine();
+                        if (ImGui.button("Remove")) movementController.removePoint(i);
+                    }
+
+                    if (ImGui.button("Add point")) {
+                        movementController.addPoint(new Vector3f(0, 0, 0), scene);
+                    }
+                } else if (movementController.getType() == MovementController.Type.KEYBOARD) {
+                    float[] speed = new float[] { movementController.getSpeed() };
+                    float[] deceleration = new float[] { movementController.getDeceleration() };
+
+                    if (ImGui.dragFloat("Speed: ", speed, 0.1f)) movementController.setSpeed(speed[0]);
+                    if (ImGui.dragFloat("Deceleration: ", deceleration, 0.1f)) movementController.setDeceleration(deceleration[0]);
+                }
+            }
+
+            ImGui.separator();
+            if (ImGui.button("Add component")) {
+                ImGui.openPopup("Add component");
+            }
+
+            if (ImGui.beginPopup("Add component")) {
+                if (ImGui.menuItem("Movement")) {
+                    light.setMovementController(MovementController.none(scene));
+                }
+                ImGui.endPopup();
+            }
 
             if (ImGui.button("Remove")) {
                 pointLights.remove(light);

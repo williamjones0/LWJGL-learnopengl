@@ -5,7 +5,10 @@
 in vec3 WorldPos;
 in vec3 Normal;
 in vec2 TexCoords;
+
 in flat uint ModelMeshMaterialID;
+in flat float ModelMeshEmissionStrength;
+
 in vec4 FragPosLightSpace;
 in vec4 FragPosSpotlightSpace;
 
@@ -79,6 +82,7 @@ struct Settings {
 #define NUM_POINT_LIGHTS 8
 #define NUM_SPOT_LIGHTS 4
 #define PI 3.14159265359
+#define EPSILON 0.0001
 
 uniform vec3 camPos;
 
@@ -116,7 +120,7 @@ vec3 getNormalFromMap(GPUMaterial material) {
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness;
     float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
+    float NdotH = max(dot(N, H), EPSILON);
 
     float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
 
@@ -130,8 +134,8 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 }
 
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), EPSILON);
+    float NdotL = max(dot(N, L), EPSILON);
 
     return GeometrySchlickGGX(NdotL, roughness) * GeometrySchlickGGX(NdotV, roughness);
 }
@@ -222,6 +226,9 @@ void main() {
     vec3 emissive;
     float ao;
 
+    // Per-mesh material modifiers
+    float emissionStrength = ModelMeshEmissionStrength;
+
     if (material.uses_albedo_map > 0.5) {
         albedo = pow(texture(material.albedo, TexCoords).rgb, vec3(2.2));
     } else {
@@ -235,8 +242,8 @@ void main() {
     }
 
     if (material.uses_metallicRoughness_map > 0.5) {
-        metallic = texture(material.metallicRoughness, TexCoords).b + texture(material.metallic, TexCoords).b * 0.00001;
-        roughness = texture(material.metallicRoughness, TexCoords).g + texture(material.roughness, TexCoords).b * 0.00001;
+        metallic = texture(material.metallicRoughness, TexCoords).b + texture(material.metallic, TexCoords).b * EPSILON;
+        roughness = texture(material.metallicRoughness, TexCoords).g + texture(material.roughness, TexCoords).b * EPSILON;
     } else {
         if (material.uses_metallic_map > 0.5) {
             metallic = texture(material.metallic, TexCoords).r;
@@ -262,6 +269,9 @@ void main() {
     } else {
         emissive = material.emissiveColor.xyz;
     }
+
+    // Per-mesh material modifiers
+    emissive *= emissionStrength;
 
     // Lighting data input
     vec3 V = normalize(camPos - WorldPos);
@@ -296,10 +306,10 @@ void main() {
         // Cook-Torrance BRDF
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+        vec3 F = fresnelSchlick(clamp(dot(H, V), EPSILON, 1.0), F0);
 
         vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + EPSILON;
         vec3 specular = numerator / denominator;
 
         // kS is equal to Fresnel
@@ -310,7 +320,7 @@ void main() {
         kD *= 1.0 - metallic;
 
         // Scale light by NdotL
-        float NdotL = max(dot(N, L), 0.0);
+        float NdotL = max(dot(N, L), EPSILON);
 
         // Add to outgoing radiance Lo
         // Already multiplied the BRDF by kS, so don't need to multiply again
@@ -344,10 +354,10 @@ void main() {
             // Cook-Torrance BRDF
             float NDF = DistributionGGX(N, H, roughness);
             float G = GeometrySmith(N, V, L, roughness);
-            vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+            vec3 F = fresnelSchlick(clamp(dot(H, V), EPSILON, 1.0), F0);
 
             vec3 numerator = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+            float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + EPSILON;
             vec3 specular = numerator / denominator;
 
             // kS is equal to Fresnel
@@ -358,7 +368,7 @@ void main() {
             kD *= 1.0 - metallic;
 
             // Scale light by NdotL
-            float NdotL = max(dot(N, L), 0.0);
+            float NdotL = max(dot(N, L), EPSILON);
 
             // Add to outgoing radiance Lo
             // Already multiplied the BRDF by kS, so don't need to multiply again
@@ -381,17 +391,17 @@ void main() {
 
         float NDF = DistributionGGX(N, H, roughness);
         float G = GeometrySmith(N, V, L, roughness);
-        vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+        vec3 F = fresnelSchlick(clamp(dot(H, V), EPSILON, 1.0), F0);
 
         vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + EPSILON;
         vec3 specular = numerator / denominator;
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metallic;
 
-        float NdotL = max(dot(N, L), 0.0);
+        float NdotL = max(dot(N, L), EPSILON);
 
         Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
     }
@@ -427,9 +437,22 @@ void main() {
 
     FragColor = vec4(color, 1.0);
 
+    // Temporary fix for infinitely bright/dark fragments causing bloom to break
+    if (isinf(FragColor.x)) FragColor.x = 100.0;
+    if (isinf(FragColor.y)) FragColor.y = 100.0;
+    if (isinf(FragColor.z)) FragColor.z = 100.0;
+
+    if (isnan(FragColor.x)) FragColor.x = EPSILON;
+    if (isnan(FragColor.y)) FragColor.y = EPSILON;
+    if (isnan(FragColor.z)) FragColor.z = EPSILON;
+
 //    if (TEST_FRAG_COLOR.x != 0.01234) {
 //        FragColor = TEST_FRAG_COLOR;
 //    } else {
 //        FragColor = vec4(color, 1.0);
+//    }
+
+//    if (emissionStrength > 0.0) {
+//        FragColor = vec4(emissionStrength, emissionStrength, emissionStrength, 1.0);
 //    }
 }

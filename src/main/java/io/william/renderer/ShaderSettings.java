@@ -3,6 +3,7 @@ package io.william.renderer;
 public class ShaderSettings {
 
     private float exposure = 1.0f;
+    private float bloomStrength = 0.04f;
 
     private float pointLightMeshRadius = 0.1f;
 
@@ -25,6 +26,14 @@ public class ShaderSettings {
 
     public void setExposure(float exposure) {
         this.exposure = exposure;
+    }
+
+    public float getBloomStrength() {
+        return bloomStrength;
+    }
+
+    public void setBloomStrength(float bloomStrength) {
+        this.bloomStrength = bloomStrength;
     }
 
     public float getPointLightMeshRadius() {

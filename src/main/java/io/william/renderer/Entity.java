@@ -74,7 +74,7 @@ public class Entity {
             switch (movementController.getType()) {
                 case ORBIT -> movementController.orbitUpdate(this, deltaTime);
                 case DIRECTION -> movementController.directionUpdate(this, deltaTime);
-                case PATH -> movementController.pointUpdate(this, deltaTime);
+                case PATH -> movementController.pathUpdate(this, deltaTime);
             }
 
             if (movementController.getType() != MovementController.Type.NONE) {

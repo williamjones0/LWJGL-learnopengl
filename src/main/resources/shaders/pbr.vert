@@ -7,7 +7,10 @@ layout (location = 2) in vec2 aTexCoords;
 out vec3 WorldPos;
 out vec3 Normal;
 out vec2 TexCoords;
+
 out flat uint ModelMeshMaterialID;
+out flat float ModelMeshEmissionStrength;
+
 out vec4 FragPosLightSpace;
 out vec4 FragPosSpotlightSpace;
 
@@ -20,9 +23,9 @@ struct ModelMeshInstance {
     mat4 World;                 // 64 bytes
 
     uint MaterialID;            // 4 bytes
+    float emissionStrength;     // 4 bytes
     uint _pad0;                 // 4 bytes
     uint _pad1;                 // 4 bytes
-    uint _pad2;                 // 4 bytes
 };
 
 layout (binding = 0, std430) buffer ModelMeshInstanceBuffer {
@@ -38,6 +41,7 @@ void main() {
     FragPosSpotlightSpace = spotlightSpaceMatrix * vec4(WorldPos, 1.0);
 
     ModelMeshMaterialID = modelMeshInstance.MaterialID.x;
+    ModelMeshEmissionStrength = modelMeshInstance.emissionStrength;
 
     gl_Position = projection * view * vec4(WorldPos, 1.0);
 }

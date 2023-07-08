@@ -16,7 +16,7 @@ import static org.lwjgl.opengl.GL43.glObjectLabel;
 
 public class SceneMesh {
 
-    public record MeshDrawData(int sizeBytes, int materialID, int offset, int vertices) {}
+    public record MeshDrawData(int sizeBytes, int materialID, float emissionStrength, int offset, int vertices) {}
 
     private int VAO;
     private final List<Integer> VBOs;
@@ -59,6 +59,7 @@ public class SceneMesh {
                 meshDrawDatas.add(new MeshDrawData(
                     meshSizeBytes,
                     meshData.getMaterialID(),
+                    meshData.getEmissionStrength(),
                     offset,
                     meshData.getIndices().length
                 ));

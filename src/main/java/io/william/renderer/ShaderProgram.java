@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
@@ -114,6 +115,15 @@ public class ShaderProgram {
         createUniform(uniformName + ".pointShadowBias");
         createUniform(uniformName + ".shadowMinBias");
         createUniform(uniformName + ".shadowMaxBias");
+    }
+
+    public void setUniform(String uniformName, Vector2f value) {
+        // Dump the vector into a float buffer
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer fb = stack.mallocFloat(2);
+            value.get(fb);
+            glUniform2fv(uniforms.get(uniformName), fb);
+        }
     }
 
     public void setUniform(String uniformName, Vector3f value) {

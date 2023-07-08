@@ -10,6 +10,7 @@ public class MeshData {
     private final int[] indices;
 
     private int materialID;
+    private float emissionStrength;
 
     public MeshData(float[] positions, float[] normals, float[] tangents, float[] bitangents, float[] texCoords, int[] indices) {
         this.positions = positions;
@@ -20,6 +21,7 @@ public class MeshData {
         this.indices = indices;
 
         this.materialID = 0;
+        this.emissionStrength = 1.0f;
     }
 
     public float[] getPositions() {
@@ -52,6 +54,14 @@ public class MeshData {
 
     public void setMaterialID(int materialID) {
         this.materialID = materialID;
+    }
+
+    public float getEmissionStrength() {
+        return emissionStrength;
+    }
+
+    public void setEmissionStrength(float emissionStrength) {
+        this.emissionStrength = emissionStrength;
     }
 
 }

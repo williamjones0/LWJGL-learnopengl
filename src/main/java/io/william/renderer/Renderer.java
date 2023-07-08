@@ -56,6 +56,8 @@ public class Renderer {
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
 
+    private BloomRenderer bloomRenderer;
+
     public void init(Window window, Camera camera) throws Exception {
         framebuffer = new Framebuffer(
             new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
@@ -65,6 +67,9 @@ public class Renderer {
         );
 
         shaderSettings = new ShaderSettings();
+
+        bloomRenderer = new BloomRenderer();
+        bloomRenderer.init(window.getWidth(), window.getHeight());
 
         phongShader = new ShaderProgram("Phong");
         phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
@@ -130,7 +135,9 @@ public class Renderer {
         hdrShader.link();
 
         hdrShader.createUniform("hdrBuffer");
+        hdrShader.createUniform("bloomBuffer");
         hdrShader.createUniform("exposure");
+        hdrShader.createUniform("bloomStrength");
         hdrShader.createUniform("toneMapping");
     }
 
@@ -351,13 +358,22 @@ public class Renderer {
         glClearColor(0.5f, 1.0f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // Render bloom texture
+        bloomRenderer.renderBloomTexture(framebuffer.getTexture().getID(), 0.005f);
+
         // Render framebuffer to screen
         hdrShader.bind();
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, framebuffer.getTexture().getID());
         hdrShader.setUniform("hdrBuffer", 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, bloomRenderer.getBloomTexture());
+        hdrShader.setUniform("bloomBuffer", 1);
+
         hdrShader.setUniform("exposure", shaderSettings.getExposure());
+        hdrShader.setUniform("bloomStrength", shaderSettings.getBloomStrength());
         hdrShader.setUniform("toneMapping", toneMapping);
 
         // Render quad
