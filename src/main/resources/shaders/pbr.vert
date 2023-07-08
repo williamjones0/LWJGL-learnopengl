@@ -9,17 +9,20 @@ out vec3 Normal;
 out vec2 TexCoords;
 out flat uint ModelMeshMaterialID;
 out vec4 FragPosLightSpace;
+out vec4 FragPosSpotlightSpace;
 
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 lightSpaceMatrix;
+uniform mat4 spotlightSpaceMatrix;
 
 struct ModelMeshInstance {
-    mat4 World;
-    uint MaterialID;
-    uint _pad0;
-    uint _pad1;
-    uint _pad2;
+    mat4 World;                 // 64 bytes
+
+    uint MaterialID;            // 4 bytes
+    uint _pad0;                 // 4 bytes
+    uint _pad1;                 // 4 bytes
+    uint _pad2;                 // 4 bytes
 };
 
 layout (binding = 0, std430) buffer ModelMeshInstanceBuffer {
@@ -32,6 +35,7 @@ void main() {
     Normal = normalize(inverse(transpose(mat3(modelMeshInstance.World))) * aNormal);
     TexCoords = aTexCoords;
     FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
+    FragPosSpotlightSpace = spotlightSpaceMatrix * vec4(WorldPos, 1.0);
 
     ModelMeshMaterialID = modelMeshInstance.MaterialID.x;
 

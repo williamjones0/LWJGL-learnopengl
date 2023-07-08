@@ -2,6 +2,10 @@ package io.william.renderer;
 
 public class ShaderSettings {
 
+    private float exposure = 1.0f;
+
+    private float pointLightMeshRadius = 0.1f;
+
     private boolean specularOcclusion = true;
     private boolean horizonSpecularOcclusion = true;
 
@@ -14,6 +18,22 @@ public class ShaderSettings {
     // Point shadows
     private boolean pointShadows = true;
     private float pointShadowBias = 0.05f;
+
+    public float getExposure() {
+        return exposure;
+    }
+
+    public void setExposure(float exposure) {
+        this.exposure = exposure;
+    }
+
+    public float getPointLightMeshRadius() {
+        return pointLightMeshRadius;
+    }
+
+    public void setPointLightMeshRadius(float pointLightMeshRadius) {
+        this.pointLightMeshRadius = pointLightMeshRadius;
+    }
 
     public boolean isSpecularOcclusion() {
         return specularOcclusion;

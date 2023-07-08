@@ -71,6 +71,7 @@ vec2 IntegrateBRDF(float NdotV, float roughness) {
 
     const uint SAMPLE_COUNT = 1024u;
     for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
+        // Generate a sample vector biased towards the appropriate direction
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
         vec3 H  = ImportanceSampleGGX(Xi, N, roughness);
         vec3 L  = normalize(2.0 * dot(V, H) * H - V);

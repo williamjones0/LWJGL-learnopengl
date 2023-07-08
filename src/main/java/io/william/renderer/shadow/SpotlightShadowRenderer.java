@@ -11,6 +11,8 @@ import java.nio.file.Files;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
+import static org.lwjgl.opengl.GL43.glMultiDrawElementsIndirect;
 
 public class SpotlightShadowRenderer {
 
@@ -21,6 +23,8 @@ public class SpotlightShadowRenderer {
 
     private final TextureArray textureArray;
 
+    private Matrix4f lightSpaceMatrix;
+
     private float nearPlane = 0.0f;
     private float farPlane = 200.0f;
 
@@ -30,7 +34,9 @@ public class SpotlightShadowRenderer {
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/spotlight/shadow.frag").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();
 
-        shaderProgram.createUniform("model");
+//        shaderProgram.createUniform("lightPos");
+//        shaderProgram.createUniform("farPlane");
+        shaderProgram.createUniform("textureLayer");
         shaderProgram.createUniform("lightSpaceMatrix");
 
         final int NUM_SPOT_LIGHTS = 4;
@@ -47,9 +53,11 @@ public class SpotlightShadowRenderer {
         framebuffer = new Framebuffer(textureArray, GL_DEPTH_ATTACHMENT);
     }
 
-    public void render(Scene scene) {
+    public void render(Scene scene, SceneMesh sceneMesh, int indirectBuffer, int drawCount) {
+        System.out.println("Rendering spotlight shadows");
         // Early exit
         if (scene.getSpotLights().isEmpty() || scene.getSpotLights().size() == 0 || scene.getEntities().isEmpty() || scene.getEntities().size() == 0) {
+            System.out.println("Spot early exit 1");
             return;
         }
 
@@ -62,6 +70,7 @@ public class SpotlightShadowRenderer {
         }
 
         if (exit) {
+            System.out.println("Spot early exit 2");
             return;
         }
 
@@ -73,29 +82,34 @@ public class SpotlightShadowRenderer {
         glClear(GL_DEPTH_BUFFER_BIT);
         glCullFace(GL_FRONT);
 
-        Matrix4f shadowProj = new Matrix4f().perspective((float) Math.toRadians(90.0f), 1.0f, nearPlane, farPlane);
-//        Matrix4f shadowProj = new Matrix4f().ortho(-100, 100, -100, 100, nearPlane, farPlane);
+//        Matrix4f shadowProj = new Matrix4f().perspective((float) Math.toRadians(90.0f), 1.0f, nearPlane, farPlane);
+        Matrix4f shadowProj = new Matrix4f().ortho(-100, 100, -100, 100, nearPlane, farPlane);
 
         shaderProgram.bind();
         final int numSpotLights = scene.getSpotLights().size();
         for (int i = 0; i < numSpotLights; i++) {
             if (!scene.getSpotLights().get(i).isEnabled()) {
+                System.out.println("Spotlight " + i + " is disabled");
                 continue;
             }
 
             Vector3f lightPos = scene.getSpotLights().get(i).getPosition();
             Vector3f lightDir = scene.getSpotLights().get(i).getDirection().normalize();
 
-            Matrix4f transform = new Matrix4f().mul(shadowProj).mul(new Matrix4f().lookAt(lightPos, new Vector3f(lightPos).add(lightDir), new Vector3f(0, 1, 0)));
+//            shaderProgram.setUniform("lightPos", lightPos);
+//            shaderProgram.setUniform("farPlane", farPlane);
+            shaderProgram.setUniform("textureLayer", i);
 
-            shaderProgram.setUniform("lightSpaceMatrix", transform);
+            Matrix4f lightView = new Matrix4f().lookAt(lightPos, new Vector3f(lightPos).add(lightDir), new Vector3f(0, 1, 0));
+            lightSpaceMatrix = new Matrix4f().mul(shadowProj).mul(lightView);
 
-            for (Entity entity : scene.getEntities()) {
-                if (entity.getMaterialMeshes() != null && entity.getMaterialMeshes().length > 0) {
-                    shaderProgram.setUniform("model", Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale()));
-                    entity.render();
-                }
-            }
+            shaderProgram.setUniform("lightSpaceMatrix", lightSpaceMatrix);
+
+            // Render entities (indirect drawing)
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+            glBindVertexArray(sceneMesh.getVAO());
+            glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
+            glBindVertexArray(0);
         }
 
         glCullFace(GL_BACK);
@@ -103,6 +117,10 @@ public class SpotlightShadowRenderer {
         shaderProgram.unbind();
 
         glDepthFunc(GL_LEQUAL);
+    }
+
+    public Matrix4f getLightSpaceMatrix() {
+        return lightSpaceMatrix;
     }
 
     public int getTextureArrayID() {

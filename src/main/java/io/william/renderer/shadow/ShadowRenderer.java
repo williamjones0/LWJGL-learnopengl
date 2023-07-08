@@ -3,13 +3,19 @@ package io.william.renderer.shadow;
 import io.william.renderer.*;
 import io.william.util.Maths;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.lwjgl.system.MemoryUtil;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL43.*;
+import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class ShadowRenderer {
 
@@ -22,9 +28,9 @@ public class ShadowRenderer {
 
     private Matrix4f lightSpaceMatrix;
 
-    private float nearPlane = -40.0f;
-    private float farPlane = 40.0f;
-    private float size = 40.0f;
+    private float nearPlane = -200.0f;
+    private float farPlane = 200.0f;
+    private float size = 200.0f;
 
     public ShadowRenderer() throws Exception {
         shaderProgram = new ShaderProgram("DirectionalShadow");
@@ -32,20 +38,19 @@ public class ShadowRenderer {
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/shadow.frag").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();
 
-        shaderProgram.createUniform("model");
         shaderProgram.createUniform("lightSpaceMatrix");
 
         texture = new Texture(resolution, resolution, GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT, GL_FLOAT);
         texture.bind();
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, new float[] {1.0f, 1.0f, 1.0f, 1.0f});
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);  // Both set to GL_CLAMP_TO_BORDER so that areas outside the shadow map are not in shadow
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, new float[] {1.0f, 1.0f, 1.0f, 1.0f});  // Set to 1.0f so that areas outside the shadow map are not in shadow
 
         framebuffer = new Framebuffer(texture, GL_DEPTH_ATTACHMENT, false);
     }
 
-    public void render(Scene scene) {
+    public void render(Scene scene, SceneMesh sceneMesh, int indirectBuffer, int drawCount) {
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
@@ -55,19 +60,18 @@ public class ShadowRenderer {
         glCullFace(GL_FRONT);
 
         Matrix4f lightProjection = new Matrix4f().ortho(-size, size, -size, size, nearPlane, farPlane);
-        Matrix4f lightView = new Matrix4f().lookAt(scene.getDirLight().getDirection().normalize(), new org.joml.Vector3f(0, 0, 0), new org.joml.Vector3f(0, 1, 0));
+        Matrix4f lightView = new Matrix4f().lookAt(scene.getDirLight().getDirection().normalize(), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0));
         lightSpaceMatrix = new Matrix4f().mul(lightProjection).mul(lightView);
 
         shaderProgram.bind();
 
         shaderProgram.setUniform("lightSpaceMatrix", lightSpaceMatrix);
 
-        for (Entity entity : scene.getEntities()) {
-            if (entity.getMaterialMeshes() != null && entity.getMaterialMeshes().length > 0) {
-                shaderProgram.setUniform("model", Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale()));
-                entity.render();
-            }
-        }
+        // Render entities (indirect drawing)
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+        glBindVertexArray(sceneMesh.getVAO());
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
+        glBindVertexArray(0);
 
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -4,11 +4,11 @@ in vec3 WorldPos;
 
 uniform sampler2D equirectangularMap;
 
-const vec2 invAtan = vec2(0.1591, 0.3183);
+const vec2 invAtan = vec2(0.1591, 0.3183);  // (reciprocal of 2pi, reciprocal of pi)
 vec2 SampleSphericalMap(vec3 v) {
-    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
-    uv *= invAtan;
-    uv += 0.5;
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));  // Convert from cartesian to spherical coordinates
+    uv *= invAtan;  // Map to [-0.5, 0.5] range
+    uv += 0.5;  // Map to [0, 1] range
     return uv;
 }
 

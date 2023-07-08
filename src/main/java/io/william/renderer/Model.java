@@ -10,23 +10,29 @@ public class Model {
     private final List<MeshData> meshDatas;
     private final List<SceneMesh.MeshDrawData> meshDrawDatas;
 
+    private final ModelMetadata modelMetadata;
+
     private String name;
 
-    public Model(MeshData meshData, String name) {
+    public Model(MeshData meshData, ModelMetadata modelMetadata, String name) {
         this.entities = new ArrayList<>();
         this.meshDatas = new ArrayList<>();
         meshDatas.add(meshData);
         this.meshDrawDatas = new ArrayList<>();
 
+        this.modelMetadata = modelMetadata;
+
         this.name = name;
     }
 
-    public Model(List<MeshData> meshDatas) {
+    public Model(List<MeshData> meshDatas, ModelMetadata modelMetadata, String name) {
         this.entities = new ArrayList<>();
         this.meshDatas = meshDatas;
         this.meshDrawDatas = new ArrayList<>();
 
-        this.name = "Assimp Model";
+        this.modelMetadata = modelMetadata;
+
+        this.name = name;
     }
 
     public int getID() {
@@ -63,5 +69,9 @@ public class Model {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public ModelMetadata getModelMetadata() {
+        return modelMetadata;
     }
 }

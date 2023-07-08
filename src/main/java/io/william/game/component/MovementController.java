@@ -5,7 +5,9 @@ import io.william.renderer.primitive.UVSphere;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MovementController {
 
@@ -14,7 +16,7 @@ public class MovementController {
         NONE,
         ORBIT,
         DIRECTION,
-        POINTS,
+        PATH,
         KEYBOARD
     }
 
@@ -45,16 +47,16 @@ public class MovementController {
     private boolean noMaxDistance;
     private boolean stopAtZeroSpeed;
 
-    // Points
+    // Path
     private List<Vector3f> path;
     private int pathIndex = 0;
 
     // Keyboard
     private float deceleration;
 
-    // Rendering
-    private final List<Entity> pointEntities;
-    private final Model pointModel;
+//    // Rendering
+//    private final List<Entity> pointEntities;
+//    private final Model pointModel;
 
     private MovementController(Scene scene, Type type, Mode mode, float speed, float deceleration, Vector3f center, Vector3f axis, float radius, float anglePerSecond, Vector3f origin, Vector3f direction, float acceleration, float distance, List<Vector3f> path) {
         this.type = type;
@@ -71,19 +73,26 @@ public class MovementController {
         this.distance = distance;
         this.path = path;
 
-        this.pointEntities = new ArrayList<>();
-
-        UVSphere sphere = new UVSphere(0.1f, 10, 10);
-        Model sphereModel = new Model(new MeshData(
-                sphere.getPositions(),
-                sphere.getNormals(),
-                new float[] {},
-                new float[] {},
-                sphere.getTexCoords(),
-                sphere.getIndices()
-        ), "Point");
-        scene.addModel(sphereModel);
-        this.pointModel = sphereModel;
+//        this.pointEntities = new ArrayList<>();
+//
+//        UVSphere sphere = new UVSphere(0.1f, 10, 10);
+//        Map<Integer, Integer> meshDataMaterialIDs = new HashMap<>();
+//        meshDataMaterialIDs.put(0, 0);
+//
+//        Model sphereModel = new Model(
+//            new MeshData(
+//                sphere.getPositions(),
+//                sphere.getNormals(),
+//                new float[] {},
+//                new float[] {},
+//                sphere.getTexCoords(),
+//                sphere.getIndices()
+//            ),
+//            new ModelMetadata(sphere, meshDataMaterialIDs),
+//            "Point"
+//        );
+//        scene.addModel(sphereModel);
+//        this.pointModel = sphereModel;
     }
 
     // Orbits are initialised with a center point, a rotation axis, a radius, and a speed or rotation angle per second
@@ -98,6 +107,22 @@ public class MovementController {
 
     public static MovementController none(Scene scene) {
         return new MovementController(scene, Type.NONE, Mode.CONSTANT, 0, 0, null, null, 0, 0, null, null, 0, 0, null);
+    }
+
+    public static MovementController orbit(Scene scene, Mode mode, float speed, Vector3f center, Vector3f axis, float radius) {
+        return new MovementController(scene, Type.ORBIT, mode, speed, 0, center, axis, radius, 0, null, null, 0, 0, null);
+    }
+
+    public static MovementController orbit(Scene scene, Mode mode, Vector3f center, Vector3f axis, float radius, float anglePerSecond) {
+        return new MovementController(scene, Type.ORBIT, mode, radius * anglePerSecond, 0, center, axis, radius, anglePerSecond, null, null, 0, 0, null);
+    }
+
+    public static MovementController direction(Scene scene, Mode mode, float speed, Vector3f origin, Vector3f direction, float acceleration, float distance) {
+        return new MovementController(scene, Type.DIRECTION, mode, speed, 0, null, null, 0, 0, origin, direction, distance, acceleration, null);
+    }
+
+    public static MovementController path(Scene scene, Mode mode, float speed, List<Vector3f> path) {
+        return new MovementController(scene, Type.PATH, mode, speed, 0, null, null, 0, 0, null, null, 0, 0, path);
     }
 
     public void orbitUpdate(Entity entity, float deltaTime) {
@@ -216,9 +241,9 @@ public class MovementController {
     }
 
     public void render() {
-        for (Entity entity : pointEntities) {
-            entity.render();
-        }
+//        for (Entity entity : pointEntities) {
+//            entity.render();
+//        }
     }
 
     public Type getType() {
@@ -358,10 +383,10 @@ public class MovementController {
         }
         path.add(point);
 
-        Entity pointEntity = new Entity(point, new Vector3f(), 1);
-        pointModel.addEntity(pointEntity);
-        scene.addEntity(pointEntity);
-        pointEntities.add(pointEntity);
+//        Entity pointEntity = new Entity(point, new Vector3f(), 1);
+//        pointModel.addEntity(pointEntity);
+//        scene.addEntity(pointEntity);
+//        pointEntities.add(pointEntity);
     }
 
     public void setPoint(int index, Vector3f point) {
@@ -370,8 +395,8 @@ public class MovementController {
         }
         path.set(index, point);
 
-        Entity pointEntity = pointEntities.get(index);
-        pointEntity.setPosition(point);
+//        Entity pointEntity = pointEntities.get(index);
+//        pointEntity.setPosition(point);
     }
 
     public void removePoint(int index) {
@@ -379,10 +404,10 @@ public class MovementController {
             path = new ArrayList<>();
         }
         path.remove(index);
-        pointEntities.remove(index);
+//        pointEntities.remove(index);
     }
 
-    public List<Entity> getPointEntities() {
-        return pointEntities;
-    }
+//    public List<Entity> getPointEntities() {
+//        return pointEntities;
+//    }
 }

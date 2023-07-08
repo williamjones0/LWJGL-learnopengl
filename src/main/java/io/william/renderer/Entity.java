@@ -9,9 +9,9 @@ import java.util.List;
 
 public class Entity {
 
-    private int ID;
+    private int ID = -1;
 
-    private int modelID;
+    private int modelID = -1;
 
     private boolean updated;
 
@@ -74,19 +74,20 @@ public class Entity {
             switch (movementController.getType()) {
                 case ORBIT -> movementController.orbitUpdate(this, deltaTime);
                 case DIRECTION -> movementController.directionUpdate(this, deltaTime);
-                case POINTS -> movementController.pointUpdate(this, deltaTime);
+                case PATH -> movementController.pointUpdate(this, deltaTime);
             }
-            this.updated = true;
+
+            if (movementController.getType() != MovementController.Type.NONE) {
+                this.updated = true;
+            }
         }
 
         if (rotationController != null) {
-            rotationController.update(this, deltaTime);
-            this.updated = true;
+            if (rotationController.getMode() != RotationController.Mode.NONE) {
+                rotationController.update(this, deltaTime);
+                this.updated = true;
+            }
         }
-    }
-
-    public void render() {
-        // LOL
     }
 
     public int getID() {
@@ -124,17 +125,16 @@ public class Entity {
         }
     }
 
-    public MaterialMesh[] getMaterialMeshes() {
-        // LOL
-        return new MaterialMesh[] {};
-    }
-
     public Vector3f getRelativePosition() {
         return position;
     }
 
     public void setPosition(Vector3f position) {
-        this.position = position;
+        if (parent != null) {
+            this.position = new Vector3f(position).sub(parent.getPosition());
+        } else {
+            this.position = position;
+        }
     }
 
     public void setPosition(float x, float y, float z) {
@@ -185,11 +185,11 @@ public class Entity {
         children.remove(child);
     }
 
-    public MovementController getMovement() {
+    public MovementController getMovementController() {
         return movementController;
     }
 
-    public void setMovement(MovementController movementController) {
+    public void setMovementController(MovementController movementController) {
         this.movementController = movementController;
     }
 

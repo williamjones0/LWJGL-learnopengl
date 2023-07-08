@@ -6,7 +6,9 @@ import org.lwjgl.assimp.*;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.william.util.Utils.floatListToArray;
 import static io.william.util.Utils.intListToArray;
@@ -16,13 +18,13 @@ import static org.lwjgl.opengl.GL21.GL_SRGB_ALPHA;
 
 public class ModelLoader {
 
-    public static Model load(Scene scene, String modelPath, String texturesPath) throws Exception {
-        return load(scene, modelPath, texturesPath, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
+    public static Model load(Scene scene, String modelPath, String texturesPath, Map<Integer, Integer> materialIDs) throws Exception {
+        return load(scene, modelPath, texturesPath, materialIDs, aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices
             | aiProcess_Triangulate | aiProcess_FixInfacingNormals
             | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_FlipUVs);
     }
 
-    public static Model load(Scene scene, String modelPath, String texturesPath, int flags) throws Exception {
+    public static Model load(Scene scene, String modelPath, String texturesPath, Map<Integer, Integer> materialIDs, int flags) throws Exception {
         AIScene aiScene = aiImportFile(modelPath, flags);
         if (aiScene == null) {
             throw new RuntimeException("Failed to load model: " + modelPath);
@@ -45,8 +47,14 @@ public class ModelLoader {
                 System.out.println("Material " + i + " is empty");
                 continue;
             }
+
             pbrMaterials.add(material);
-            scene.addPBRMaterial(material);
+
+            if (materialIDs != null) {
+                scene.addPBRMaterialByID(material, materialIDs.get(i));
+            } else {
+                scene.addPBRMaterial(material);
+            }
         }
 
         if (materials.size() == 0) {
@@ -77,7 +85,19 @@ public class ModelLoader {
             meshDatas.add(meshData);
         }
 
-        return new Model(meshDatas);
+        Map<Integer, Integer> meshDataMaterialIDs = new HashMap<>();
+
+        for (int i = 0; i < meshDatas.size(); i++) {
+            meshDataMaterialIDs.put(i, meshDatas.get(i).getMaterialID());
+        }
+
+        return new Model(
+            meshDatas,
+            new ModelMetadata(
+                modelPath, texturesPath, meshDataMaterialIDs
+            ),
+            modelPath.split("[/\\\\]")[modelPath.split("[/\\\\]").length - 1].split("\\.")[0]
+        );
     }
 
     private static void processMaterial(AIMaterial aiMaterial, List<Material> materials, String texturesDir) throws Exception {
@@ -198,6 +218,7 @@ public class ModelLoader {
             emissiveTexture = new Texture(texturesDir + "/" + texturePath, GL_SRGB_ALPHA);
         }
 
+        // Texture type debugging
         for (int i = 0; i < 21; i++) {
             path = AIString.calloc();
             Assimp.aiGetMaterialTexture(aiMaterial, i, 0, path, (IntBuffer) null, null, null, null, null, null);
@@ -206,6 +227,7 @@ public class ModelLoader {
 
         return new PBRMaterial(
             null,
+            true,
             albedoTexture,
             normalTexture,
             metallicTexture,

@@ -22,44 +22,6 @@ public class SpotLight {
 
     private boolean enabled;
 
-    public SpotLight(Mesh mesh, Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f color, float intensity) {
-        this.mesh = mesh;
-
-        this.position = position;
-        this.direction = direction;
-
-        this.azimuth = (float) Math.atan2(direction.x, direction.z);
-        this.elevation = (float) Math.atan2(direction.z, Math.sqrt(direction.x * direction.x + direction.y * direction.y));
-
-        this.color = color;
-
-        this.intensity = intensity;
-
-        this.cutoff = cutoff;
-        this.outerCutoff = outerCutoff;
-
-        this.enabled = true;
-    }
-
-    public SpotLight(Mesh mesh, Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f color) {
-        this.mesh = mesh;
-
-        this.position = position;
-        this.direction = direction;
-
-        this.azimuth = (float) Math.toDegrees(Math.atan2(direction.x, direction.z));
-        this.elevation = (float) Math.toDegrees(Math.atan2(direction.z, Math.sqrt(direction.x * direction.x + direction.y * direction.y)));
-
-        this.color = color;
-
-        this.intensity = 1f;
-
-        this.cutoff = cutoff;
-        this.outerCutoff = outerCutoff;
-
-        this.enabled = true;
-    }
-
     public SpotLight(Vector3f position, Vector3f direction, float cutoff, float outerCutoff, Vector3f color, float intensity) {
         Cylinder cylinder = new Cylinder(0f, 0.5f, 1f, 32);
 

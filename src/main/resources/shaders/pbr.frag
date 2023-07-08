@@ -7,6 +7,7 @@ in vec3 Normal;
 in vec2 TexCoords;
 in flat uint ModelMeshMaterialID;
 in vec4 FragPosLightSpace;
+in vec4 FragPosSpotlightSpace;
 
 layout (location = 0) out vec4 FragColor;
 
@@ -32,29 +33,6 @@ struct SpotLight {
 struct DirLight {
     vec3 direction;
     vec3 color;
-};
-
-struct PBRMaterial {
-    sampler2D albedo;
-    sampler2D normal;
-    sampler2D metallic;
-    sampler2D roughness;
-    sampler2D metallicRoughness;
-    sampler2D ao;
-    sampler2D emissive;
-
-    vec3 albedoColor;
-    float metallicFactor;
-    float roughnessFactor;
-    vec3 emissiveColor;
-
-    bool uses_albedo_map;
-    bool uses_normal_map;
-    bool uses_metallic_map;
-    bool uses_roughness_map;
-    bool uses_metallicRoughness_map;
-    bool uses_ao_map;
-    bool uses_emissive_map;
 };
 
 struct GPUMaterial {
@@ -115,6 +93,7 @@ uniform DirLight dirLight;
 uniform Settings settings;
 
 uniform samplerCubeArray pointShadowMaps;
+uniform sampler2DArray spotShadowMaps;
 uniform sampler2D directionalShadowMap;
 uniform float farPlane;
 
@@ -135,7 +114,8 @@ vec3 getNormalFromMap(GPUMaterial material) {
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a2 = roughness * roughness * roughness * roughness;
+    float a = roughness * roughness;
+    float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0);
 
     float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
@@ -172,7 +152,7 @@ float computeSpecularAO(float NdotV, float ao, float roughness) {
     return clamp(pow(NdotV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao, 0.0, 1.0);
 }
 
-float shadowCalculation(vec3 fragPos, int i) {
+float pointShadowCalculation(vec3 fragPos, int i) {
     vec3 fragToLight = fragPos - pointLights[i].position;
     float currentDepth = length(fragToLight);
 
@@ -190,6 +170,28 @@ float shadowCalculation(vec3 fragPos, int i) {
     return shadow;
 }
 
+float spotShadowCalculation(vec4 fragPosLightSpace, int i) {
+    // Perspective division - transforms to [-1, 1]
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+
+    float closestDepth = texture(spotShadowMaps, vec3(projCoords.xy, i)).r;
+
+    float currentDepth = projCoords.z;
+//    return currentDepth + closestDepth * 0.000001;
+//    return closestDepth;
+
+    if (currentDepth > 1.0) {
+        return 0.0;
+    }
+
+    float bias = max(settings.shadowMaxBias * (1.0 - dot(Normal, spotLights[i].direction)), settings.shadowMinBias);
+//    float bias = 0.0;
+
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    return shadow;
+}
+
 float orthoShadowCalculation(vec4 fragPosLightSpace) {
     // Perspective division - transforms to [-1, 1]
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -197,6 +199,7 @@ float orthoShadowCalculation(vec4 fragPosLightSpace) {
 
     float closestDepth = texture(directionalShadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
+//    return currentDepth + (closestDepth + settings.shadowMinBias + settings.shadowMaxBias) * 0.00000001;
 
     if (currentDepth > 1.0) {
         return 0.0;
@@ -268,14 +271,17 @@ void main() {
     F0 = mix(F0, albedo, metallic);
 
     // Reflectance equation
+    vec4 TEST_FRAG_COLOR = vec4(0.01234);
+
     vec3 Lo = vec3(0.0);
     for (int i = 0; i < NUM_POINT_LIGHTS; ++i) {
         // Check if fragment is in shadow
         if (settings.pointShadows && pointLights[i].enabled) {
-            float shadow = shadowCalculation(WorldPos, i);
+            float shadow = pointShadowCalculation(WorldPos, i);
+//            TEST_FRAG_COLOR = vec4(shadow, shadow, shadow, 1.0);
+
             if (shadow > 0.0) {
-                // do something useless to avoid compiler optimization
-                Lo += vec3(0.00001);
+                continue;
             }
         }
 
@@ -314,6 +320,14 @@ void main() {
     // Spot lights
     for (int i = 0; i < NUM_SPOT_LIGHTS; ++i) {
         if (spotLights[i].enabled) {
+            // Check if fragment is in shadow
+            float spotShadow = spotShadowCalculation(FragPosSpotlightSpace, i);
+//            TEST_FRAG_COLOR = vec4(spotShadow, spotShadow, spotShadow, 1.0);
+
+            if (spotShadow == 0.001) {  // Avoid compiler optimisation
+                continue;
+            }
+
             // Per-light radiance
             vec3 L = normalize(spotLights[i].position - WorldPos);
             vec3 H = normalize(V + L);
@@ -356,7 +370,9 @@ void main() {
     for (int i = 0; i < 1; i++) {
         // Check if fragment is in shadow
         float shadow = orthoShadowCalculation(FragPosLightSpace);
-        if (shadow == 1.0) {
+//        TEST_FRAG_COLOR = vec4(shadow, shadow, shadow, 1.0);
+
+        if (shadow > 0.0) {
             continue;
         }
 
@@ -376,9 +392,6 @@ void main() {
         kD *= 1.0 - metallic;
 
         float NdotL = max(dot(N, L), 0.0);
-
-        vec3 result = (kD * albedo / PI + specular) * dirLight.color * NdotL;
-        result *= (1.0 - shadow);
 
         Lo += (kD * albedo / PI + specular) * dirLight.color * NdotL;
     }
@@ -413,4 +426,10 @@ void main() {
     vec3 color = ambient + Lo;
 
     FragColor = vec4(color, 1.0);
+
+//    if (TEST_FRAG_COLOR.x != 0.01234) {
+//        FragColor = TEST_FRAG_COLOR;
+//    } else {
+//        FragColor = vec4(color, 1.0);
+//    }
 }

@@ -14,13 +14,14 @@ import static org.lwjgl.opengl.GL11.GL_LEQUAL;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER;
 import static org.lwjgl.opengl.GL40.GL_TEXTURE_CUBE_MAP_ARRAY;
+import static org.lwjgl.opengl.GL43.*;
 
 public class OmnidirectionalShadowRenderer {
 
     private final ShaderProgram shaderProgram;
     private final Framebuffer framebuffer;
 
-    private final int resolution = 4096;
+    private final int resolution = 512;
 
     private final TextureArray textureArray;
 
@@ -36,14 +37,13 @@ public class OmnidirectionalShadowRenderer {
         shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.frag").toPath(), StandardCharsets.US_ASCII));
         shaderProgram.link();
 
-        shaderProgram.createUniform("model");
         shaderProgram.createUniform("lightPos");
         shaderProgram.createUniform("farPlane");
         shaderProgram.createUniform("cubemapLayer");
 
         final int NUM_POINT_LIGHTS = 8;
 
-        textureArray = new TextureArray(resolution, resolution, 6 * NUM_POINT_LIGHTS, GL_TEXTURE_CUBE_MAP_ARRAY);
+        textureArray = new TextureArray(resolution, resolution, 6 * NUM_POINT_LIGHTS, GL_TEXTURE_CUBE_MAP_ARRAY);  // 6 layer-faces per light
         textureArray.bind();
 
         glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -61,9 +61,10 @@ public class OmnidirectionalShadowRenderer {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    public void render(Scene scene) {
+    public void render(Scene scene, SceneMesh sceneMesh, int indirectBuffer, int drawCount) {
         // Early exit
         if (scene.getPointLights().isEmpty() || scene.getPointLights().size() == 0 || scene.getEntities().isEmpty() || scene.getEntities().size() == 0) {
+            System.out.println("Early exit 1");
             return;
         }
 
@@ -76,6 +77,7 @@ public class OmnidirectionalShadowRenderer {
         }
 
         if (exit) {
+            System.out.println("Early exit 2");
             return;
         }
 
@@ -112,12 +114,11 @@ public class OmnidirectionalShadowRenderer {
             }
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-            for (Entity entity : scene.getEntities()) {
-                if (entity.getMaterialMeshes() != null && entity.getMaterialMeshes().length > 0) {
-                    shaderProgram.setUniform("model", Maths.calculateModelMatrix(entity.getPosition(), entity.getRotation(), entity.getScale()));
-                    entity.render();
-                }
-            }
+            // Render entities (indirect drawing)
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+            glBindVertexArray(sceneMesh.getVAO());
+            glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
+            glBindVertexArray(0);
         }
 
         glCullFace(GL_BACK);

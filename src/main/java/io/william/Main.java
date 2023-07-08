@@ -1,10 +1,11 @@
 package io.william;
 
 import io.william.io.ModelLoader;
+import io.william.io.SceneExporter;
 import io.william.renderer.*;
 import io.william.io.Input;
 import io.william.io.Window;
-import io.william.renderer.primitive.Cylinder;
+import io.william.renderer.primitive.Cube;
 import io.william.renderer.primitive.Quad;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
@@ -16,7 +17,9 @@ import org.lwjgl.*;
 import io.william.renderer.primitive.UVSphere;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_RGBA;
@@ -56,7 +59,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "LearnOpenGL", 0, false);
+        window = new Window(1920, 1080, "Renderer", 0, false);
         window.create();
 
         renderer = new Renderer();
@@ -82,6 +85,7 @@ public class Main {
 
         PBRMaterial rustedIron = new PBRMaterial(
             "Rusted Iron",
+            false,
             new Texture("src/main/resources/textures/PBR/rusted_iron/basecolor.png", GL_SRGB_ALPHA),
             new Texture("src/main/resources/textures/PBR/rusted_iron/normal.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/rusted_iron/metallic.png", GL_RGBA),
@@ -123,6 +127,7 @@ public class Main {
 
         PBRMaterial brushedMetal = new PBRMaterial(
             "Brushed Metal",
+            false,
             new Texture("src/main/resources/textures/PBR/brushed_metal/albedo.png", GL_SRGB_ALPHA),
             new Texture("src/main/resources/textures/PBR/brushed_metal/normal.png", GL_RGBA),
             new Texture("src/main/resources/textures/PBR/brushed_metal/metallic.png", GL_RGBA),
@@ -202,44 +207,46 @@ public class Main {
 //        entities.add(backpack);
 //
 
-        // Shaderball
-        Model shaderballModel = ModelLoader.load(scene, "src/main/resources/models/shaderball/shaderball.obj", "");
-        // Set all meshes to use the brushed metal material
-        for (MeshData meshData : shaderballModel.getMeshDatas()) {
-            meshData.setMaterialID(brushedMetal.getID());
-        }
-        Entity shaderball = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Shaderball");
-        shaderballModel.addEntity(shaderball);
-        scene.addEntity(shaderball);
-        scene.addModel(shaderballModel);
-        shaderball.setModelID(shaderballModel.getID());
+//        // Shaderball
+//        Model shaderballModel = ModelLoader.load(scene, "src/main/resources/models/shaderball/shaderball.obj", "", null);
+//        // Set all meshes to use the brushed metal material
+//        for (int i = 0; i < shaderballModel.getMeshDatas().size(); i++) {
+//            MeshData meshData = shaderballModel.getMeshDatas().get(i);
+//            meshData.setMaterialID(brushedMetal.getID());
+//            shaderballModel.getModelMetadata().getMeshDataMaterialIDs().put(i, brushedMetal.getID());
+//        }
+//
+//        Entity shaderball = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Shaderball");
+//        shaderballModel.addEntity(shaderball);
+//        scene.addEntity(shaderball);
+//        scene.addModel(shaderballModel);
+//        shaderball.setModelID(shaderballModel.getID());
 
-        // Sponza
-        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/Sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF");
-        scene.addModel(sponzaModel);
-
-        for (int x = 0; x < 4; x++) {
-            for (int z = 0; z < 4; z++) {
-                Entity sponza = new Entity(new Vector3f(x * 400, 0, z * 200), new Vector3f(0, 0, 0), 10f, "Sponza");
-                sponzaModel.addEntity(sponza);
-                scene.addEntity(sponza);
-                sponza.setModelID(sponzaModel.getID());
-            }
-        }
-
+//        // Sponza
+//        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/Sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF", null);
+//        scene.addModel(sponzaModel);
+//
+//        for (int x = 0; x < 1; x++) {
+//            for (int z = 0; z < 1; z++) {
+//                Entity sponza = new Entity(new Vector3f(x * 400, 0, z * 200), new Vector3f(0, 0, 0), 10f, "Sponza");
+//                sponzaModel.addEntity(sponza);
+//                scene.addEntity(sponza);
+//                sponza.setModelID(sponzaModel.getID());
+//            }
+//        }
+//
 //        Entity sponza = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
 //        sponzaModel.addEntity(sponza);
 //        scene.addEntity(sponza);
 //        sponza.setModelID(sponzaModel.getID());
 
-
-//        // Helmet
-//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
-//        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
-//        helmetModel.addEntity(helmetEntity);
-//        scene.addEntity(helmetEntity);
-//        scene.addModel(helmetModel);
-//        helmetEntity.setModelID(helmetModel.getID());
+        // Helmet
+        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
+        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
+        helmetModel.addEntity(helmetEntity);
+        scene.addEntity(helmetEntity);
+        scene.addModel(helmetModel);
+        helmetEntity.setModelID(helmetModel.getID());
 
 //        // Cylinder
 //        Cylinder newCylinder = new Cylinder(
@@ -282,7 +289,7 @@ public class Main {
 //        scene.addModel(backpackModel);
 
 //        // Helmet
-//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet");
+//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
 //
 //        // Add 1000 helmets in a cube
 //        int numDirection = 10;
@@ -320,23 +327,71 @@ public class Main {
 //        scene.addModel(helmetModel);
 
 //        // Quad
+//        Map<Integer, Integer> meshDataMaterialIDs = new HashMap<>();
+//        meshDataMaterialIDs.put(0, 0);
+//
 //        Quad quad = new Quad();
-//        Model quadModel = new Model(new MeshData(
-//            quad.getPositions(),
-//            quad.getNormals(),
-//            new float[]{},
-//            new float[]{},
-//            quad.getTexCoords(),
-//            quad.getIndices()
-//        ));
+//        Model quadModel = new Model(
+//            new MeshData(
+//                quad.getPositions(),
+//                quad.getNormals(),
+//                new float[]{},
+//                new float[]{},
+//                quad.getTexCoords(),
+//                quad.getIndices()
+//            ),
+//            new ModelMetadata(
+//                quad, meshDataMaterialIDs
+//            ),
+//            "Quad"
+//        );
 //
 //        quadModel.getMeshDatas().get(0).setMaterialID(0);
 //
-//        Entity quadEntity = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 20f, "Quad");
+//        Entity quadEntity = new Entity(new Vector3f(0, 0, -20), new Vector3f(0, 0, 0), 30f, "Quad");
 //        quadModel.addEntity(quadEntity);
 //        scene.addEntity(quadEntity);
 //        scene.addModel(quadModel);
 //        quadEntity.setModelID(quadModel.getID());
+
+//        // Add 20 * 20 * 20 cubes
+//        Cube cube = new Cube();
+//        MeshData cubeMeshData = new MeshData(
+//            cube.getPositions(),
+//            cube.getNormals(),
+//            new float[]{},
+//            new float[]{},
+//            cube.getTexCoords(),
+//            cube.getIndices()
+//        );
+//
+//        Map<Integer, Integer> meshDataMaterialIDs = new HashMap<>();
+//        Model cubeModel = new Model(
+//            cubeMeshData,
+//            new ModelMetadata(
+//                cube, meshDataMaterialIDs
+//            ),
+//            "Cube"
+//        );
+//
+//        int numDirection = 40;
+//        float spacing = 2.5f;
+//        for (int x = 0; x < numDirection; x++) {
+//            for (int y = 0; y < numDirection; y++) {
+//                for (int z = 0; z < numDirection; z++) {
+//                    Entity cubeEntity = new Entity(
+//                        new Vector3f((x - (float) (numDirection / 2)) * spacing, (y - (float) (numDirection / 2)) * spacing, (z - (float) (numDirection / 2)) * spacing),
+//                        new Vector3f(0, 0, 0),
+//                        1f,
+//                        "Cube" + x + y + z
+//                    );
+//                    cubeModel.addEntity(cubeEntity);
+//                    scene.addEntity(cubeEntity);
+//                }
+//            }
+//        }
+//
+//        scene.addModel(cubeModel);
 
         DirLight dirLight = new DirLight(
             new Vector3f(2f, 5f, 2f).normalize(),
@@ -346,34 +401,42 @@ public class Main {
         scene.setDirLight(dirLight);
 
         PointLight pointLight1 = new PointLight(
-            new Vector3f(0.0f, 50.0f, 8.0f),
+            new Vector3f(-50.0f, 10.0f, 30.0f),
             new Vector3f(1.0f, 1.0f, 1.0f),
             500.0f
         );
 
         scene.addPointLight(pointLight1);
 
-        SpotLight spotLight = new SpotLight(
-            sphereMesh,
+//        PointLight pointLight2 = new PointLight(
+//            new Vector3f(50.0f, 10.0f, 30.0f),
+//            new Vector3f(1.0f, 1.0f, 1.0f),
+//            500.0f
+//        );
+//
+//        scene.addPointLight(pointLight2);
 
+        SpotLight spotLight = new SpotLight(
             new Vector3f(0.0f, 5.0f, 0.0f),
             new Vector3f(0.0f, -1.0f, 0.0f),
 
             12.5f,
             15.0f,
 
-            new Vector3f(1.0f, 1.0f, 1.0f)
+            new Vector3f(1.0f, 1.0f, 1.0f),
+
+            50.0f
         );
 
 //        SpotLight spotLight2 = new SpotLight(
-//            new Vector3f(0, 0, 12),
+//            new Vector3f(0, 0, 25),
 //            new Vector3f(0, 0, -1),
 //
-//            12.5f,
 //            15.0f,
+//            25.0f,
 //
 //            new Vector3f(1.0f, 1.0f, 1.0f),
-//            500
+//            5000
 //        );
 
         scene.addSpotLight(spotLight);
@@ -432,8 +495,6 @@ public class Main {
         camera.update(deltaTime);
 
         updateEntities();
-//        Entity entity0 = scene.getEntities().get(0);
-//        renderer.updateModelMeshInstance(0, Maths.calculateModelMatrix(entity0.getPosition(), entity0.getRotation(), entity0.getScale()));
 
         processInput();
     }
@@ -445,16 +506,21 @@ public class Main {
         int firstModelMeshInstanceIndex = -1;
         int lastModelMeshInstanceIndex = -1;
 
-        for (int i = 0; i < scene.getEntities().size(); i++) {
-            Entity entity = scene.getEntities().get(i);
+        List<Entity> entities = scene.getEntities().stream().filter(entity -> entity.getModelID() != -1).toList();
+
+        // Determine first and last updated entity index
+        for (int i = 0; i < entities.size(); i++) {
+            Entity entity = entities.get(i);
+
             if (entity.isUpdated()) {
                 firstEntityIndex = i;
                 break;
             }
         }
 
-        for (int i = scene.getEntities().size() - 1; i >= 0; i--) {
-            Entity entity = scene.getEntities().get(i);
+        for (int i = entities.size() - 1; i >= 0; i--) {
+            Entity entity = entities.get(i);
+
             if (entity.isUpdated()) {
                 lastEntityIndex = i;
                 break;
@@ -463,6 +529,8 @@ public class Main {
 
         if (firstEntityIndex == -1 || lastEntityIndex == -1) {
             return;
+        } else {
+            masterRenderer.setSceneUpdated(true);
         }
 
         int count = 0;
@@ -486,34 +554,39 @@ public class Main {
 //        }
 
         List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
-        int firstEntityIndexRelativeToModel = -1;
+
+        // Determine first and last updated model mesh instance index and map to mesh data indexes
+        Map<Integer, Integer> modelMeshInstanceIndexToMeshDataIndexes = new HashMap<>();
+
         outerloop:
         for (Model model : models) {
-            List<Entity> entities = model.getEntities();
+            List<Entity> modelEntities = model.getEntities();
             for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
-                int entityCount = 0;
-                for (Entity entity : entities) {
+                for (Entity entity : modelEntities) {
                     if (entity.isUpdated()) {
                         firstModelMeshInstanceIndex = count;
-                        firstEntityIndexRelativeToModel = entityCount;
                         break outerloop;
                     }
                     count++;
-                    entityCount++;
                 }
             }
         }
 
         count = 0;
         for (Model model : models) {
-            List<Entity> entities = model.getEntities();
+            List<Entity> modelEntities = model.getEntities();
+            int meshDataIndex = 0;
             for (SceneMesh.MeshDrawData meshDrawData : model.getMeshDrawDatas()) {
-                for (Entity entity : entities) {
+                for (Entity entity : modelEntities) {
                     if (entity.isUpdated()) {
                         lastModelMeshInstanceIndex = count;
                     }
+
+                    modelMeshInstanceIndexToMeshDataIndexes.put(count, meshDataIndex);
+
                     count++;
                 }
+                meshDataIndex++;
             }
         }
 
@@ -552,7 +625,9 @@ public class Main {
 
 //            int meshDataIndex = (i - firstModelMeshInstanceIndex) % scene.getModelByID(entity.getModelID()).getMeshDatas().size();
 //            meshDataIndex /= scene.getModelByID(entity.getModelID()).getEntities().size();
-            int meshDataIndex = (i - (firstModelMeshInstanceIndex - firstEntityIndexRelativeToModel)) / scene.getModelByID(entity.getModelID()).getEntities().size();
+//            int meshDataIndex = (i - (firstModelMeshInstanceIndex - firstModelMeshInstanceIndexRelativeToModel)) / scene.getModelByID(entity.getModelID()).getEntities().size();
+
+            int meshDataIndex = modelMeshInstanceIndexToMeshDataIndexes.get(i);
 
             int materialID = scene.getModelByID(entity.getModelID()).getMeshDatas().get(meshDataIndex).getMaterialID();
             materialIDs[i - firstModelMeshInstanceIndex] = materialID;
@@ -560,7 +635,7 @@ public class Main {
             entity.setUpdated(false);
         }
 
-        renderer.updateModelMeshInstances(firstModelMeshInstanceIndex, lastModelMeshInstanceIndex, worldMatrices, materialIDs);
+        masterRenderer.updateModelMeshInstances(firstModelMeshInstanceIndex, lastModelMeshInstanceIndex, worldMatrices, materialIDs);
     }
 
     private int calculateEntityIndexFromModelMeshInstanceIndex(int index) {
@@ -597,10 +672,10 @@ public class Main {
             if (Input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
                 camera.processKeyboard(Camera.Movement.DOWN, deltaTime);
 
-            if (Input.isKeyDown(GLFW_KEY_Q) && renderer.getExposure() > 0.0f)
-                renderer.setExposure(renderer.getExposure() - 0.01f);
+            if (Input.isKeyDown(GLFW_KEY_Q) && renderer.getShaderSettings().getExposure() > 0.0f)
+                renderer.getShaderSettings().setExposure(renderer.getShaderSettings().getExposure() - 0.01f);
             if (Input.isKeyDown(GLFW_KEY_E))
-                renderer.setExposure(renderer.getExposure() + 0.01f);
+                renderer.getShaderSettings().setExposure(renderer.getShaderSettings().getExposure() + 0.01f);
 
             if (Input.isKeyDown(GLFW_KEY_F) && !lastFrameKeys.contains(GLFW_KEY_F)) {  // If F pressed (and wasn't pressed last frame)
                 scene.getSpotLights().get(0).setEnabled(!scene.getSpotLights().get(0).isEnabled());
@@ -612,6 +687,15 @@ public class Main {
 
             if (Input.isKeyDown(GLFW_KEY_B) && !lastFrameKeys.contains(GLFW_KEY_B)) {  // If B pressed (and wasn't pressed last frame)
                 renderer.setNormalMapping(!renderer.isNormalMapping());
+            }
+
+            if (Input.isKeyDown(GLFW_KEY_H)) {
+                if (!lastFrameKeys.contains(GLFW_KEY_H)) {
+                    masterRenderer.setShowGUI(!masterRenderer.isShowGUI());
+                }
+                lastFrameKeys.add(GLFW_KEY_H);
+            } else {
+                lastFrameKeys.remove(Integer.valueOf(GLFW_KEY_H));
             }
 
             // Update lastFrameKeys

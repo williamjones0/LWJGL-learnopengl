@@ -1,11 +1,12 @@
 package io.william.renderer;
 
+import io.william.game.component.MovementController;
 import org.joml.Vector3f;
 import io.william.renderer.primitive.UVSphere;
 
 public class PointLight {
 
-    private final Mesh mesh;
+    private Mesh mesh;
 
     private Vector3f position;
 
@@ -14,18 +15,6 @@ public class PointLight {
     private float intensity;
 
     private boolean enabled;
-
-    public PointLight(Mesh mesh, Vector3f position, Vector3f color) {
-        this.mesh = mesh;
-
-        this.position = position;
-
-        this.color = color;
-
-        this.intensity = 1f;
-
-        this.enabled = true;
-    }
 
     public PointLight(Vector3f position, Vector3f color, float intensity) {
         UVSphere uvSphere = new UVSphere(0.1f, 32, 32);
@@ -49,7 +38,11 @@ public class PointLight {
     }
 
     public PointLight(Vector3f position, Vector3f color) {
-        UVSphere uvSphere = new UVSphere(0.5f, 32, 32);
+        this(position, color, 1.0f);
+    }
+
+    public void updateRadius(float radius) {
+        UVSphere uvSphere = new UVSphere(radius, 32, 32);
 
         this.mesh = new Mesh(new MeshData(
             uvSphere.getPositions(),
@@ -59,14 +52,6 @@ public class PointLight {
             new float[] {},
             uvSphere.getIndices()
         ));
-
-        this.position = position;
-
-        this.color = color;
-
-        this.intensity = 1f;
-
-        this.enabled = true;
     }
 
     public Mesh getMesh() {

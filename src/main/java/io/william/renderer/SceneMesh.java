@@ -37,6 +37,7 @@ public class SceneMesh {
 
         List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
         System.out.println("Loading " + models.size() + " models");
+        // Create mesh draw datas and determine vertex counts
         for (Model model : models) {
             List<MeshDrawData> meshDrawDatas = model.getMeshDrawDatas();
             meshDrawDatas.clear();
@@ -66,6 +67,7 @@ public class SceneMesh {
             }
         }
 
+        // Populate buffers
         int VBO = glGenBuffers();
         VBOs.add(VBO);
         FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(positionsCount + normalsCount + texCoordsCount);

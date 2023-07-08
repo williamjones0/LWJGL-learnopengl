@@ -26,11 +26,25 @@ public class EquirectangularMap {
     private int prefilterMap;
     private int brdfLUT;
 
+    private String path;
+
+    public EquirectangularMap(String path) throws Exception {
+        init(new Texture(
+            path,
+            org.lwjgl.opengl.GL30.GL_RGB16F,
+            GL_RGBA,
+            org.lwjgl.opengl.GL30.GL_FLOAT,
+            true
+        ));
+    }
+
     public EquirectangularMap(Texture texture) throws Exception {
         init(texture);
     }
 
     private void init(Texture texture) throws Exception {
+        this.path = texture.getPath();
+
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         glDepthFunc(GL_LEQUAL);
@@ -281,4 +295,7 @@ public class EquirectangularMap {
         return brdfLUT;
     }
 
+    public String getPath() {
+        return path;
+    }
 }

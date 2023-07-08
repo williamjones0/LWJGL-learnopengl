@@ -14,6 +14,8 @@ public class PBRMaterial {
 
     private String name;
 
+    private final boolean loadedFromModel;
+
     // Textures or Vector3fs/floats for each of the PBR material properties
     private Texture albedo;
     private Vector3f albedoColor = new Vector3f(1.0f, 1.0f, 1.0f);
@@ -33,10 +35,12 @@ public class PBRMaterial {
     private Texture emissive;
     private Vector3f emissiveColor = new Vector3f(0, 0, 0);
 
+    private final Map<String, Boolean> hasTextures = new HashMap<>();
     private final Map<String, Boolean> usesTextures = new HashMap<>();
 
-    public PBRMaterial(String name, Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
+    public PBRMaterial(String name, boolean loadedFromModel, Texture albedo, Texture normal, Texture metallic, Texture roughness, Texture metallicRoughness, Texture ao, Texture emissive) throws Exception {
         this.name = name != null ? name : "PBRMaterial";
+        this.loadedFromModel = loadedFromModel;
 
         this.albedo = albedo != null ? albedo : new Texture("src/main/resources/textures/PBR/default_albedo.png", GL_SRGB_ALPHA);
         this.normal = normal != null ? normal : new Texture("src/main/resources/textures/PBR/default_normal.png", GL_RGBA);
@@ -45,6 +49,14 @@ public class PBRMaterial {
         this.metallicRoughness = metallicRoughness != null ? metallicRoughness : new Texture("src/main/resources/textures/PBR/default_metallicRoughness.png", GL_RGBA);
         this.ao = ao != null ? ao : new Texture("src/main/resources/textures/PBR/default_ao.png", GL_RGBA);
         this.emissive = emissive != null ? emissive : new Texture("src/main/resources/textures/PBR/default_emissive.png", GL_RGBA);
+
+        this.hasTextures.put("albedo", albedo != null);
+        this.hasTextures.put("normal", normal != null);
+        this.hasTextures.put("metallic", metallic != null);
+        this.hasTextures.put("roughness", roughness != null);
+        this.hasTextures.put("metallicRoughness", metallicRoughness != null);
+        this.hasTextures.put("ao", ao != null);
+        this.hasTextures.put("emissive", emissive != null);
 
         this.usesTextures.put("albedo", albedo != null);
         this.usesTextures.put("normal", normal != null);
@@ -65,13 +77,22 @@ public class PBRMaterial {
     }
 
     // PBR material without textures
-    public PBRMaterial(String name, Vector3f albedo, float metallic, float roughness, Vector3f emissive) {
+    public PBRMaterial(String name, boolean loadedFromModel, Vector3f albedo, float metallic, float roughness, Vector3f emissive) {
         this.name = name;
+        this.loadedFromModel = loadedFromModel;
 
         this.albedoColor = albedo;
         this.metallicFactor = metallic;
         this.roughnessFactor = roughness;
         this.emissiveColor = emissive;
+
+        this.hasTextures.put("albedo", false);
+        this.hasTextures.put("normal", false);
+        this.hasTextures.put("metallic", false);
+        this.hasTextures.put("roughness", false);
+        this.hasTextures.put("metallicRoughness", false);
+        this.hasTextures.put("ao", false);
+        this.hasTextures.put("emissive", false);
 
         this.usesTextures.put("albedo", false);
         this.usesTextures.put("normal", false);
@@ -83,7 +104,7 @@ public class PBRMaterial {
     }
 
     public PBRMaterial(String name) {
-        this(name, new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
+        this(name, false, new Vector3f(1, 1, 1), 0, 1, new Vector3f(0, 0, 0));
     }
 
     public boolean isEmpty() {
@@ -110,6 +131,10 @@ public class PBRMaterial {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isLoadedFromModel() {
+        return loadedFromModel;
     }
 
     public Texture getAlbedo() {
@@ -206,5 +231,9 @@ public class PBRMaterial {
 
     public void setUseTexture(String texture, boolean use) {
         this.usesTextures.put(texture, use);
+    }
+
+    public boolean hasTexture(String texture) {
+        return this.hasTextures.get(texture);
     }
 }

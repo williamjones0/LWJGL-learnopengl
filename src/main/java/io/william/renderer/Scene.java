@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class Scene {
@@ -13,7 +14,7 @@ public class Scene {
     private final List<SpotLight> spotLights;
     private EquirectangularMap equirectangularMap;
 
-    private int currentModelID;
+    private int currentModelID = 0;
     private int currentPBRMaterialID = 0;
     private int currentEntityID = 0;
 
@@ -23,6 +24,18 @@ public class Scene {
         this.entities = new ArrayList<>();
         this.pointLights = new ArrayList<>();
         this.spotLights = new ArrayList<>();
+    }
+
+    public void clear() {
+        this.models.clear();
+        this.PBRMaterials.clear();
+        this.entities.clear();
+        this.pointLights.clear();
+        this.spotLights.clear();
+
+        this.currentModelID = 0;
+        this.currentPBRMaterialID = 0;
+        this.currentEntityID = 0;
     }
 
     public Model getModelByID(int id) {
@@ -44,6 +57,15 @@ public class Scene {
         models.add(model);
     }
 
+    public PBRMaterial getPBRMaterialByID(int id) {
+        for (PBRMaterial pbrMaterial : PBRMaterials) {
+            if (pbrMaterial.getID() == id) {
+                return pbrMaterial;
+            }
+        }
+        return null;
+    }
+
     public List<PBRMaterial> getPBRMaterials() {
         return PBRMaterials;
     }
@@ -52,6 +74,26 @@ public class Scene {
         pbrMaterial.setID(currentPBRMaterialID);
         currentPBRMaterialID++;
         this.PBRMaterials.add(pbrMaterial);
+
+        // Sort PBRMaterials by ID
+        this.PBRMaterials.sort(Comparator.comparingInt(PBRMaterial::getID));
+    }
+
+    public void addPBRMaterialByID(PBRMaterial pbrMaterial, int id) {
+        pbrMaterial.setID(id);
+        this.PBRMaterials.add(pbrMaterial);
+
+        // Sort PBRMaterials by ID
+        this.PBRMaterials.sort(Comparator.comparingInt(PBRMaterial::getID));
+    }
+
+    public Entity getEntityByID(int id) {
+        for (Entity entity : entities) {
+            if (entity.getID() == id) {
+                return entity;
+            }
+        }
+        return null;
     }
 
     public List<Entity> getEntities() {
@@ -59,7 +101,9 @@ public class Scene {
     }
 
     public void addEntity(Entity entity) {
-        entity.setID(currentEntityID);
+        if (entity.getID() == -1) {
+            entity.setID(currentEntityID);
+        }
         currentEntityID++;
         entities.add(entity);
     }
