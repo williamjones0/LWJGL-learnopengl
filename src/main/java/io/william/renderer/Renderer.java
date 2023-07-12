@@ -6,17 +6,16 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.Map;
 
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
+import io.william.renderer.sky.Sky;
 import io.william.util.Maths;
 import io.william.io.Window;
 import org.joml.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImageWrite;
-import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -146,6 +145,7 @@ public class Renderer {
         List<PointLight> pointLights = scene.getPointLights();
         List<SpotLight> spotLights = scene.getSpotLights();
         EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
+        Sky sky = scene.getSky();
 
         // First pass: render scene to floating point framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
@@ -346,9 +346,20 @@ public class Renderer {
 
         lightShader.unbind();
 
-        // Render skybox
+//        // Render skybox
+//        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//        equirectangularMap.render(camera, projection);
+
+        // Render sky
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        equirectangularMap.render(camera, projection);
+        sky.renderLUTs();
+
+        // Reset OpenGL state
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
+        glViewport(0, 0, window.getWidth(), window.getHeight());
+
+        sky.render(camera, projection);
+//        equirectangularMap.render(camera, projection);
 
         // Second pass: render floating point framebuffer to default framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

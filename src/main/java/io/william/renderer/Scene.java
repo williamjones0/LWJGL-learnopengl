@@ -1,5 +1,7 @@
 package io.william.renderer;
 
+import io.william.renderer.sky.Sky;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,6 +15,7 @@ public class Scene {
     private final List<PointLight> pointLights;
     private final List<SpotLight> spotLights;
     private EquirectangularMap equirectangularMap;
+    private Sky sky;
 
     private int currentModelID = 0;
     private int currentPBRMaterialID = 0;
@@ -142,5 +145,13 @@ public class Scene {
 
     public void setEquirectangularMap(EquirectangularMap equirectangularMap) {
         this.equirectangularMap = equirectangularMap;
+    }
+
+    public Sky getSky() {
+        return sky;
+    }
+
+    public void setSky(Sky sky) {
+        this.sky = sky;
     }
 }

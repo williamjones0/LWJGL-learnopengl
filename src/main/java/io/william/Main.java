@@ -10,6 +10,7 @@ import io.william.renderer.primitive.Quad;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
+import io.william.renderer.sky.Sky;
 import io.william.util.Maths;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -59,7 +60,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "Renderer", 0, false);
+        window = new Window(1920, 1080, "Renderer", 1, false);
         window.create();
 
         renderer = new Renderer();
@@ -455,6 +456,10 @@ public class Main {
         );
 
         scene.setEquirectangularMap(equirectangularMap);
+
+        Sky sky = new Sky();
+
+        scene.setSky(sky);
 
         masterRenderer.init(window, renderer, scene, camera, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer, gui);
     }

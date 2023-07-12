@@ -7,6 +7,7 @@ import io.william.io.SceneExporter;
 import io.william.io.SceneImporter;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
+import io.william.renderer.sky.Sky;
 import io.william.util.Utils;
 import imgui.ImGui;
 import imgui.ImGuiIO;
@@ -573,6 +574,7 @@ public class GUI {
             ImGui.begin("Settings", ImGuiWindowFlags.AlwaysAutoResize);
 
             ShaderSettings settings = renderer.getShaderSettings();
+            Sky sky = scene.getSky();
 
             if (ImGui.beginTabBar("SettingsTabBar")) {
                 if (ImGui.beginTabItem("General")) {
@@ -585,6 +587,16 @@ public class GUI {
                             pointLight.updateRadius(settings.getPointLightMeshRadius());
                         }
                     }
+
+                    ImGui.separator();
+                    ImGui.text("Atmosphere settings");
+                    float[] time = new float[] { sky.getTime() };
+                    if (ImGui.dragFloat("time", time, 0.01f, 0f, Float.MAX_VALUE)) sky.setTime(time[0]);
+                    ImGui.text("Automatic time: " + sky.isAutomaticTime());
+                    if (ImGui.checkbox("##automaticITime", sky.isAutomaticTime())) sky.setAutomaticTime(!sky.isAutomaticTime());
+                    float[] timeScale = new float[] { sky.getTimeScale() };
+                    if (ImGui.dragFloat("Time scale", timeScale, 0.01f, 0f, Float.MAX_VALUE)) sky.setTimeScale(timeScale[0]);
+
                     ImGui.endTabItem();
                 }
 
