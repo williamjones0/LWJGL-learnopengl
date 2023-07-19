@@ -1,10 +1,7 @@
 package io.william.renderer;
 
-import java.io.File;
 import java.lang.Math;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
@@ -57,6 +54,8 @@ public class Renderer {
 
     private BloomRenderer bloomRenderer;
 
+    private int frameCount = 0;
+
     public void init(Window window, Camera camera) throws Exception {
         framebuffer = new Framebuffer(
             new Texture(window.getWidth(), window.getHeight(), GL_RGBA16F, GL_RGBA),
@@ -71,8 +70,8 @@ public class Renderer {
         bloomRenderer.init(window.getWidth(), window.getHeight());
 
         phongShader = new ShaderProgram("Phong");
-        phongShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/vertex.vs").toPath(), StandardCharsets.US_ASCII));
-        phongShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/fragment_alt.glsl").toPath(), StandardCharsets.US_ASCII));
+        phongShader.createVertexShader("src/main/resources/shaders/vertex.vs");
+        phongShader.createFragmentShader("src/main/resources/shaders/fragment_alt.glsl");
         phongShader.link();
 
         phongShader.createUniform("model");
@@ -93,32 +92,32 @@ public class Renderer {
 
         // PBR shader
         pbrShader = new ShaderProgram("PBR");
-        pbrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
-        pbrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbr.frag").toPath(), StandardCharsets.US_ASCII));
+        pbrShader.createVertexShader("src/main/resources/shaders/pbr.vert");
+        pbrShader.createFragmentShader("src/main/resources/shaders/pbr.frag");
         pbrShader.link();
 
         createShaderUniforms(pbrShader);
 
 //        // Filament shader
 //        filamentShader = new ShaderProgram("Filament");
-//        filamentShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
-//        filamentShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/pbrfilament.frag").toPath(), StandardCharsets.US_ASCII));
+//        filamentShader.createVertexShader("src/main/resources/shaders/pbr.vert");
+//        filamentShader.createFragmentShader("src/main/resources/shaders/pbrfilament.frag");
 //        filamentShader.link();
 //
 //        createShaderUniforms(filamentShader);
 //
 //        // Frostbite shader
 //        frostbiteShader = new ShaderProgram("Frostbite");
-//        frostbiteShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/pbr.vert").toPath(), StandardCharsets.US_ASCII));
-//        frostbiteShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/frostbite.frag").toPath(), StandardCharsets.US_ASCII));
+//        frostbiteShader.createVertexShader("src/main/resources/shaders/pbr.vert");
+//        frostbiteShader.createFragmentShader("src/main/resources/shaders/frostbite.frag");
 //        frostbiteShader.link();
 //
 //        createShaderUniforms(frostbiteShader);
 
         // Light shader
         lightShader = new ShaderProgram("LightCube");
-        lightShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/light_cube.vs").toPath(), StandardCharsets.US_ASCII));
-        lightShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/light_cube.fs").toPath(), StandardCharsets.US_ASCII));
+        lightShader.createVertexShader("src/main/resources/shaders/light_cube.vs");
+        lightShader.createFragmentShader("src/main/resources/shaders/light_cube.fs");
         lightShader.link();
 
         lightShader.createUniform("model");
@@ -129,8 +128,8 @@ public class Renderer {
 
         // HDR shader
         hdrShader = new ShaderProgram("HDR");
-        hdrShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/hdr.vert").toPath(), StandardCharsets.US_ASCII));
-        hdrShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/hdr.frag").toPath(), StandardCharsets.US_ASCII));
+        hdrShader.createVertexShader("src/main/resources/shaders/hdr.vert");
+        hdrShader.createFragmentShader("src/main/resources/shaders/hdr.frag");
         hdrShader.link();
 
         hdrShader.createUniform("hdrBuffer");
@@ -346,19 +345,25 @@ public class Renderer {
 
         lightShader.unbind();
 
-//        // Render skybox
+        // Render skybox
 //        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 //        equirectangularMap.render(camera, projection);
 
         // Render sky
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        sky.renderLUTs();
+//        if (sky.isUpdated()) {
+            sky.renderLUTs();
+            equirectangularMap.renderTextures(sky.getBackgroundCubemapID(), shaderSettings);
+//            sky.setUpdated(false);
+//        }
+
+//        equirectangularMap.renderTextures(equirectangularMap.getEnvironmentCubemap(), shaderSettings);
 
         // Reset OpenGL state
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         glViewport(0, 0, window.getWidth(), window.getHeight());
 
-        sky.render(camera, projection);
+        sky.render(camera, projection, shaderSettings);
 //        equirectangularMap.render(camera, projection);
 
         // Second pass: render floating point framebuffer to default framebuffer

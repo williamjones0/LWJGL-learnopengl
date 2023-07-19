@@ -6,7 +6,11 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.FloatBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -165,15 +169,18 @@ public class ShaderProgram {
         glUniform1f(uniforms.get(uniformName), value);
     }
 
-    public void createVertexShader(String source) {
+    public void createVertexShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
         vertexShaderID = createShader(source, GL_VERTEX_SHADER);
     }
 
-    public void createFragmentShader(String source) {
+    public void createFragmentShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
         fragmentShaderID = createShader(source, GL_FRAGMENT_SHADER);
     }
 
-    public void createGeometryShader(String source) {
+    public void createGeometryShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
         geometryShaderID = createShader(source, GL_GEOMETRY_SHADER);
     }
 

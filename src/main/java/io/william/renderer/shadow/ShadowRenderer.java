@@ -1,21 +1,12 @@
 package io.william.renderer.shadow;
 
 import io.william.renderer.*;
-import io.william.util.Maths;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.lwjgl.system.MemoryUtil;
-
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class ShadowRenderer {
 
@@ -34,8 +25,8 @@ public class ShadowRenderer {
 
     public ShadowRenderer() throws Exception {
         shaderProgram = new ShaderProgram("DirectionalShadow");
-        shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/shadow/shadow.vert").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/shadow.frag").toPath(), StandardCharsets.US_ASCII));
+        shaderProgram.createVertexShader("src/main/resources/shaders/shadow/shadow.vert");
+        shaderProgram.createFragmentShader("src/main/resources/shaders/shadow/shadow.frag");
         shaderProgram.link();
 
         shaderProgram.createUniform("lightSpaceMatrix");

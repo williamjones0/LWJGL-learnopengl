@@ -1,13 +1,8 @@
 package io.william.renderer.shadow;
 
 import io.william.renderer.*;
-import io.william.util.Maths;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL11.GL_LEQUAL;
@@ -32,9 +27,9 @@ public class OmnidirectionalShadowRenderer {
 
     public OmnidirectionalShadowRenderer() throws Exception {
         shaderProgram = new ShaderProgram("OmnidirectionalShadow");
-        shaderProgram.createVertexShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.vert").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.createGeometryShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.geom").toPath(), StandardCharsets.US_ASCII));
-        shaderProgram.createFragmentShader(Files.readString(new File("src/main/resources/shaders/shadow/omnidirectional/shadow.frag").toPath(), StandardCharsets.US_ASCII));
+        shaderProgram.createVertexShader("src/main/resources/shaders/shadow/omnidirectional/shadow.vert");
+        shaderProgram.createGeometryShader("src/main/resources/shaders/shadow/omnidirectional/shadow.geom");
+        shaderProgram.createFragmentShader("src/main/resources/shaders/shadow/omnidirectional/shadow.frag");
         shaderProgram.link();
 
         shaderProgram.createUniform("lightPos");

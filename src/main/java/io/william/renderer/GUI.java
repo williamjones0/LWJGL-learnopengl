@@ -590,12 +590,19 @@ public class GUI {
 
                     ImGui.separator();
                     ImGui.text("Atmosphere settings");
+
+                    float initialTime = sky.getTime();
+
                     float[] time = new float[] { sky.getTime() };
                     if (ImGui.dragFloat("time", time, 0.01f, 0f, Float.MAX_VALUE)) sky.setTime(time[0]);
                     ImGui.text("Automatic time: " + sky.isAutomaticTime());
                     if (ImGui.checkbox("##automaticITime", sky.isAutomaticTime())) sky.setAutomaticTime(!sky.isAutomaticTime());
                     float[] timeScale = new float[] { sky.getTimeScale() };
                     if (ImGui.dragFloat("Time scale", timeScale, 0.01f, 0f, Float.MAX_VALUE)) sky.setTimeScale(timeScale[0]);
+
+                    if (initialTime != sky.getTime()) {
+                        sky.setUpdated(true);
+                    }
 
                     ImGui.endTabItem();
                 }
@@ -621,6 +628,20 @@ public class GUI {
 
                     // Settings
                     ImGui.text("Settings");
+
+                    // IBL
+                    ImGui.text("IBL");
+                    ImBoolean fastIrradiance = new ImBoolean(settings.isFastIrradiance());
+                    if (ImGui.checkbox("Fast irradiance", fastIrradiance)) {
+                        settings.setFastIrradiance(fastIrradiance.get());
+                    }
+
+                    float[] cubemapCamFOV = new float[] { settings.getCubemapCamFOV() };
+                    if (ImGui.dragFloat("Cubemap camera FOV", cubemapCamFOV, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setCubemapCamFOV(cubemapCamFOV[0]);
+                    }
+
+                    ImGui.separator();
 
                     // Bloom
                     float[] bloomStrength = new float[] { settings.getBloomStrength() };

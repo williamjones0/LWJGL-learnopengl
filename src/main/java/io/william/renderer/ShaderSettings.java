@@ -10,6 +10,10 @@ public class ShaderSettings {
     private boolean specularOcclusion = true;
     private boolean horizonSpecularOcclusion = true;
 
+    // IBL
+    private boolean fastIrradiance = true;
+    private float cubemapCamFOV = (float) Math.toDegrees(Math.PI/3.5);
+
     // Shadows
 
     // Directional shadows
@@ -58,6 +62,22 @@ public class ShaderSettings {
 
     public void setHorizonSpecularOcclusion(boolean horizonSpecularOcclusion) {
         this.horizonSpecularOcclusion = horizonSpecularOcclusion;
+    }
+
+    public boolean isFastIrradiance() {
+        return fastIrradiance;
+    }
+
+    public void setFastIrradiance(boolean fastIrradiance) {
+        this.fastIrradiance = fastIrradiance;
+    }
+
+    public float getCubemapCamFOV() {
+        return cubemapCamFOV;
+    }
+
+    public void setCubemapCamFOV(float cubemapCamFOV) {
+        this.cubemapCamFOV = cubemapCamFOV;
     }
 
     public float getShadowMinBias() {

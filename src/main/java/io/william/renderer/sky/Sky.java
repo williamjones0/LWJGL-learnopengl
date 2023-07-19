@@ -5,10 +5,9 @@ import io.william.util.renderer.Cube;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
+import org.joml.Vector3f;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.nio.ByteBuffer;
 
 import static org.lwjgl.glfw.GLFW.glfwGetTime;
 import static org.lwjgl.opengl.GL11.*;
@@ -22,38 +21,45 @@ public class Sky {
     private ShaderProgram multipleScatteringShader;
     private ShaderProgram skyViewShader;
     private ShaderProgram backgroundShader;
+    private ShaderProgram cubemapShader;
 
     private Texture transmittance;
     private Texture scattering;
     private Texture skyView;
 
-    private Framebuffer framebuffer;
+    private int backgroundCubemap;
+    private int cubemapResolution = 512;
+
+    private final Framebuffer framebuffer;
 
     private Vector2i transmittanceLUTRes = new Vector2i(256, 64);
     private Vector2i scatteringLUTRes = new Vector2i(32, 32);
     private Vector2i skyViewRes = new Vector2i(200, 200);
 
-    private float time = 0.0f;
-    private boolean automaticTime = true;
+    private float time = 10.0f;
+    private boolean automaticTime = false;
     private float timeScale = 5.0f;
+
+    private boolean updated = true;
+    private float lastTime;
 
     public Sky() throws Exception {
         transmittanceShader = new ShaderProgram("transmittance");
-        transmittanceShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/sky/quad.vert").toPath(), StandardCharsets.US_ASCII));
-        transmittanceShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/sky/transmittance.frag").toPath(), StandardCharsets.US_ASCII));
+        transmittanceShader.createVertexShader("src/main/resources/shaders/sky/quad.vert");
+        transmittanceShader.createFragmentShader("src/main/resources/shaders/sky/transmittance.frag");
         transmittanceShader.link();
 
         multipleScatteringShader = new ShaderProgram("multiple_scattering");
-        multipleScatteringShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/sky/quad.vert").toPath(), StandardCharsets.US_ASCII));
-        multipleScatteringShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/sky/scattering.frag").toPath(), StandardCharsets.US_ASCII));
+        multipleScatteringShader.createVertexShader("src/main/resources/shaders/sky/quad.vert");
+        multipleScatteringShader.createFragmentShader("src/main/resources/shaders/sky/scattering.frag");
         multipleScatteringShader.link();
 
         multipleScatteringShader.createUniform("transmittanceLUT");
         multipleScatteringShader.createUniform("transmittanceLUTRes");
 
         skyViewShader = new ShaderProgram("sky_view");
-        skyViewShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/sky/quad.vert").toPath(), StandardCharsets.US_ASCII));
-        skyViewShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/sky/sky_view.frag").toPath(), StandardCharsets.US_ASCII));
+        skyViewShader.createVertexShader("src/main/resources/shaders/sky/quad.vert");
+        skyViewShader.createFragmentShader("src/main/resources/shaders/sky/sky_view.frag");
         skyViewShader.link();
 
         skyViewShader.createUniform("transmittanceLUT");
@@ -81,8 +87,8 @@ public class Sky {
 
         // Set up background shader
         backgroundShader = new ShaderProgram("Atmosphere Background");
-        backgroundShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/sky/background.vert").toPath(), StandardCharsets.US_ASCII));
-        backgroundShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/sky/background.frag").toPath(), StandardCharsets.US_ASCII));
+        backgroundShader.createVertexShader("src/main/resources/shaders/sky/background.vert");
+        backgroundShader.createFragmentShader("src/main/resources/shaders/sky/background.frag");
         backgroundShader.link();
 
         backgroundShader.createUniform("transmittanceLUT");
@@ -95,6 +101,39 @@ public class Sky {
         backgroundShader.createUniform("projection");
         backgroundShader.createUniform("view");
         backgroundShader.createUniform("iTime");
+
+        // Set up cubemap shader
+        cubemapShader = new ShaderProgram("Atmosphere Cubemap");
+        cubemapShader.createVertexShader("src/main/resources/shaders/cubemap.vert");
+        cubemapShader.createFragmentShader("src/main/resources/shaders/sky/cubemap.frag");
+        cubemapShader.link();
+
+        cubemapShader.createUniform("transmittanceLUT");
+        cubemapShader.createUniform("transmittanceLUTRes");
+        cubemapShader.createUniform("skyViewLUT");
+        cubemapShader.createUniform("skyViewLUTRes");
+
+        cubemapShader.createUniform("projection");
+        cubemapShader.createUniform("view");
+        cubemapShader.createUniform("direction");
+        cubemapShader.createUniform("iTime");
+
+        cubemapShader.createUniform("camFOV");
+
+        backgroundCubemap = glGenTextures();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, backgroundCubemap);
+
+        for (int i = 0; i < 6; i++) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, cubemapResolution, cubemapResolution, 0, GL_RGBA, GL_FLOAT, (ByteBuffer) null);
+        }
+
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
 
     public void renderLUTs() {
@@ -144,14 +183,24 @@ public class Sky {
         glBindTexture(GL_TEXTURE_2D, scattering.getID());
         skyViewShader.setUniform("multiScattLUTRes", new Vector2f(scatteringLUTRes.x, scatteringLUTRes.y));
 
-        skyViewShader.setUniform("iTime", automaticTime ? (float) glfwGetTime() * timeScale : time);
+        skyViewShader.setUniform("iTime", time);
 
         glClear(GL_COLOR_BUFFER_BIT);
         io.william.util.renderer.Quad.render();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    public void render(Camera camera, Matrix4f projection) {
+    public void render(Camera camera, Matrix4f projection, ShaderSettings settings) {
+        if (automaticTime) {
+            time = (float) glfwGetTime() * timeScale;
+        }
+
+        // Check if time has been updated
+        if (lastTime != time) {
+            updated = true;
+            lastTime = time;
+        }
+
         backgroundShader.bind();
 
         backgroundShader.setUniform("transmittanceLUT", 0);
@@ -168,9 +217,61 @@ public class Sky {
         backgroundShader.setUniform("cameraDir", camera.getFront());
         backgroundShader.setUniform("projection", projection);
         backgroundShader.setUniform("view", camera.calculateViewMatrix());
-        backgroundShader.setUniform("iTime", automaticTime ? (float) glfwGetTime() * timeScale : time);
+        backgroundShader.setUniform("iTime", time);
 
         Cube.render();
+
+        // Render again to a cubemap so that it can be used with IBL
+        cubemapShader.bind();
+
+        cubemapShader.setUniform("transmittanceLUT", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, transmittance.getID());
+        cubemapShader.setUniform("transmittanceLUTRes", new Vector2f(transmittanceLUTRes.x, transmittanceLUTRes.y));
+
+        cubemapShader.setUniform("skyViewLUT", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, skyView.getID());
+        cubemapShader.setUniform("skyViewLUTRes", new Vector2f(skyViewRes.x, skyViewRes.y));
+
+        cubemapShader.setUniform("projection", projection);
+        cubemapShader.setUniform("view", camera.calculateViewMatrix());
+        cubemapShader.setUniform("iTime", time);
+
+        cubemapShader.setUniform("camFOV", (float) Math.toRadians(settings.getCubemapCamFOV()));
+
+        Matrix4f captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+
+        Matrix4f[] views = new Matrix4f[]{
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  0.0f,  1.0f),
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f, -1.0f,  0.0f, 0.0f,  0.0f, -1.0f),
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f,  0.0f,  1.0f, 0.0f, -1.0f,  0.0f),
+            new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f,  0.0f, -1.0f, 0.0f, -1.0f,  0.0f)
+        };
+
+        Vector3f[] directions = new Vector3f[]{
+            new Vector3f(1.0f,  0.0f,  0.0f),
+            new Vector3f(-1.0f, 0.0f,  0.0f),
+            new Vector3f(0.001f,  1.0f,  0.0f),
+            new Vector3f(0.001f, -1.0f,  0.0f),
+            new Vector3f(0.0f,  0.0f,  1.0f),
+            new Vector3f(0.0f,  0.0f, -1.0f)
+        };
+
+        cubemapShader.setUniform("projection", captureProjection);
+
+        glViewport(0, 0, cubemapResolution, cubemapResolution);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
+        for (int i = 0; i < 6; i++) {
+            cubemapShader.setUniform("view", views[i]);
+            cubemapShader.setUniform("direction", directions[i]);
+            framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, backgroundCubemap);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            Cube.render();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     public int getTransmittanceID() {
@@ -183,6 +284,10 @@ public class Sky {
 
     public int getSkyViewID() {
         return skyView.getID();
+    }
+
+    public int getBackgroundCubemapID() {
+        return backgroundCubemap;
     }
 
     public float getTime() {
@@ -207,5 +312,13 @@ public class Sky {
 
     public void setTimeScale(float timeScale) {
         this.timeScale = timeScale;
+    }
+
+    public boolean isUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(boolean updated) {
+        this.updated = updated;
     }
 }

@@ -3,10 +3,7 @@ package io.william.renderer;
 import io.william.util.renderer.Cube;
 import org.joml.Matrix4f;
 
-import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -25,6 +22,14 @@ public class EquirectangularMap {
     private int irradianceMap;
     private int prefilterMap;
     private int brdfLUT;
+
+    private int irradianceResolution = 8;
+    private int prefilterResolution = 32;
+    private int brdfResolution = 512;
+
+    private Framebuffer framebuffer;
+    private Matrix4f captureProjection;
+    private Matrix4f[] views;
 
     private String path;
 
@@ -55,7 +60,7 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        Framebuffer framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, 512, 512);
+        framebuffer = new Framebuffer(texture, GL_DEPTH_COMPONENT24, GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, 512, 512);
 
         // Set up cubemap to render to and attach to framebuffer
         environmentCubemap = glGenTextures();
@@ -72,9 +77,9 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Set up projection and view matrices
-        Matrix4f captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
+        captureProjection = new Matrix4f().setPerspective((float) Math.toRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
-        Matrix4f[] views = new Matrix4f[]{
+        views = new Matrix4f[]{
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f, -1.0f,  0.0f,  0.0f, 0.0f, -1.0f,  0.0f),
             new Matrix4f().setLookAt(0.0f, 0.0f, 0.0f,  0.0f,  1.0f,  0.0f, 0.0f,  0.0f,  1.0f),
@@ -85,8 +90,8 @@ public class EquirectangularMap {
 
         // Convert equirectangular to cubemap
         equirectangularToCubemapShader = new ShaderProgram("EquirectangularToCubemap");
-        equirectangularToCubemapShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
-        equirectangularToCubemapShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/equirectangular_to_cubemap.frag").toPath(), StandardCharsets.US_ASCII));
+        equirectangularToCubemapShader.createVertexShader("src/main/resources/shaders/cubemap.vert");
+        equirectangularToCubemapShader.createFragmentShader("src/main/resources/shaders/equirectangular_to_cubemap.frag");
         equirectangularToCubemapShader.link();
 
         equirectangularToCubemapShader.createUniform("equirectangularMap");
@@ -123,7 +128,7 @@ public class EquirectangularMap {
         irradianceMap = glGenTextures();
         glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
         for (int i = 0; i < 6; i++) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, (ByteBuffer) null);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, irradianceResolution, irradianceResolution, 0, GL_RGB, GL_FLOAT, (ByteBuffer) null);
         }
 
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -132,28 +137,110 @@ public class EquirectangularMap {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, 32, 32);
+        framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, irradianceResolution, irradianceResolution);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Solve diffuse integral
         irradianceShader = new ShaderProgram("Irradiance");
-        irradianceShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
-        irradianceShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/irradiance_convolution.frag").toPath(), StandardCharsets.US_ASCII));
+        irradianceShader.createVertexShader("src/main/resources/shaders/cubemap.vert");
+        irradianceShader.createFragmentShader("src/main/resources/shaders/irradiance_convolution.frag");
         irradianceShader.link();
 
         irradianceShader.createUniform("projection");
         irradianceShader.createUniform("view");
         irradianceShader.createUniform("environmentMap");
+        irradianceShader.createUniform("fastIrradiance");
 
+        // Create prefilter map
+        prefilterMap = glGenTextures();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+        for (int i = 0; i < 6; i++) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, prefilterResolution, prefilterResolution, 0, GL_RGB, GL_FLOAT, (ByteBuffer) null);
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+        // Prefilter environment map with different roughness values over multiple mipmap levels
+        prefilterShader = new ShaderProgram("Prefilter");
+        prefilterShader.createVertexShader("src/main/resources/shaders/cubemap.vert");
+        prefilterShader.createFragmentShader("src/main/resources/shaders/prefilter.frag");
+        prefilterShader.link();
+
+        prefilterShader.createUniform("environmentMap");
+        prefilterShader.createUniform("projection");
+        prefilterShader.createUniform("view");
+        prefilterShader.createUniform("roughness");
+
+        // Generate 2D BRDF LUT (512 x 512, 16-bit float)
+        brdfLUT = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, brdfLUT);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, brdfResolution, brdfResolution, 0, GL_RG, GL_FLOAT, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Render it
+        brdfShader = new ShaderProgram("BRDF");
+        brdfShader.createVertexShader("src/main/resources/shaders/brdf.vert");
+        brdfShader.createFragmentShader("src/main/resources/shaders/brdf.frag");
+        brdfShader.link();
+
+        // Configure framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
+        framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, brdfResolution, brdfResolution);
+        framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT);
+
+        // Render quad
+        glViewport(0, 0, brdfResolution, brdfResolution);
+        brdfShader.bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        io.william.util.renderer.Quad.render();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Set up background shader
+        backgroundShader = new ShaderProgram("Background");
+        backgroundShader.createVertexShader("src/main/resources/shaders/background.vert");
+        backgroundShader.createFragmentShader("src/main/resources/shaders/background.frag");
+        backgroundShader.link();
+
+        backgroundShader.createUniform("projection");
+        backgroundShader.createUniform("view");
+        backgroundShader.createUniform("environmentMap");
+
+        renderTextures(environmentCubemap, null);
+    }
+
+    public void renderTextures(int environmentMap, ShaderSettings settings) {
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+        glDepthFunc(GL_LEQUAL);
+
+        // IRRADIANCE
+        framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, irradianceResolution, irradianceResolution);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Solve diffuse integral
         irradianceShader.bind();
         irradianceShader.setUniform("environmentMap", 0);
         irradianceShader.setUniform("projection", captureProjection);
+        if (settings != null) {
+            irradianceShader.setUniform("fastIrradiance", settings.isFastIrradiance());
+        }
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, environmentMap);
 
-        glViewport(0, 0, 32, 32);
+        glViewport(0, 0, irradianceResolution, irradianceResolution);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         for (int i = 0; i < 6; i++) {
             irradianceShader.setUniform("view", views[i]);
@@ -167,44 +254,21 @@ public class EquirectangularMap {
 
         irradianceShader.unbind();
 
-        // Create prefilter map
-        prefilterMap = glGenTextures();
-        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
-        for (int i = 0; i < 6; i++) {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, (ByteBuffer) null);
-        }
-
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        // PREFILTER
 
         // Prefilter environment map with different roughness values over multiple mipmap levels
-        prefilterShader = new ShaderProgram("Prefilter");
-        prefilterShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/cubemap.vert").toPath(), StandardCharsets.US_ASCII));
-        prefilterShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/prefilter.frag").toPath(), StandardCharsets.US_ASCII));
-        prefilterShader.link();
-
-        prefilterShader.createUniform("environmentMap");
-        prefilterShader.createUniform("projection");
-        prefilterShader.createUniform("view");
-        prefilterShader.createUniform("roughness");
-
         prefilterShader.bind();
         prefilterShader.setUniform("environmentMap", 0);
         prefilterShader.setUniform("projection", captureProjection);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, environmentCubemap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, environmentMap);
 
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
         int maxMipLevels = 5;
         for (int mip = 0; mip < maxMipLevels; mip++) {
             // Resize framebuffer to mipmap size
-            int mipWidth = (int) (128 * Math.pow(0.5, mip));
+            int mipWidth = (int) (prefilterResolution * Math.pow(0.5, mip));
             int mipHeight = mipWidth;
             framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
             glViewport(0, 0, mipWidth, mipHeight);
@@ -222,47 +286,6 @@ public class EquirectangularMap {
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // Generate 2D BRDF LUT (512 x 512, 16-bit float)
-        brdfLUT = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, brdfLUT);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // Render it
-        brdfShader = new ShaderProgram("BRDF");
-        brdfShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/brdf.vert").toPath(), StandardCharsets.US_ASCII));
-        brdfShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/brdf.frag").toPath(), StandardCharsets.US_ASCII));
-        brdfShader.link();
-
-        // Configure framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
-        framebuffer.setRenderbufferStorage(GL_DEPTH_COMPONENT24, 512, 512);
-        framebuffer.attachTexture2D(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUT);
-
-        // Render quad
-        glViewport(0, 0, 512, 512);
-        brdfShader.bind();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        io.william.util.renderer.Quad.render();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // Set up background shader
-        backgroundShader = new ShaderProgram("Background");
-        backgroundShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/background.vert").toPath(), StandardCharsets.US_ASCII));
-        backgroundShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/background.frag").toPath(), StandardCharsets.US_ASCII));
-        backgroundShader.link();
-
-        backgroundShader.createUniform("projection");
-        backgroundShader.createUniform("view");
-        backgroundShader.createUniform("environmentMap");
-
-        backgroundShader.bind();
-        backgroundShader.setUniform("environmentMap", 0);
     }
 
     public void render(Camera camera, Matrix4f projection) {

@@ -4,9 +4,6 @@ import io.william.util.renderer.Quad;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -39,13 +36,13 @@ public class BloomRenderer {
         }
 
         downsampleShader = new ShaderProgram("Downsample");
-        downsampleShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/bloom/quad.vert").toPath(), StandardCharsets.US_ASCII));
-        downsampleShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/bloom/downsample.frag").toPath(), StandardCharsets.US_ASCII));
+        downsampleShader.createVertexShader("src/main/resources/shaders/bloom/quad.vert");
+        downsampleShader.createFragmentShader("src/main/resources/shaders/bloom/downsample.frag");
         downsampleShader.link();
 
         upsampleShader = new ShaderProgram("Upsample");
-        upsampleShader.createVertexShader(Files.readString(new File("src/main/resources/shaders/bloom/quad.vert").toPath(), StandardCharsets.US_ASCII));
-        upsampleShader.createFragmentShader(Files.readString(new File("src/main/resources/shaders/bloom/upsample.frag").toPath(), StandardCharsets.US_ASCII));
+        upsampleShader.createVertexShader("src/main/resources/shaders/bloom/quad.vert");
+        upsampleShader.createFragmentShader("src/main/resources/shaders/bloom/upsample.frag");
         upsampleShader.link();
 
         downsampleShader.createUniform("srcTexture");

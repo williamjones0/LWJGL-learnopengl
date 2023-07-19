@@ -34,6 +34,25 @@ public class Framebuffer {
         }
     }
 
+    public Framebuffer(int textureID, int target, int framebufferAttachment, boolean draw) {
+        ID = glGenFramebuffers();
+        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, framebufferAttachment, target, textureID, 0);
+
+        if (!draw) {
+            glDrawBuffer(GL_NONE);
+            glReadBuffer(GL_NONE);
+        }
+
+        int result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (result != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDeleteFramebuffers(ID);
+            throw new RuntimeException("Framebuffer is not complete: " + result);
+        }
+    }
+
     public Framebuffer(Texture texture, int internalFormat, int framebufferAttachment, int renderbufferAttachment) {
         this.texture = texture;
         this.width = texture.getWidth();
@@ -48,6 +67,28 @@ public class Framebuffer {
         int renderbuffer = glGenRenderbuffers();
         glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
         glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, texture.getWidth(), texture.getHeight());
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, renderbufferAttachment, GL_RENDERBUFFER, renderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+        int result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (result != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDeleteFramebuffers(ID);
+            throw new RuntimeException("Framebuffer is not complete: " + result);
+        }
+    }
+
+    public Framebuffer(int textureID, int internalFormat, int framebufferAttachment, int renderbufferAttachment, int width, int height) {
+
+        ID = glGenFramebuffers();
+        glBindFramebuffer(GL_FRAMEBUFFER, ID);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, framebufferAttachment, GL_TEXTURE_2D, textureID, 0);
+
+        // Set up renderbuffer object
+        renderbuffer = glGenRenderbuffers();
+        glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, renderbufferAttachment, GL_RENDERBUFFER, renderbuffer);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
 

@@ -60,7 +60,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "Renderer", 1, false);
+        window = new Window(1920, 1080, "Renderer", 0, false);
         window.create();
 
         renderer = new Renderer();
@@ -249,6 +249,69 @@ public class Main {
         scene.addModel(helmetModel);
         helmetEntity.setModelID(helmetModel.getID());
 
+        // Cube
+        Cube cube = new Cube();
+        MeshData cubeMeshData = new MeshData(
+            cube.getPositions(),
+            cube.getNormals(),
+            new float[]{},
+            new float[]{},
+            cube.getTexCoords(),
+            cube.getIndices()
+        );
+
+        Map<Integer, Integer> meshDataMaterialIDs = new HashMap<>();
+        Model cubeModel = new Model(
+            cubeMeshData,
+            new ModelMetadata(
+                cube, meshDataMaterialIDs
+            ),
+            "Cube"
+        );
+
+        Entity cubeEntity = new Entity(
+            new Vector3f(5, 5, 5),
+            new Vector3f(0, 0, 0),
+            5f,
+            "Cube"
+        );
+        cubeEntity.setModelID(cubeModel.getID());
+        cubeModel.addEntity(cubeEntity);
+        scene.addEntity(cubeEntity);
+
+        scene.addModel(cubeModel);
+
+        // Sphere
+        UVSphere sphere = new UVSphere(5f, 64, 64);
+        MeshData sphereMeshData = new MeshData(
+            sphere.getPositions(),
+            sphere.getNormals(),
+            new float[]{},
+            new float[]{},
+            sphere.getTexCoords(),
+            sphere.getIndices()
+        );
+
+        Model sphereModel = new Model(
+            sphereMeshData,
+            new ModelMetadata(
+                sphere, meshDataMaterialIDs
+            ),
+            "Sphere"
+        );
+
+        Entity sphereEntity = new Entity(
+            new Vector3f(15, 5, 0),
+            new Vector3f(0, 0, 0),
+            1f,
+            "Sphere"
+        );
+        sphereEntity.setModelID(sphereModel.getID());
+        sphereModel.addEntity(sphereEntity);
+        scene.addEntity(sphereEntity);
+
+        scene.addModel(sphereModel);
+
 //        // Cylinder
 //        Cylinder newCylinder = new Cylinder(
 //                1f,
@@ -407,7 +470,7 @@ public class Main {
             500.0f
         );
 
-        scene.addPointLight(pointLight1);
+//        scene.addPointLight(pointLight1);
 
 //        PointLight pointLight2 = new PointLight(
 //            new Vector3f(50.0f, 10.0f, 30.0f),
