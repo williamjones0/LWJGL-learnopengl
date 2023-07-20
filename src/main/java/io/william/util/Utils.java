@@ -2,6 +2,7 @@ package io.william.util;
 
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Utils {
@@ -32,6 +33,19 @@ public class Utils {
 
     public static Vector3f arrayToVector3f(float[] array) {
         return new Vector3f(array[0], array[1], array[2]);
+    }
+
+    public static String[] removeEmptyStrings(String[] data) {
+        ArrayList<String> result = new ArrayList<>();
+
+        for (String datum : data)
+            if (!datum.equals(""))
+                result.add(datum);
+
+        String[] res = new String[result.size()];
+        result.toArray(res);
+
+        return res;
     }
 
 }

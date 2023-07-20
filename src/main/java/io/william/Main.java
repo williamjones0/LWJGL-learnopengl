@@ -11,6 +11,7 @@ import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
 import io.william.renderer.sky.Sky;
+import io.william.renderer.terrain.Terrain;
 import io.william.util.Maths;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -241,13 +242,13 @@ public class Main {
 //        scene.addEntity(sponza);
 //        sponza.setModelID(sponzaModel.getID());
 
-        // Helmet
-        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
-        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
-        helmetModel.addEntity(helmetEntity);
-        scene.addEntity(helmetEntity);
-        scene.addModel(helmetModel);
-        helmetEntity.setModelID(helmetModel.getID());
+//        // Helmet
+//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
+//        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
+//        helmetModel.addEntity(helmetEntity);
+//        scene.addEntity(helmetEntity);
+//        scene.addModel(helmetModel);
+//        helmetEntity.setModelID(helmetModel.getID());
 
         // Cube
         Cube cube = new Cube();
@@ -270,7 +271,7 @@ public class Main {
         );
 
         Entity cubeEntity = new Entity(
-            new Vector3f(5, 5, 5),
+            new Vector3f(500, 5, 5),
             new Vector3f(0, 0, 0),
             5f,
             "Cube"
@@ -281,36 +282,36 @@ public class Main {
 
         scene.addModel(cubeModel);
 
-        // Sphere
-        UVSphere sphere = new UVSphere(5f, 64, 64);
-        MeshData sphereMeshData = new MeshData(
-            sphere.getPositions(),
-            sphere.getNormals(),
-            new float[]{},
-            new float[]{},
-            sphere.getTexCoords(),
-            sphere.getIndices()
-        );
-
-        Model sphereModel = new Model(
-            sphereMeshData,
-            new ModelMetadata(
-                sphere, meshDataMaterialIDs
-            ),
-            "Sphere"
-        );
-
-        Entity sphereEntity = new Entity(
-            new Vector3f(15, 5, 0),
-            new Vector3f(0, 0, 0),
-            1f,
-            "Sphere"
-        );
-        sphereEntity.setModelID(sphereModel.getID());
-        sphereModel.addEntity(sphereEntity);
-        scene.addEntity(sphereEntity);
-
-        scene.addModel(sphereModel);
+//        // Sphere
+//        UVSphere sphere = new UVSphere(5f, 64, 64);
+//        MeshData sphereMeshData = new MeshData(
+//            sphere.getPositions(),
+//            sphere.getNormals(),
+//            new float[]{},
+//            new float[]{},
+//            sphere.getTexCoords(),
+//            sphere.getIndices()
+//        );
+//
+//        Model sphereModel = new Model(
+//            sphereMeshData,
+//            new ModelMetadata(
+//                sphere, meshDataMaterialIDs
+//            ),
+//            "Sphere"
+//        );
+//
+//        Entity sphereEntity = new Entity(
+//            new Vector3f(15, 5, 0),
+//            new Vector3f(0, 0, 0),
+//            1f,
+//            "Sphere"
+//        );
+//        sphereEntity.setModelID(sphereModel.getID());
+//        sphereModel.addEntity(sphereEntity);
+//        scene.addEntity(sphereEntity);
+//
+//        scene.addModel(sphereModel);
 
 //        // Cylinder
 //        Cylinder newCylinder = new Cylinder(
@@ -521,8 +522,11 @@ public class Main {
         scene.setEquirectangularMap(equirectangularMap);
 
         Sky sky = new Sky();
-
         scene.setSky(sky);
+
+        Terrain terrain = new Terrain();
+        terrain.init("src/main/resources/terrain_settings.txt", camera.getPosition());
+        scene.setTerrain(terrain);
 
         masterRenderer.init(window, renderer, scene, camera, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer, gui);
     }

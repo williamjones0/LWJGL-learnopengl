@@ -22,8 +22,10 @@ public class ShaderProgram {
 
     private final int programID;
     private int vertexShaderID;
-    private int fragmentShaderID;
+    private int tesselationControlShaderID;
+    private int tesselationEvaluationShaderID;
     private int geometryShaderID;
+    private int fragmentShaderID;
     private final Map<String, Integer> uniforms;
 
     private final String label;
@@ -174,14 +176,24 @@ public class ShaderProgram {
         vertexShaderID = createShader(source, GL_VERTEX_SHADER);
     }
 
-    public void createFragmentShader(String path) throws IOException {
+    public void createTesselationControlShader(String path) throws IOException {
         String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
-        fragmentShaderID = createShader(source, GL_FRAGMENT_SHADER);
+        tesselationControlShaderID = createShader(source, GL_TESS_CONTROL_SHADER);
+    }
+
+    public void createTesselationEvaluationShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
+        tesselationEvaluationShaderID = createShader(source, GL_TESS_EVALUATION_SHADER);
     }
 
     public void createGeometryShader(String path) throws IOException {
         String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
         geometryShaderID = createShader(source, GL_GEOMETRY_SHADER);
+    }
+
+    public void createFragmentShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
+        fragmentShaderID = createShader(source, GL_FRAGMENT_SHADER);
     }
 
     private int createShader(String source, int shaderType) {
@@ -211,6 +223,8 @@ public class ShaderProgram {
 
         glDetachShader(programID, vertexShaderID);
         glDetachShader(programID, fragmentShaderID);
+        if (tesselationControlShaderID != 0) glDetachShader(programID, tesselationControlShaderID);
+        if (tesselationEvaluationShaderID != 0) glDetachShader(programID, tesselationEvaluationShaderID);
         if (geometryShaderID != 0) glDetachShader(programID, geometryShaderID);
 
         glValidateProgram(programID);

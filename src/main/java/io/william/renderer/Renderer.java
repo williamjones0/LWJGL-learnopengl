@@ -8,6 +8,7 @@ import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
 import io.william.renderer.sky.Sky;
+import io.william.renderer.terrain.Terrain;
 import io.william.util.Maths;
 import io.william.io.Window;
 import org.joml.*;
@@ -28,6 +29,7 @@ public class Renderer {
     private ShaderProgram filamentShader;
     private ShaderProgram frostbiteShader;
 
+    private ShaderProgram terrainShader;
     private ShaderProgram lightShader;
     private ShaderProgram hdrShader;
 
@@ -114,6 +116,20 @@ public class Renderer {
 //
 //        createShaderUniforms(frostbiteShader);
 
+        // Terrain shader
+        terrainShader = new ShaderProgram("Terrain");
+        terrainShader.createVertexShader("src/main/resources/shaders/terrain/terrain.vert");
+        terrainShader.createTesselationControlShader("src/main/resources/shaders/terrain/terrain.tesc");
+        terrainShader.createTesselationEvaluationShader("src/main/resources/shaders/terrain/terrain.tese");
+        terrainShader.createGeometryShader("src/main/resources/shaders/terrain/terrain.geom");
+        terrainShader.createFragmentShader("src/main/resources/shaders/terrain/terrain.frag");
+        terrainShader.link();
+
+        terrainShader.createUniform("localMatrix");
+        terrainShader.createUniform("worldMatrix");
+        terrainShader.createUniform("view");
+        terrainShader.createUniform("projection");
+
         // Light shader
         lightShader = new ShaderProgram("LightCube");
         lightShader.createVertexShader("src/main/resources/shaders/light_cube.vs");
@@ -145,6 +161,7 @@ public class Renderer {
         List<SpotLight> spotLights = scene.getSpotLights();
         EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
         Sky sky = scene.getSky();
+        Terrain terrain = scene.getTerrain();
 
         // First pass: render scene to floating point framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.getID());
@@ -310,11 +327,20 @@ public class Renderer {
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
         glBindVertexArray(0);
 
+        // Render terrain
+        terrainShader.bind();
+        terrainShader.setUniform("projection", projection);
+        terrainShader.setUniform("view", view);
+
+        terrain.updateQuadtree(camera.getPosition());
+        terrain.render(terrainShader);
+
+        terrainShader.unbind();
+
         // Render lights
         lightShader.bind();
         lightShader.setUniform("view", view);
         lightShader.setUniform("projection", projection);
-        lightShader.setUniform("view", view);
 
         for (PointLight light : pointLights) {
             Matrix4f model = new Matrix4f();

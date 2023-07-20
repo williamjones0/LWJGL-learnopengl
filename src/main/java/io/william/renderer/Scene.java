@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import io.william.renderer.sky.Sky;
+import io.william.renderer.terrain.Terrain;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,6 +17,7 @@ public class Scene {
     private final List<SpotLight> spotLights;
     private EquirectangularMap equirectangularMap;
     private Sky sky;
+    private Terrain terrain;
 
     private int currentModelID = 0;
     private int currentPBRMaterialID = 0;
@@ -153,5 +155,13 @@ public class Scene {
 
     public void setSky(Sky sky) {
         this.sky = sky;
+    }
+
+    public Terrain getTerrain() {
+        return terrain;
+    }
+
+    public void setTerrain(Terrain terrain) {
+        this.terrain = terrain;
     }
 }
