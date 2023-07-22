@@ -10,13 +10,13 @@ const int DA = 1;
 void main() {
 
     if (gl_InvocationID == 0) {
-        gl_TessLevelOuter[AB] = 1;
-        gl_TessLevelOuter[BC] = 1;
-        gl_TessLevelOuter[CD] = 1;
-        gl_TessLevelOuter[DA] = 1;
+        gl_TessLevelOuter[AB] = 16;
+        gl_TessLevelOuter[BC] = 16;
+        gl_TessLevelOuter[CD] = 16;
+        gl_TessLevelOuter[DA] = 16;
 
-        gl_TessLevelInner[0] = 1;
-        gl_TessLevelInner[1] = 1;
+        gl_TessLevelInner[0] = 16;
+        gl_TessLevelInner[1] = 16;
     }
 
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;

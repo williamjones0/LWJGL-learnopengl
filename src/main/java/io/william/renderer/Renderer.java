@@ -49,7 +49,7 @@ public class Renderer {
     private boolean isNormalMapping = false;
 
     private float zNear = 0.1f;
-    private float zFar = 500f;
+    private float zFar = 5000.0f;
     private static final int MAX_POINT_LIGHTS = 8;
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
@@ -129,6 +129,17 @@ public class Renderer {
         terrainShader.createUniform("worldMatrix");
         terrainShader.createUniform("view");
         terrainShader.createUniform("projection");
+
+        terrainShader.createUniform("index");
+        terrainShader.createUniform("gap");
+        terrainShader.createUniform("lod");
+        terrainShader.createUniform("scaleY");
+        terrainShader.createUniform("location");
+        terrainShader.createUniform("cameraPosition");
+
+        for (int i = 0; i < 8; i++) {
+            terrainShader.createUniform("lod_morph_area[" + i + "]");
+        }
 
         // Light shader
         lightShader = new ShaderProgram("LightCube");
@@ -331,6 +342,7 @@ public class Renderer {
         terrainShader.bind();
         terrainShader.setUniform("projection", projection);
         terrainShader.setUniform("view", view);
+        terrainShader.setUniform("cameraPosition", camera.getPosition());
 
         terrain.updateQuadtree(camera.getPosition());
         terrain.render(terrainShader);

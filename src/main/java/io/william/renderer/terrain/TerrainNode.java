@@ -39,8 +39,18 @@ public class TerrainNode extends Node {
 
     public void render(ShaderProgram shader) {
         if (isLeaf) {
-            shader.setUniform("localMatrix", Maths.calculateModelMatrix(getLocalPosition(), getLocalRotation(), getLocalScaling().x));
-            shader.setUniform("worldMatrix", Maths.calculateModelMatrix(getWorldPosition(), getWorldRotation(), getWorldScaling().x));
+            shader.setUniform("scaleY", config.getScaleY());
+            shader.setUniform("lod", lod);
+            shader.setUniform("index", index);
+            shader.setUniform("location", location);
+            shader.setUniform("gap", gap);
+
+            for (int i = 0; i < 8; i++) {
+                shader.setUniform("lod_morph_area[" + i + "]", config.getLod_morphing_area()[i]);
+            }
+
+            shader.setUniform("localMatrix", Maths.calculateModelMatrix(getLocalPosition(), getLocalRotation(), getLocalScaling()));
+            shader.setUniform("worldMatrix", Maths.calculateModelMatrix(getWorldPosition(), getWorldRotation(), getWorldScaling()));
             buffer.draw();
         }
 
@@ -50,11 +60,7 @@ public class TerrainNode extends Node {
     }
 
     public void updateQuadtree(Vector3f cameraPos) {
-        if (cameraPos.y > config.getScaleY()) {
-            worldPos.y = config.getScaleY();
-        } else {
-            worldPos.y = cameraPos.y;
-        }
+        worldPos.y = Math.min(cameraPos.y, config.getScaleY());
 
         updateChildNodes(cameraPos);
 

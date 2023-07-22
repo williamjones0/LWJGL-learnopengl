@@ -202,7 +202,16 @@ public class ShaderProgram {
             System.out.println("Error creating shader: " + shaderType);
         }
 
-        glObjectLabel(GL_SHADER, shaderID, label + " " + (shaderType == GL_VERTEX_SHADER ? "Vertex" : shaderType == GL_FRAGMENT_SHADER ? "Fragment" : "Geometry"));
+        String shaderTypeLabel = switch (shaderType) {
+            case GL_VERTEX_SHADER -> "Vertex";
+            case GL_TESS_CONTROL_SHADER -> "Tesselation Control";
+            case GL_TESS_EVALUATION_SHADER -> "Tesselation Evaluation";
+            case GL_GEOMETRY_SHADER -> "Geometry";
+            case GL_FRAGMENT_SHADER -> "Fragment";
+            default -> "Unknown";
+        };
+
+        glObjectLabel(GL_SHADER, shaderID, label + " " + shaderTypeLabel);
 
         glShaderSource(shaderID, source);
         glCompileShader(shaderID);
