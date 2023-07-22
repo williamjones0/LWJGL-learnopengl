@@ -10,6 +10,10 @@ public class TerrainConfig {
     private float scaleY;
     private float scaleXZ;
 
+    private int tessellationFactor;
+    private float tessellationSlope;
+    private float tessellationShift;
+
     private int[] lod_range = new int[8];
     private int[] lod_morphing_area = new int[8];
 
@@ -34,6 +38,18 @@ public class TerrainConfig {
 
                 if (tokens[0].equals("scaleXZ")) {
                     setScaleXZ(Float.valueOf(tokens[1]));
+                }
+
+                if (tokens[0].equals("tessellationFactor")) {
+                    setTessellationFactor(Integer.valueOf(tokens[1]));
+                }
+
+                if (tokens[0].equals("tessellationSlope")) {
+                    setTessellationSlope(Float.valueOf(tokens[1]));
+                }
+
+                if (tokens[0].equals("tessellationShift")) {
+                    setTessellationShift(Float.valueOf(tokens[1]));
                 }
 
                 if (tokens[0].equals("#lod_ranges")) {
@@ -98,5 +114,29 @@ public class TerrainConfig {
 
     public void setLod_morphing_area(int[] lod_morphing_area) {
         this.lod_morphing_area = lod_morphing_area;
+    }
+
+    public int getTessellationFactor() {
+        return tessellationFactor;
+    }
+
+    public void setTessellationFactor(int tessellationFactor) {
+        this.tessellationFactor = tessellationFactor;
+    }
+
+    public float getTessellationSlope() {
+        return tessellationSlope;
+    }
+
+    public void setTessellationSlope(float tessellationSlope) {
+        this.tessellationSlope = tessellationSlope;
+    }
+
+    public float getTessellationShift() {
+        return tessellationShift;
+    }
+
+    public void setTessellationShift(float tessellationShift) {
+        this.tessellationShift = tessellationShift;
     }
 }

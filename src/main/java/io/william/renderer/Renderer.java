@@ -119,8 +119,8 @@ public class Renderer {
         // Terrain shader
         terrainShader = new ShaderProgram("Terrain");
         terrainShader.createVertexShader("src/main/resources/shaders/terrain/terrain.vert");
-        terrainShader.createTesselationControlShader("src/main/resources/shaders/terrain/terrain.tesc");
-        terrainShader.createTesselationEvaluationShader("src/main/resources/shaders/terrain/terrain.tese");
+        terrainShader.createTessellationControlShader("src/main/resources/shaders/terrain/terrain.tesc");
+        terrainShader.createTessellationEvaluationShader("src/main/resources/shaders/terrain/terrain.tese");
         terrainShader.createGeometryShader("src/main/resources/shaders/terrain/terrain.geom");
         terrainShader.createFragmentShader("src/main/resources/shaders/terrain/terrain.frag");
         terrainShader.link();
@@ -140,6 +140,10 @@ public class Renderer {
         for (int i = 0; i < 8; i++) {
             terrainShader.createUniform("lod_morph_area[" + i + "]");
         }
+
+        terrainShader.createUniform("tessellationFactor");
+        terrainShader.createUniform("tessellationSlope");
+        terrainShader.createUniform("tessellationShift");
 
         // Light shader
         lightShader = new ShaderProgram("LightCube");

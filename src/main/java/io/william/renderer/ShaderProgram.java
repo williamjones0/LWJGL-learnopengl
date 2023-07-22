@@ -22,8 +22,8 @@ public class ShaderProgram {
 
     private final int programID;
     private int vertexShaderID;
-    private int tesselationControlShaderID;
-    private int tesselationEvaluationShaderID;
+    private int tessellationControlShaderID;
+    private int tessellationEvaluationShaderID;
     private int geometryShaderID;
     private int fragmentShaderID;
     private final Map<String, Integer> uniforms;
@@ -176,14 +176,14 @@ public class ShaderProgram {
         vertexShaderID = createShader(source, GL_VERTEX_SHADER);
     }
 
-    public void createTesselationControlShader(String path) throws IOException {
+    public void createTessellationControlShader(String path) throws IOException {
         String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
-        tesselationControlShaderID = createShader(source, GL_TESS_CONTROL_SHADER);
+        tessellationControlShaderID = createShader(source, GL_TESS_CONTROL_SHADER);
     }
 
-    public void createTesselationEvaluationShader(String path) throws IOException {
+    public void createTessellationEvaluationShader(String path) throws IOException {
         String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
-        tesselationEvaluationShaderID = createShader(source, GL_TESS_EVALUATION_SHADER);
+        tessellationEvaluationShaderID = createShader(source, GL_TESS_EVALUATION_SHADER);
     }
 
     public void createGeometryShader(String path) throws IOException {
@@ -204,8 +204,8 @@ public class ShaderProgram {
 
         String shaderTypeLabel = switch (shaderType) {
             case GL_VERTEX_SHADER -> "Vertex";
-            case GL_TESS_CONTROL_SHADER -> "Tesselation Control";
-            case GL_TESS_EVALUATION_SHADER -> "Tesselation Evaluation";
+            case GL_TESS_CONTROL_SHADER -> "Tessellation Control";
+            case GL_TESS_EVALUATION_SHADER -> "Tessellation Evaluation";
             case GL_GEOMETRY_SHADER -> "Geometry";
             case GL_FRAGMENT_SHADER -> "Fragment";
             default -> "Unknown";
@@ -232,8 +232,8 @@ public class ShaderProgram {
 
         glDetachShader(programID, vertexShaderID);
         glDetachShader(programID, fragmentShaderID);
-        if (tesselationControlShaderID != 0) glDetachShader(programID, tesselationControlShaderID);
-        if (tesselationEvaluationShaderID != 0) glDetachShader(programID, tesselationEvaluationShaderID);
+        if (tessellationControlShaderID != 0) glDetachShader(programID, tessellationControlShaderID);
+        if (tessellationEvaluationShaderID != 0) glDetachShader(programID, tessellationEvaluationShaderID);
         if (geometryShaderID != 0) glDetachShader(programID, geometryShaderID);
 
         glValidateProgram(programID);

@@ -49,6 +49,10 @@ public class TerrainNode extends Node {
                 shader.setUniform("lod_morph_area[" + i + "]", config.getLod_morphing_area()[i]);
             }
 
+            shader.setUniform("tessellationFactor", config.getTessellationFactor());
+            shader.setUniform("tessellationSlope", config.getTessellationSlope());
+            shader.setUniform("tessellationShift", config.getTessellationShift());
+
             shader.setUniform("localMatrix", Maths.calculateModelMatrix(getLocalPosition(), getLocalRotation(), getLocalScaling()));
             shader.setUniform("worldMatrix", Maths.calculateModelMatrix(getWorldPosition(), getWorldRotation(), getWorldScaling()));
             buffer.draw();
