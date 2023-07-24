@@ -26,6 +26,7 @@ public class ShaderProgram {
     private int tessellationEvaluationShaderID;
     private int geometryShaderID;
     private int fragmentShaderID;
+    private int computeShaderID;
     private final Map<String, Integer> uniforms;
 
     private final String label;
@@ -196,6 +197,11 @@ public class ShaderProgram {
         fragmentShaderID = createShader(source, GL_FRAGMENT_SHADER);
     }
 
+    public void createComputeShader(String path) throws IOException {
+        String source = Files.readString(new File(path).toPath(), StandardCharsets.US_ASCII);
+        computeShaderID = createShader(source, GL_COMPUTE_SHADER);
+    }
+
     private int createShader(String source, int shaderType) {
         int shaderID = glCreateShader(shaderType);
         if (shaderID == 0) {
@@ -235,6 +241,7 @@ public class ShaderProgram {
         if (tessellationControlShaderID != 0) glDetachShader(programID, tessellationControlShaderID);
         if (tessellationEvaluationShaderID != 0) glDetachShader(programID, tessellationEvaluationShaderID);
         if (geometryShaderID != 0) glDetachShader(programID, geometryShaderID);
+        if (computeShaderID != 0) glDetachShader(programID, computeShaderID);
 
         glValidateProgram(programID);
         if (glGetProgrami(programID, GL_VALIDATE_STATUS) == 0) {

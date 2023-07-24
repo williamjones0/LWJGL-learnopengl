@@ -145,6 +145,9 @@ public class Renderer {
         terrainShader.createUniform("tessellationSlope");
         terrainShader.createUniform("tessellationShift");
 
+        terrainShader.createUniform("heightMap");
+        terrainShader.createUniform("normalMap");
+
         // Light shader
         lightShader = new ShaderProgram("LightCube");
         lightShader.createVertexShader("src/main/resources/shaders/light_cube.vs");
@@ -347,6 +350,14 @@ public class Renderer {
         terrainShader.setUniform("projection", projection);
         terrainShader.setUniform("view", view);
         terrainShader.setUniform("cameraPosition", camera.getPosition());
+
+        terrainShader.setUniform("heightMap", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getHeightMap().getID());
+
+        terrainShader.setUniform("normalMap", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getNormalMap().getID());
 
         terrain.updateQuadtree(camera.getPosition());
         terrain.render(terrainShader);

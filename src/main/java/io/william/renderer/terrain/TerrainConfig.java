@@ -1,14 +1,20 @@
 package io.william.renderer.terrain;
 
+import io.william.renderer.Texture;
 import io.william.util.Utils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 
+import static org.lwjgl.opengl.GL11.*;
+
 public class TerrainConfig {
 
     private float scaleY;
     private float scaleXZ;
+
+    private Texture heightMap;
+    private Texture normalMap;
 
     private int tessellationFactor;
     private float tessellationSlope;
@@ -38,6 +44,17 @@ public class TerrainConfig {
 
                 if (tokens[0].equals("scaleXZ")) {
                     setScaleXZ(Float.valueOf(tokens[1]));
+                }
+
+                if (tokens[0].equals("heightMap")) {
+                    heightMap = new Texture(tokens[1], GL_RGBA);
+                    heightMap.bind();
+                    heightMap.bilinearFilter();
+
+                    NormalMapRenderer normalMapRenderer = new NormalMapRenderer(heightMap.getWidth());
+                    normalMapRenderer.setStrength(8.0f);
+                    normalMapRenderer.render(heightMap);
+                    setNormalMap(normalMapRenderer.getNormalMap());
                 }
 
                 if (tokens[0].equals("tessellationFactor")) {
@@ -138,5 +155,21 @@ public class TerrainConfig {
 
     public void setTessellationShift(float tessellationShift) {
         this.tessellationShift = tessellationShift;
+    }
+
+    public Texture getHeightMap() {
+        return heightMap;
+    }
+
+    public void setHeightMap(Texture heightMap) {
+        this.heightMap = heightMap;
+    }
+
+    public Texture getNormalMap() {
+        return normalMap;
+    }
+
+    public void setNormalMap(Texture normalMap) {
+        this.normalMap = normalMap;
     }
 }

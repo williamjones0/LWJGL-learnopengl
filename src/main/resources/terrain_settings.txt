@@ -1,6 +1,8 @@
 #terrain settings
 scaleXZ 6000.0
-scaleY 0.0
+scaleY 600.0
+
+heightMap src/main/resources/images/heightMap.bmp
 
 tessellationFactor 600
 tessellationSlope 1.8

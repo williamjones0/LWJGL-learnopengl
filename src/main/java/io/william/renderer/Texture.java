@@ -22,6 +22,10 @@ public class Texture {
 
     private String path;
 
+    public Texture() {
+        ID = glGenTextures();
+    }
+
     public Texture(String fileName, int internalFormat, int pixelFormat, int type, boolean flip) throws Exception {
         ID = loadTexture(fileName, internalFormat, pixelFormat, type, flip);
     }
@@ -130,6 +134,16 @@ public class Texture {
     public void generateHandle() {
         handle = glGetTextureHandleARB(ID);
         glMakeTextureHandleResidentARB(handle);
+    }
+
+    public void noFilter() {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    }
+
+    public void bilinearFilter() {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
     public int getID() {
