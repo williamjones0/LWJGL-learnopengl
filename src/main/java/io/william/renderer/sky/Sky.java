@@ -274,6 +274,22 @@ public class Sky {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    public Vector3f getSunDirection() {
+        float periodSec = 120.0f;
+        float halfPeriod = periodSec / 2.0f;
+        float sunriseShift = 0.1f;
+        float cyclePoint = (1.0f - Math.abs(((time % periodSec) - halfPeriod) / halfPeriod));
+        cyclePoint = ((cyclePoint * (1.0f + sunriseShift)) - sunriseShift);
+
+        float sunAltitude = (float) ((0.5f * Math.PI) * cyclePoint);
+
+        return new Vector3f(
+            0.0f,
+            (float) Math.sin(sunAltitude),
+            (float) -Math.cos(sunAltitude)
+        );
+    }
+
     public int getTransmittanceID() {
         return transmittance.getID();
     }

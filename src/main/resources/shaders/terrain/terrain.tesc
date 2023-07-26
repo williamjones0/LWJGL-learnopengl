@@ -14,7 +14,7 @@ const int DA = 1;
 uniform int tessellationFactor;
 uniform float tessellationSlope;
 uniform float tessellationShift;
-uniform vec3 cameraPosition;
+uniform vec3 camPos;
 
 float lodFactor(float dist) {
     return max(0.0, tessellationFactor / pow(dist, tessellationSlope) + tessellationShift);
@@ -28,10 +28,10 @@ void main() {
         vec3 cdMid = vec3(gl_in[15].gl_Position + gl_in[12].gl_Position) / 2.0;
         vec3 daMid = vec3(gl_in[12].gl_Position + gl_in[0].gl_Position) / 2.0;
 
-        float distanceAB = distance(cameraPosition, abMid);
-        float distanceBC = distance(cameraPosition, bcMid);
-        float distanceCD = distance(cameraPosition, cdMid);
-        float distanceDA = distance(cameraPosition, daMid);
+        float distanceAB = distance(camPos, abMid);
+        float distanceBC = distance(camPos, bcMid);
+        float distanceCD = distance(camPos, cdMid);
+        float distanceDA = distance(camPos, daMid);
 
         gl_TessLevelOuter[AB] = mix(1, gl_MaxTessGenLevel, lodFactor(distanceAB));
         gl_TessLevelOuter[BC] = mix(1, gl_MaxTessGenLevel, lodFactor(distanceBC));

@@ -6,7 +6,7 @@ out vec2 mapCoord_TC;
 
 uniform mat4 localMatrix;
 uniform mat4 worldMatrix;
-uniform vec3 cameraPosition;
+uniform vec3 camPos;
 uniform float scaleY;
 uniform int lod;
 uniform vec2 index;
@@ -106,14 +106,14 @@ vec2 morph(vec2 localPosition, int morph_area) {
     }
 
     float planarFactor = 0;
-    if (cameraPosition.y > abs(scaleY)) {
+    if (camPos.y > abs(scaleY)) {
         planarFactor = 1;
     } else {
-        planarFactor = cameraPosition.y / abs(scaleY);
+        planarFactor = camPos.y / abs(scaleY);
     }
 
-    distLatitude = length(cameraPosition - (worldMatrix * vec4(fixPointLatitude.x, planarFactor, fixPointLatitude.y, 1)).xyz);
-    distLongitude = length(cameraPosition - (worldMatrix * vec4(fixPointLongitude.x, planarFactor, fixPointLongitude.y, 1)).xyz);
+    distLatitude = length(camPos - (worldMatrix * vec4(fixPointLatitude.x, planarFactor, fixPointLatitude.y, 1)).xyz);
+    distLongitude = length(camPos - (worldMatrix * vec4(fixPointLongitude.x, planarFactor, fixPointLongitude.y, 1)).xyz);
 
     if (distLatitude > morph_area) {
         morphing.x = morphLatitude(localPosition.xy);

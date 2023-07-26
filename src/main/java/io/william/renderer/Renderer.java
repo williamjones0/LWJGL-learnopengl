@@ -49,7 +49,7 @@ public class Renderer {
     private boolean isNormalMapping = false;
 
     private float zNear = 0.1f;
-    private float zFar = 5000.0f;
+    private float zFar = 20000.0f;
     private static final int MAX_POINT_LIGHTS = 8;
     private static final int MAX_SPOT_LIGHTS = 4;
     private Matrix4f projection;
@@ -125,17 +125,16 @@ public class Renderer {
         terrainShader.createFragmentShader("src/main/resources/shaders/terrain/terrain.frag");
         terrainShader.link();
 
+        createShaderUniforms(terrainShader);
+
         terrainShader.createUniform("localMatrix");
         terrainShader.createUniform("worldMatrix");
-        terrainShader.createUniform("view");
-        terrainShader.createUniform("projection");
 
         terrainShader.createUniform("index");
         terrainShader.createUniform("gap");
         terrainShader.createUniform("lod");
         terrainShader.createUniform("scaleY");
         terrainShader.createUniform("location");
-        terrainShader.createUniform("cameraPosition");
 
         for (int i = 0; i < 8; i++) {
             terrainShader.createUniform("lod_morph_area[" + i + "]");
@@ -260,84 +259,7 @@ public class Renderer {
 //        shader.setUniform("material.ao", 5);
 //        shader.setUniform("material.emissive", 6);
 
-        // Update point light uniforms
-        for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
-            if (i < pointLights.size()) {
-                shader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
-                shader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
-                shader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
-                shader.setUniform("pointLights[" + i + "].enabled", pointLights.get(i).isEnabled());
-            } else {
-                shader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
-                shader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
-                shader.setUniform("pointLights[" + i + "].intensity", 0.0f);
-                shader.setUniform("pointLights[" + i + "].enabled", false);
-            }
-        }
-
-        // Update spotlight uniforms
-        for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
-            if (i < spotLights.size()) {
-                shader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
-                shader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
-                shader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
-                shader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
-                shader.setUniform("spotLights[" + i + "].cutoff",      (float) Math.cos(Math.toRadians(spotLights.get(i).getCutoff())));
-                shader.setUniform("spotLights[" + i + "].outerCutoff", (float) Math.cos(Math.toRadians(spotLights.get(i).getOuterCutoff())));
-                shader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
-            } else {
-                shader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
-                shader.setUniform("spotLights[" + i + "].direction",   new Vector3f(0.0f));
-                shader.setUniform("spotLights[" + i + "].color",       new Vector3f(0.0f));
-                shader.setUniform("spotLights[" + i + "].intensity",   0.0f);
-                shader.setUniform("spotLights[" + i + "].cutoff",      0.0f);
-                shader.setUniform("spotLights[" + i + "].outerCutoff", 0.0f);
-                shader.setUniform("spotLights[" + i + "].enabled",     false);
-            }
-        }
-
-        // Update directional light uniforms
-        shader.setUniform("dirLight.direction", dirLight.getDirection());
-        shader.setUniform("dirLight.color", dirLight.getColor());
-
-        // Update environment map uniforms
-        shader.setUniform("irradianceMap", 7);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
-
-        shader.setUniform("prefilterMap", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
-
-        shader.setUniform("brdfLUT", 9);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
-
-        // Update settings uniforms
-        shader.setUniform("settings.specularOcclusion", shaderSettings.isSpecularOcclusion());
-        shader.setUniform("settings.horizonSpecularOcclusion", shaderSettings.isHorizonSpecularOcclusion());
-        shader.setUniform("settings.pointShadows", shaderSettings.isPointShadows());
-        shader.setUniform("settings.pointShadowBias", shaderSettings.getPointShadowBias());
-        shader.setUniform("settings.shadowMinBias", shaderSettings.getShadowMinBias());
-        shader.setUniform("settings.shadowMaxBias", shaderSettings.getShadowMaxBias());
-
-        // Update shadow mapping uniforms
-        shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
-        shader.setUniform("spotlightSpaceMatrix", spotlightShadowRenderer.getLightSpaceMatrix());
-
-        shader.setUniform("pointShadowMaps", 10);
-        glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, omnidirectionalShadowRenderer.getTextureArrayID());
-
-        shader.setUniform("directionalShadowMap", 11);
-        glActiveTexture(GL_TEXTURE11);
-        glBindTexture(GL_TEXTURE_2D, shadowRenderer.getTextureID());
-
-        shader.setUniform("spotShadowMaps", 12);
-        glActiveTexture(GL_TEXTURE12);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, spotlightShadowRenderer.getTextureArrayID());
-
-        shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
+        updateShaderUniforms(shader, scene, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer);
 
         // Render entities (indirect drawing)
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
@@ -349,14 +271,16 @@ public class Renderer {
         terrainShader.bind();
         terrainShader.setUniform("projection", projection);
         terrainShader.setUniform("view", view);
-        terrainShader.setUniform("cameraPosition", camera.getPosition());
+        terrainShader.setUniform("camPos", camera.getPosition());
 
-        terrainShader.setUniform("heightMap", 0);
-        glActiveTexture(GL_TEXTURE0);
+        updateShaderUniforms(terrainShader, scene, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer);
+
+        terrainShader.setUniform("heightMap", 13);
+        glActiveTexture(GL_TEXTURE13);
         glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getHeightMap().getID());
 
-        terrainShader.setUniform("normalMap", 1);
-        glActiveTexture(GL_TEXTURE1);
+        terrainShader.setUniform("normalMap", 14);
+        glActiveTexture(GL_TEXTURE14);
         glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getNormalMap().getID());
 
         terrain.updateQuadtree(camera.getPosition());
@@ -455,6 +379,97 @@ public class Renderer {
         lightShader.cleanup();
         hdrShader.cleanup();
         framebuffer.cleanup();
+    }
+
+    private void updateShaderUniforms(ShaderProgram shader,
+                                      Scene scene,
+                                      ShadowRenderer shadowRenderer,
+                                      OmnidirectionalShadowRenderer omnidirectionalShadowRenderer,
+                                      SpotlightShadowRenderer spotlightShadowRenderer) {
+
+        DirLight dirLight = scene.getDirLight();
+        List<PointLight> pointLights = scene.getPointLights();
+        List<SpotLight> spotLights = scene.getSpotLights();
+        EquirectangularMap equirectangularMap = scene.getEquirectangularMap();
+
+        // Update point light uniforms
+        for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+            if (i < pointLights.size()) {
+                shader.setUniform("pointLights[" + i + "].position", pointLights.get(i).getPosition());
+                shader.setUniform("pointLights[" + i + "].color", pointLights.get(i).getColor());
+                shader.setUniform("pointLights[" + i + "].intensity", pointLights.get(i).getIntensity());
+                shader.setUniform("pointLights[" + i + "].enabled", pointLights.get(i).isEnabled());
+            } else {
+                shader.setUniform("pointLights[" + i + "].position", new Vector3f(0.0f));
+                shader.setUniform("pointLights[" + i + "].color", new Vector3f(0.0f));
+                shader.setUniform("pointLights[" + i + "].intensity", 0.0f);
+                shader.setUniform("pointLights[" + i + "].enabled", false);
+            }
+        }
+
+        // Update spotlight uniforms
+        for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
+            if (i < spotLights.size()) {
+                shader.setUniform("spotLights[" + i + "].position",    spotLights.get(i).getPosition());
+                shader.setUniform("spotLights[" + i + "].direction",   spotLights.get(i).getDirection());
+                shader.setUniform("spotLights[" + i + "].color",       spotLights.get(i).getColor());
+                shader.setUniform("spotLights[" + i + "].intensity",   spotLights.get(i).getIntensity());
+                shader.setUniform("spotLights[" + i + "].cutoff",      (float) Math.cos(Math.toRadians(spotLights.get(i).getCutoff())));
+                shader.setUniform("spotLights[" + i + "].outerCutoff", (float) Math.cos(Math.toRadians(spotLights.get(i).getOuterCutoff())));
+                shader.setUniform("spotLights[" + i + "].enabled",     spotLights.get(i).isEnabled());
+            } else {
+                shader.setUniform("spotLights[" + i + "].position",    new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].direction",   new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].color",       new Vector3f(0.0f));
+                shader.setUniform("spotLights[" + i + "].intensity",   0.0f);
+                shader.setUniform("spotLights[" + i + "].cutoff",      0.0f);
+                shader.setUniform("spotLights[" + i + "].outerCutoff", 0.0f);
+                shader.setUniform("spotLights[" + i + "].enabled",     false);
+            }
+        }
+
+        // Update directional light uniforms
+        shader.setUniform("dirLight.direction", dirLight.getDirection());
+        shader.setUniform("dirLight.color", dirLight.getColor());
+
+        // Update environment map uniforms
+        shader.setUniform("irradianceMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
+
+        shader.setUniform("prefilterMap", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
+
+        shader.setUniform("brdfLUT", 9);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
+
+        // Update settings uniforms
+        shader.setUniform("settings.specularOcclusion", shaderSettings.isSpecularOcclusion());
+        shader.setUniform("settings.horizonSpecularOcclusion", shaderSettings.isHorizonSpecularOcclusion());
+        shader.setUniform("settings.pointShadows", shaderSettings.isPointShadows());
+        shader.setUniform("settings.pointShadowBias", shaderSettings.getPointShadowBias());
+        shader.setUniform("settings.shadowMinBias", shaderSettings.getShadowMinBias());
+        shader.setUniform("settings.shadowMaxBias", shaderSettings.getShadowMaxBias());
+
+        // Update shadow mapping uniforms
+        shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
+        shader.setUniform("spotlightSpaceMatrix", spotlightShadowRenderer.getLightSpaceMatrix());
+
+        shader.setUniform("pointShadowMaps", 10);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, omnidirectionalShadowRenderer.getTextureArrayID());
+
+        shader.setUniform("directionalShadowMap", 11);
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_2D, shadowRenderer.getTextureID());
+
+        shader.setUniform("spotShadowMaps", 12);
+        glActiveTexture(GL_TEXTURE12);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, spotlightShadowRenderer.getTextureArrayID());
+
+        shader.setUniform("farPlane", omnidirectionalShadowRenderer.getFarPlane());
     }
 
     private void createShaderUniforms(ShaderProgram shader) throws Exception {

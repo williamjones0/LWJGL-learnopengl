@@ -139,8 +139,21 @@ public class Main {
             null
         );
 
+        PBRMaterial patchyMeadow = new PBRMaterial(
+            "Patchy Meadow",
+            false,
+            new Texture("src/main/resources/textures/PBR/patchy_meadow/albedo.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/patchy_meadow/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/patchy_meadow/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/patchy_meadow/roughness.png", GL_RGBA),
+            null,
+            new Texture("src/main/resources/textures/PBR/patchy_meadow/ao.png", GL_RGBA),
+            null
+        );
+
         scene.addPBRMaterial(rustedIron);
         scene.addPBRMaterial(brushedMetal);
+        scene.addPBRMaterial(patchyMeadow);
 
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
@@ -568,6 +581,10 @@ public class Main {
             PointLight pointLight = scene.getPointLights().get(i);
             pointLight.update(deltaTime);
         }
+
+        // Update directional light
+        scene.getDirLight().setDirection(scene.getSky().getSunDirection());
+        masterRenderer.setSceneUpdated(true);
 
         window.update();
         camera.update(deltaTime);

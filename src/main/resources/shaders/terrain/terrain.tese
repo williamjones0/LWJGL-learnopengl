@@ -6,11 +6,17 @@ in vec2 mapCoord_TE[];
 
 out vec2 mapCoord_GS;
 
+out vec3 WorldPos_GS;
+out vec4 FragPosLightSpace_GS;
+out vec4 FragPosSpotlightSpace_GS;
+
 uniform sampler2D heightMap;
 uniform float scaleY;
 
-void main() {
+uniform mat4 lightSpaceMatrix;
+uniform mat4 spotlightSpaceMatrix;
 
+void main() {
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
@@ -33,6 +39,11 @@ void main() {
     position.y = height;
 
     mapCoord_GS = mapCoord;
+
+    WorldPos_GS = position.xyz;
+
+    FragPosLightSpace_GS = lightSpaceMatrix * vec4(WorldPos_GS, 1.0);
+    FragPosSpotlightSpace_GS = spotlightSpaceMatrix * vec4(WorldPos_GS, 1.0);
 
     gl_Position = position;
 }
