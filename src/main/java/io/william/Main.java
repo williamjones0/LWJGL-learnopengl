@@ -11,6 +11,7 @@ import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
 import io.william.renderer.sky.Sky;
+import io.william.renderer.terrain.PropManager;
 import io.william.renderer.terrain.Terrain;
 import io.william.util.Maths;
 import org.joml.Matrix4f;
@@ -61,7 +62,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "Renderer", 0, false);
+        window = new Window(1920, 1080, "Renderer", 1, false);
         window.create();
 
         renderer = new Renderer();
@@ -151,9 +152,35 @@ public class Main {
             null
         );
 
+        PBRMaterial limestone = new PBRMaterial(
+            "Limestone",
+            false,
+            new Texture("src/main/resources/textures/PBR/limestone/albedo.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/limestone/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/limestone/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/limestone/roughness.png", GL_RGBA),
+            null,
+            new Texture("src/main/resources/textures/PBR/limestone/ao.png", GL_RGBA),
+            null
+        );
+
+        PBRMaterial dampRockyGround = new PBRMaterial(
+            "Damp Rocky Ground",
+            false,
+            new Texture("src/main/resources/textures/PBR/damp_rocky_ground/albedo.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/damp_rocky_ground/normal.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/damp_rocky_ground/metallic.png", GL_RGBA),
+            new Texture("src/main/resources/textures/PBR/damp_rocky_ground/roughness.png", GL_RGBA),
+            null,
+            new Texture("src/main/resources/textures/PBR/damp_rocky_ground/ao.png", GL_RGBA),
+            null
+        );
+
         scene.addPBRMaterial(rustedIron);
         scene.addPBRMaterial(brushedMetal);
         scene.addPBRMaterial(patchyMeadow);
+        scene.addPBRMaterial(limestone);
+        scene.addPBRMaterial(dampRockyGround);
 
         UVSphere uvSphere = new UVSphere(1f, 128, 128);
 
@@ -255,13 +282,13 @@ public class Main {
 //        scene.addEntity(sponza);
 //        sponza.setModelID(sponzaModel.getID());
 
-//        // Helmet
-//        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
-//        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
-//        helmetModel.addEntity(helmetEntity);
-//        scene.addEntity(helmetEntity);
-//        scene.addModel(helmetModel);
-//        helmetEntity.setModelID(helmetModel.getID());
+        // Helmet
+        Model helmetModel = ModelLoader.load(scene, "src/main/resources/models/helmet/DamagedHelmet.gltf", "src/main/resources/models/helmet", null);
+        Entity helmetEntity = new Entity(new Vector3f(0, 5, 0), new Vector3f(0, 0, 0), 1f, "Helmet");
+        helmetModel.addEntity(helmetEntity);
+        scene.addEntity(helmetEntity);
+        scene.addModel(helmetModel);
+        helmetEntity.setModelID(helmetModel.getID());
 
         // Cube
         Cube cube = new Cube();
@@ -286,7 +313,7 @@ public class Main {
         Entity cubeEntity = new Entity(
             new Vector3f(500, 5, 5),
             new Vector3f(0, 0, 0),
-            5f,
+            0.0000001f,
             "Cube"
         );
         cubeEntity.setModelID(cubeModel.getID());
@@ -473,7 +500,7 @@ public class Main {
 
         DirLight dirLight = new DirLight(
             new Vector3f(2f, 5f, 2f).normalize(),
-            new Vector3f(1f, 1f, 1f)
+            new Vector3f(10f, 10f, 10f)
         );
 
         scene.setDirLight(dirLight);
@@ -503,7 +530,7 @@ public class Main {
 
             new Vector3f(1.0f, 1.0f, 1.0f),
 
-            50.0f
+            500000000.0f
         );
 
 //        SpotLight spotLight2 = new SpotLight(
@@ -583,8 +610,8 @@ public class Main {
         }
 
         // Update directional light
-        scene.getDirLight().setDirection(scene.getSky().getSunDirection());
-        masterRenderer.setSceneUpdated(true);
+//        scene.getDirLight().setDirection(scene.getSky().getSunDirection());
+//        masterRenderer.setSceneUpdated(true);
 
         window.update();
         camera.update(deltaTime);

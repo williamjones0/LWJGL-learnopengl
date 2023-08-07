@@ -36,7 +36,7 @@ public class Sky {
     private Vector2i scatteringLUTRes = new Vector2i(32, 32);
     private Vector2i skyViewRes = new Vector2i(200, 200);
 
-    private float time = 10.0f;
+    private float time = 60.0f;
     private boolean automaticTime = false;
     private float timeScale = 5.0f;
 

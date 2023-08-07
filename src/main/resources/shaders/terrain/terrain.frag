@@ -105,21 +105,21 @@ uniform mat4 lightSpaceMatrix;
 uniform mat4 spotlightSpaceMatrix;
 
 vec3 getNormal(vec3 normal, vec3 materialNormal) {
-    vec3 tangent = normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
-    vec3 bitangent = normalize(cross(normal, tangent));
+//    vec3 tangent = normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
+//    vec3 bitangent = normalize(cross(normal, tangent));
+//
+//    mat3 tbn = mat3(tangent, bitangent, normal);
+//
+//    return normalize(tbn * materialNormal);
 
-    mat3 tbn = mat3(tangent, bitangent, normal);
-
-    return normalize(tbn * materialNormal);
-
-//    vec3 v = cross(normal, materialNormal);
-//    float s = length(v);
-//    float c = dot(normal, materialNormal);
-//    mat3 vx = mat3(0.0, -v.z, v.y,
-//                   v.z, 0.0, -v.x,
-//                  -v.y, v.x, 0.0);
-//    mat3 r = mat3(1.0) + vx + vx * vx * ((1.0 - c) / (s * s));
-//    return r * normal;
+    vec3 v = cross(normal, materialNormal);
+    float s = length(v);
+    float c = dot(normal, materialNormal);
+    mat3 vx = mat3(0.0, -v.z, v.y,
+                   v.z, 0.0, -v.x,
+                  -v.y, v.x, 0.0);
+    mat3 r = mat3(1.0) + vx + vx * vx * ((1.0 - c) / (s * s));
+    return r * normal;
 }
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
@@ -221,7 +221,15 @@ float orthoShadowCalculation(vec4 fragPosLightSpace, vec3 normal) {
 }
 
 void main() {
-    GPUMaterial material = materialBuffer.Materials[3];
+    GPUMaterial material;
+    vec3 normal = texture(normalMap, mapCoord_FS).rgb;
+//    vec3 test = normalize(normal.rbg * 2.0 - 1.0);
+//    if (max(test.x / test.y, test.z / test.y) > 0.5) {
+//        material = materialBuffer.Materials[5];
+//    } else {
+//        material = materialBuffer.Materials[3];
+//    }
+    material = materialBuffer.Materials[3];
 
     vec3 albedo;
     vec3 N;
@@ -230,7 +238,7 @@ void main() {
     vec3 emissive;
     float ao;
 
-    const float MATERIAL_SCALING_FACTOR = 100.0f;
+    const float MATERIAL_SCALING_FACTOR = 5.0f;
 
     if (material.uses_albedo_map > 0.5) {
         albedo = pow(texture(material.albedo, mapCoord_FS * MATERIAL_SCALING_FACTOR).rgb, vec3(2.2));
@@ -239,12 +247,15 @@ void main() {
     }
 
     if (material.uses_normal_map > 0.5) {
-        vec3 normal = texture(normalMap, mapCoord_FS).rgb;
         vec3 materialNormal = texture(material.normal, mapCoord_FS * MATERIAL_SCALING_FACTOR).rgb;
         N = getNormal(normal, materialNormal);
     } else {
         N = texture(normalMap, mapCoord_FS).rgb;
     }
+
+    N = normalize(N.rbg * 2.0 - 1.0);
+//    N = texture(normalMap, mapCoord_FS).rbg * 2.0 - 1.0;
+//    N = vec3(0.0, 0.0, 1.0);
 
     if (material.uses_metallicRoughness_map > 0.5) {
         metallic = texture(material.metallicRoughness, mapCoord_FS * MATERIAL_SCALING_FACTOR).b + texture(material.metallic, mapCoord_FS * MATERIAL_SCALING_FACTOR).b * EPSILON;
@@ -388,7 +399,7 @@ void main() {
             continue;
         }
 
-        vec3 L = normalize(dirLight.direction);
+        vec3 L = normalize(-dirLight.direction);
         vec3 H = normalize(V + L);
 
         float NDF = DistributionGGX(N, H, roughness);
@@ -438,6 +449,16 @@ void main() {
     vec3 color = ambient + Lo;
 
     color += lightSpaceMatrix[0][0] * EPSILON + spotlightSpaceMatrix[0][0] * EPSILON;
+    color += texture(normalMap, vec2(0, 0)).rgb * EPSILON;
 
     FragColor = vec4(color, 1.0);
+
+    // Temporary fix for infinitely bright/dark fragments causing bloom to break
+    if (isinf(FragColor.x)) FragColor.x = 100.0;
+    if (isinf(FragColor.y)) FragColor.y = 100.0;
+    if (isinf(FragColor.z)) FragColor.z = 100.0;
+
+    if (isnan(FragColor.x)) FragColor.x = EPSILON;
+    if (isnan(FragColor.y)) FragColor.y = EPSILON;
+    if (isnan(FragColor.z)) FragColor.z = EPSILON;
 }

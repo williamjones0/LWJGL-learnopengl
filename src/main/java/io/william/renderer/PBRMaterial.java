@@ -104,7 +104,7 @@ public class PBRMaterial {
     }
 
     public PBRMaterial(String name) {
-        this(name, false, new Vector3f(1, 1, 1), 1, 0, new Vector3f(0, 0, 0));
+        this(name, false, new Vector3f(0, 0, 0), 0, 1, new Vector3f(0, 0, 0));
     }
 
     public boolean isEmpty() {

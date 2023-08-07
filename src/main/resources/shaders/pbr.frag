@@ -386,7 +386,7 @@ void main() {
             continue;
         }
 
-        vec3 L = normalize(dirLight.direction);
+        vec3 L = normalize(-dirLight.direction);
         vec3 H = normalize(V + L);
 
         float NDF = DistributionGGX(N, H, roughness);
