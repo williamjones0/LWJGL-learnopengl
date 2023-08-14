@@ -7,6 +7,7 @@ import io.william.io.Input;
 import io.william.io.Window;
 import io.william.renderer.primitive.Cube;
 import io.william.renderer.primitive.Quad;
+import io.william.renderer.probe.Probe;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
@@ -62,7 +63,7 @@ public class Main {
     }
 
     private void init() throws Exception {
-        window = new Window(1920, 1080, "Renderer", 1, false);
+        window = new Window(1920, 1080, "Renderer", 0, false);
         window.create();
 
         renderer = new Renderer();
@@ -264,19 +265,19 @@ public class Main {
 //        scene.addModel(shaderballModel);
 //        shaderball.setModelID(shaderballModel.getID());
 
-//        // Sponza
-//        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/Sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF", null);
-//        scene.addModel(sponzaModel);
-//
-//        for (int x = 0; x < 1; x++) {
-//            for (int z = 0; z < 1; z++) {
-//                Entity sponza = new Entity(new Vector3f(x * 400, 0, z * 200), new Vector3f(0, 0, 0), 10f, "Sponza");
-//                sponzaModel.addEntity(sponza);
-//                scene.addEntity(sponza);
-//                sponza.setModelID(sponzaModel.getID());
-//            }
-//        }
-//
+        // Sponza
+        Model sponzaModel = ModelLoader.load(scene, "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF/Sponza.gltf", "C:/Users/wmjon/Downloads/KhronosGroup glTF-Sample-Models master 2.0-Sponza_glTF", null);
+        scene.addModel(sponzaModel);
+
+        for (int x = 0; x < 1; x++) {
+            for (int z = 0; z < 1; z++) {
+                Entity sponza = new Entity(new Vector3f(x * 400, 0, z * 200), new Vector3f(0, 0, 0), 10f, "Sponza");
+                sponzaModel.addEntity(sponza);
+                scene.addEntity(sponza);
+                sponza.setModelID(sponzaModel.getID());
+            }
+        }
+
 //        Entity sponza = new Entity(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0), 10f, "Sponza");
 //        sponzaModel.addEntity(sponza);
 //        scene.addEntity(sponza);
@@ -499,8 +500,8 @@ public class Main {
 //        scene.addModel(cubeModel);
 
         DirLight dirLight = new DirLight(
-            new Vector3f(2f, 5f, 2f).normalize(),
-            new Vector3f(10f, 10f, 10f)
+            new Vector3f(0.459f, 0.869f, 0.186f).normalize(),
+            new Vector3f(100f, 100f, 100f)
         );
 
         scene.setDirLight(dirLight);
@@ -530,7 +531,7 @@ public class Main {
 
             new Vector3f(1.0f, 1.0f, 1.0f),
 
-            500000000.0f
+            500.0f
         );
 
 //        SpotLight spotLight2 = new SpotLight(
@@ -567,6 +568,48 @@ public class Main {
         Terrain terrain = new Terrain();
         terrain.init("src/main/resources/terrain_settings.txt", camera.getPosition());
         scene.setTerrain(terrain);
+
+        scene.addProbe(new Probe(new Vector3f(-100, 15, -35)));
+        scene.addProbe(new Probe(new Vector3f(-50, 15, -35)));
+        scene.addProbe(new Probe(new Vector3f(0, 15, -35)));
+        scene.addProbe(new Probe(new Vector3f(50, 15, -35)));
+        scene.addProbe(new Probe(new Vector3f(100, 15, -35)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 15, 0)));
+        scene.addProbe(new Probe(new Vector3f(-50, 15, 0)));
+        scene.addProbe(new Probe(new Vector3f(0, 15, 0)));
+        scene.addProbe(new Probe(new Vector3f(50, 15, 0)));
+        scene.addProbe(new Probe(new Vector3f(100, 15, 0)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 15, 35)));
+        scene.addProbe(new Probe(new Vector3f(-50, 15, 35)));
+        scene.addProbe(new Probe(new Vector3f(0, 15, 35)));
+        scene.addProbe(new Probe(new Vector3f(50, 15, 35)));
+        scene.addProbe(new Probe(new Vector3f(100, 15, 35)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 50, -35)));
+        scene.addProbe(new Probe(new Vector3f(-50, 50, -35)));
+        scene.addProbe(new Probe(new Vector3f(0, 50, -35)));
+        scene.addProbe(new Probe(new Vector3f(50, 50, -35)));
+        scene.addProbe(new Probe(new Vector3f(100, 50, -35)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 50, 0)));
+        scene.addProbe(new Probe(new Vector3f(-50, 50, 0)));
+        scene.addProbe(new Probe(new Vector3f(0, 50, 0)));
+        scene.addProbe(new Probe(new Vector3f(50, 50, 0)));
+        scene.addProbe(new Probe(new Vector3f(100, 50, 0)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 50, 35)));
+        scene.addProbe(new Probe(new Vector3f(-50, 50, 35)));
+        scene.addProbe(new Probe(new Vector3f(0, 50, 35)));
+        scene.addProbe(new Probe(new Vector3f(50, 50, 35)));
+        scene.addProbe(new Probe(new Vector3f(100, 50, 35)));
+
+        scene.addProbe(new Probe(new Vector3f(-100, 85, 0)));
+        scene.addProbe(new Probe(new Vector3f(-50, 85, 0)));
+        scene.addProbe(new Probe(new Vector3f(0, 85, 0)));
+        scene.addProbe(new Probe(new Vector3f(50, 85, 0)));
+        scene.addProbe(new Probe(new Vector3f(100, 85, 0)));
 
         masterRenderer.init(window, renderer, scene, camera, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer, gui);
     }

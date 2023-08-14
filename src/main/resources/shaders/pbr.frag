@@ -70,6 +70,22 @@ layout (binding = 1, std430) buffer MaterialBuffer {
     GPUMaterial Materials[];
 } materialBuffer;
 
+struct Probe {
+    vec4 position;
+
+    samplerCube irradianceMap;
+    samplerCube prefilterMap;
+
+    float xSize;
+    float ySize;
+    float zSize;
+    uint _pad0;
+};
+
+layout (binding = 2, std430) buffer ProbeBuffer {
+    Probe Probes[];
+} probeBuffer;
+
 struct Settings {
     bool specularOcclusion;
     bool horizonSpecularOcclusion;
@@ -215,6 +231,12 @@ float orthoShadowCalculation(vec4 fragPosLightSpace) {
     return shadow;
 }
 
+bool intersectPointCube(vec3 point, vec3 centre, float xSize, float ySize, float zSize) {
+    return point.x >= centre.x - xSize && point.x <= centre.x + xSize &&
+           point.y >= centre.y - ySize && point.y <= centre.y + ySize &&
+           point.z >= centre.z - zSize && point.z <= centre.z + zSize;
+}
+
 void main() {
     GPUMaterial material = materialBuffer.Materials[ModelMeshMaterialID];
 
@@ -281,7 +303,7 @@ void main() {
     F0 = mix(F0, albedo, metallic);
 
     // Reflectance equation
-    vec4 TEST_FRAG_COLOR = vec4(0.01234);
+    vec3 TEST_FRAG_COLOR = vec3(0.01234);
 
     vec3 Lo = vec3(0.0);
     for (int i = 0; i < NUM_POINT_LIGHTS; ++i) {
@@ -386,7 +408,7 @@ void main() {
             continue;
         }
 
-        vec3 L = normalize(-dirLight.direction);
+        vec3 L = normalize(dirLight.direction);
         vec3 H = normalize(V + L);
 
         float NDF = DistributionGGX(N, H, roughness);
@@ -411,26 +433,37 @@ void main() {
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 
-    vec3 irradiance = texture(irradianceMap, N).rgb;
-    vec3 diffuse = irradiance * albedo;
+    // Determine which probe to use
+    vec3 ambient;
+    for (int i = 0; i < probeBuffer.Probes.length(); i++) {
+        int count = 0;
+        if (intersectPointCube(WorldPos, probeBuffer.Probes[i].position.xyz, 25, 35/2, 35/2)) {
+            vec3 irradiance = texture(probeBuffer.Probes[i].irradianceMap, N).rgb;
+            vec3 diffuse = irradiance * albedo;
 
-    // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
-    const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+            // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
+            const float MAX_REFLECTION_LOD = 4.0;
+            vec3 prefilteredColor = textureLod(probeBuffer.Probes[i].prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
 
-    if (settings.specularOcclusion) {
-        prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
+            if (settings.specularOcclusion) {
+                prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
+            }
+
+            if (settings.horizonSpecularOcclusion) {
+                float horizon = min(1.0 + dot(R, N), 1.0);
+                prefilteredColor *= horizon * horizon;
+            }
+
+            vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+            vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
+
+            ambient = (kD * diffuse + specular) * ao;
+
+            count++;
+        }
+//        ambient /= float(count);
     }
 
-    if (settings.horizonSpecularOcclusion) {
-        float horizon = min(1.0 + dot(R, N), 1.0);
-        prefilteredColor *= horizon * horizon;
-    }
-
-    vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
-
-    vec3 ambient = (kD * diffuse + specular) * ao;
     ambient += emissive;
 
     vec3 color = ambient + Lo;
@@ -446,11 +479,11 @@ void main() {
     if (isnan(FragColor.y)) FragColor.y = EPSILON;
     if (isnan(FragColor.z)) FragColor.z = EPSILON;
 
-//    if (TEST_FRAG_COLOR.x != 0.01234) {
-//        FragColor = TEST_FRAG_COLOR;
-//    } else {
-//        FragColor = vec4(color, 1.0);
-//    }
+    if (TEST_FRAG_COLOR.x != 0.01234) {
+        FragColor = vec4(TEST_FRAG_COLOR, 1.0);
+    } else {
+        FragColor = vec4(color, 1.0);
+    }
 
 //    if (emissionStrength > 0.0) {
 //        FragColor = vec4(emissionStrength, emissionStrength, emissionStrength, 1.0);

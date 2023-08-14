@@ -1,5 +1,6 @@
 package io.william.renderer;
 
+import io.william.renderer.probe.Probe;
 import io.william.renderer.sky.Sky;
 import io.william.renderer.terrain.Terrain;
 
@@ -18,6 +19,7 @@ public class Scene {
     private EquirectangularMap equirectangularMap;
     private Sky sky;
     private Terrain terrain;
+    private List<Probe> probes;
 
     private int currentModelID = 0;
     private int currentPBRMaterialID = 0;
@@ -29,6 +31,7 @@ public class Scene {
         this.entities = new ArrayList<>();
         this.pointLights = new ArrayList<>();
         this.spotLights = new ArrayList<>();
+        this.probes = new ArrayList<>();
     }
 
     public void clear() {
@@ -37,6 +40,7 @@ public class Scene {
         this.entities.clear();
         this.pointLights.clear();
         this.spotLights.clear();
+        this.probes.clear();
 
         this.currentModelID = 0;
         this.currentPBRMaterialID = 0;
@@ -163,5 +167,13 @@ public class Scene {
 
     public void setTerrain(Terrain terrain) {
         this.terrain = terrain;
+    }
+
+    public List<Probe> getProbes() {
+        return probes;
+    }
+
+    public void addProbe(Probe probe) {
+        probes.add(probe);
     }
 }

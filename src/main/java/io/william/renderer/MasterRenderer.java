@@ -1,6 +1,7 @@
 package io.william.renderer;
 
 import io.william.io.Window;
+import io.william.renderer.probe.Probe;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
@@ -36,8 +37,10 @@ public class MasterRenderer {
     private int drawCount;
     private int modelMeshInstanceBuffer;
     private int materialBuffer;
+    private int probeBuffer;
 
     private boolean firstRender = true;
+    private boolean secondRender = false;
     private boolean sceneUpdated;
 
     private boolean showGUI = true;
@@ -65,6 +68,21 @@ public class MasterRenderer {
             spotlightShadowRenderer.render(scene, sceneMesh, indirectBuffer, drawCount);
         }
 
+        // Render probes on second render
+        if (secondRender) {
+            for (int i = 0; i < scene.getProbes().size(); i++) {
+                Probe probe = scene.getProbes().get(i);
+                probe.render(renderer.getPbrShader(), sceneMesh, indirectBuffer, drawCount, scene.getSky().getBackgroundCubemapID());
+                probe.renderTextures();
+            }
+        }
+
+        if (firstRender) {
+            secondRender = true;
+        } else if (secondRender) {
+            secondRender = false;
+        }
+
         firstRender = false;
         sceneUpdated = false;
 
@@ -82,6 +100,7 @@ public class MasterRenderer {
         // SSBO
         modelMeshInstanceBuffer = glGenBuffers();
         materialBuffer = glGenBuffers();
+        probeBuffer = glGenBuffers();
 
         // ModelMeshInstanceBuffer
         List<Model> models = scene.getModels().stream().filter(model -> model.getEntities().size() > 0).toList();
@@ -122,7 +141,7 @@ public class MasterRenderer {
 
         System.out.println("ModelMeshInstanceBuffer size: " + capacity * 8 + " bytes");
 
-        // MaterialBuffer (ByteBuffer)
+        // MaterialBuffer
         capacity = 0;
         for (int i = 0; i < scene.getPBRMaterials().size(); i++) {
             capacity += (4 * 10) + (8 * 7) + (4 * 8);
@@ -146,6 +165,34 @@ public class MasterRenderer {
         MemoryUtil.memFree(mb);
 
         System.out.println("MaterialBuffer size: " + capacity + " bytes");
+
+        // ProbeBuffer
+        capacity = 0;
+        for (int i = 0; i < scene.getProbes().size(); i++) {
+            capacity += 4 + 8 + 8 + 4;
+        }
+
+        ByteBuffer pb = MemoryUtil.memAlloc(capacity * 4);
+        for (Probe probe : scene.getProbes()) {
+            putVector3f(pb, probe.getPosition());
+            pb.putLong(probe.getIrradianceMapHandle());
+            pb.putLong(probe.getPrefilterMapHandle());
+            pb.putInt(25);
+            pb.putInt(0);
+            pb.putInt(0);
+            pb.putInt(0);
+        }
+        pb.flip();
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, probeBuffer);
+        glObjectLabel(GL_BUFFER, probeBuffer, "ProbeBuffer");
+        glBufferData(GL_SHADER_STORAGE_BUFFER, pb, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, probeBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        MemoryUtil.memFree(pb);
+
+        System.out.println("ProbeBuffer size: " + capacity * 4 + " bytes");
     }
 
     public void setupIndirectBuffer(Scene scene) {
@@ -324,10 +371,10 @@ public class MasterRenderer {
 
     private void putPBRMaterial(ByteBuffer buffer, PBRMaterial pbrMaterial) {
         Map<String, Boolean> usesTextures = pbrMaterial.getUsesTextures();
-        
+
         putVector3f(buffer, pbrMaterial.getAlbedoColor());
         putVector3f(buffer, pbrMaterial.getEmissiveColor());
-        
+
         buffer.putLong(usesTextures.get("albedo") ? pbrMaterial.getAlbedo().getHandle() : 0);
         buffer.putLong(usesTextures.get("normal") ? pbrMaterial.getNormal().getHandle() : 0);
 

@@ -177,6 +177,7 @@ public class EquirectangularMap {
         prefilterShader.createUniform("projection");
         prefilterShader.createUniform("view");
         prefilterShader.createUniform("roughness");
+        prefilterShader.createUniform("sampleCount");
 
         // Generate 2D BRDF LUT (512 x 512, 16-bit float)
         brdfLUT = glGenTextures();
@@ -260,6 +261,7 @@ public class EquirectangularMap {
         prefilterShader.bind();
         prefilterShader.setUniform("environmentMap", 0);
         prefilterShader.setUniform("projection", captureProjection);
+        prefilterShader.setUniform("sampleCount", 256);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, environmentMap);

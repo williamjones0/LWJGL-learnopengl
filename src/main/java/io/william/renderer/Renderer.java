@@ -4,6 +4,8 @@ import java.lang.Math;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.william.renderer.primitive.UVSphere;
+import io.william.renderer.probe.Probe;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
@@ -31,6 +33,8 @@ public class Renderer {
 
     private ShaderProgram terrainShader;
     private ShaderProgram lightShader;
+    private ShaderProgram probeShader;
+
     private ShaderProgram hdrShader;
 
     public enum Shader {
@@ -159,6 +163,22 @@ public class Renderer {
 
         lightShader.createUniform("colour");
 
+        // Probe shader
+        probeShader = new ShaderProgram("Probe");
+        probeShader.createVertexShader("src/main/resources/shaders/probe/probe.vert");
+        probeShader.createFragmentShader("src/main/resources/shaders/probe/probe.frag");
+        probeShader.link();
+
+        probeShader.createUniform("model");
+        probeShader.createUniform("view");
+        probeShader.createUniform("projection");
+
+        probeShader.createUniform("camPos");
+
+        probeShader.createUniform("irradianceMap");
+        probeShader.createUniform("prefilterMap");
+        probeShader.createUniform("brdfLUT");
+
         // HDR shader
         hdrShader = new ShaderProgram("HDR");
         hdrShader.createVertexShader("src/main/resources/shaders/hdr.vert");
@@ -283,8 +303,8 @@ public class Renderer {
         glActiveTexture(GL_TEXTURE14);
         glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getNormalMap().getID());
 
-        terrain.updateQuadtree(camera.getPosition());
-        terrain.render(terrainShader);
+//        terrain.updateQuadtree(camera.getPosition());
+//        terrain.render(terrainShader);
 
         terrainShader.unbind();
 
@@ -321,6 +341,43 @@ public class Renderer {
         }
 
         lightShader.unbind();
+
+        // Render probes
+        probeShader.bind();
+        probeShader.setUniform("view", view);
+        probeShader.setUniform("projection", projection);
+
+        probeShader.setUniform("camPos", camera.getPosition());
+
+        probeShader.setUniform("brdfLUT", 9);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
+
+        UVSphere uvSphere = new UVSphere(2, 64, 64);
+
+        Mesh sphereMesh = new Mesh(new MeshData(
+            uvSphere.getPositions(),
+            uvSphere.getNormals(),
+            uvSphere.getTexCoords(),
+            new float[]{},
+            new float[]{},
+            uvSphere.getIndices()
+        ));
+
+        for (Probe probe : scene.getProbes()) {
+            Matrix4f model = Maths.calculateModelMatrix(probe.getPosition(), new Vector3f(0, 0, 0), 1);
+            probeShader.setUniform("model", model);
+
+            probeShader.setUniform("irradianceMap", 7);
+            glActiveTexture(GL_TEXTURE7);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getIrradianceMap());
+
+            probeShader.setUniform("prefilterMap", 8);
+            glActiveTexture(GL_TEXTURE8);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getPrefilterMap());
+
+            sphereMesh.render();
+        }
 
         // Render skybox
 //        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -432,14 +489,14 @@ public class Renderer {
         shader.setUniform("dirLight.direction", dirLight.getDirection());
         shader.setUniform("dirLight.color", dirLight.getColor());
 
-        // Update environment map uniforms
-        shader.setUniform("irradianceMap", 7);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
-
-        shader.setUniform("prefilterMap", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
+//        // Update environment map uniforms
+//        shader.setUniform("irradianceMap", 7);
+//        glActiveTexture(GL_TEXTURE7);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
+//
+//        shader.setUniform("prefilterMap", 8);
+//        glActiveTexture(GL_TEXTURE8);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
 
         shader.setUniform("brdfLUT", 9);
         glActiveTexture(GL_TEXTURE9);
@@ -484,8 +541,6 @@ public class Renderer {
         shader.createDirLightUniform("dirLight");
         shader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
-        shader.createUniform("irradianceMap");
-        shader.createUniform("prefilterMap");
         shader.createUniform("brdfLUT");
 
         shader.createSettingsUniform("settings");
@@ -523,6 +578,10 @@ public class Renderer {
 
     public void setCurrentShader(Shader currentShader) {
         this.currentShader = currentShader;
+    }
+
+    public ShaderProgram getPbrShader() {
+        return pbrShader;
     }
 
     public ShaderSettings getShaderSettings() {

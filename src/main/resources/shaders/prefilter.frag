@@ -5,6 +5,7 @@ in vec3 WorldPos;
 
 uniform samplerCube environmentMap;
 uniform float roughness;
+uniform int sampleCount;
 
 const float PI = 3.14159265359;
 
@@ -61,12 +62,11 @@ void main() {
     vec3 R = N;
     vec3 V = N;
 
-    const uint SAMPLE_COUNT = 256u;
     float totalWeight = 0.0;
     vec3 prefilteredColor = vec3(0.0);
 
-    for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
-        vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+    for (int i = 0; i < sampleCount; ++i) {
+        vec2 Xi = Hammersley(uint(i), uint(sampleCount));
         vec3 H = ImportanceSampleGGX(Xi, N, roughness);
         vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
@@ -80,7 +80,7 @@ void main() {
 
             float resolution = 512.0;  // resolution of source cubemap (per face)
             float saTexel  = 4.0 * PI / (6.0 * resolution * resolution);
-            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
+            float saSample = 1.0 / (float(sampleCount) * pdf + 0.0001);
 
             float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
 
