@@ -22,6 +22,10 @@ import static org.lwjgl.opengl.GL43.glMultiDrawElementsIndirect;
 public class Probe {
 
     public Vector3f position;
+    public Vector3f innerRange;
+    public Vector3f outerRange;
+    public float innerRadius;
+    public float outerRadius;
 
     private ShaderProgram backgroundShader;
     private ShaderProgram irradianceShader;
@@ -46,8 +50,12 @@ public class Probe {
 
     private final int resolution = 1024;
 
-    public Probe(Vector3f position) throws Exception {
+    public Probe(Vector3f position, Vector3f innerRange, Vector3f outerRange, float innerRadius, float outerRadius) throws Exception {
         this.position = position;
+        this.innerRange = innerRange;
+        this.outerRange = outerRange;
+        this.innerRadius = innerRadius;
+        this.outerRadius = outerRadius;
         init();
     }
 
@@ -294,6 +302,38 @@ public class Probe {
 
     public void setPosition(Vector3f position) {
         this.position = position;
+    }
+
+    public Vector3f getInnerRange() {
+        return innerRange;
+    }
+
+    public void setInnerRange(Vector3f innerRange) {
+        this.innerRange = innerRange;
+    }
+
+    public Vector3f getOuterRange() {
+        return outerRange;
+    }
+
+    public void setOuterRange(Vector3f outerRange) {
+        this.outerRange = outerRange;
+    }
+
+    public float getInnerRadius() {
+        return innerRadius;
+    }
+
+    public void setInnerRadius(float innerRadius) {
+        this.innerRadius = innerRadius;
+    }
+
+    public float getOuterRadius() {
+        return outerRadius;
+    }
+
+    public void setOuterRadius(float outerRadius) {
+        this.outerRadius = outerRadius;
     }
 
     public int getCubemap() {

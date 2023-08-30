@@ -175,12 +175,15 @@ public class MasterRenderer {
         ByteBuffer pb = MemoryUtil.memAlloc(capacity * 4);
         for (Probe probe : scene.getProbes()) {
             putVector3f(pb, probe.getPosition());
+
             pb.putLong(probe.getIrradianceMapHandle());
             pb.putLong(probe.getPrefilterMapHandle());
-            pb.putInt(25);
-            pb.putInt(0);
-            pb.putInt(0);
-            pb.putInt(0);
+
+            putVector3f(pb, probe.getInnerRange());
+            putVector3f(pb, probe.getOuterRange());
+
+            pb.putFloat(probe.getInnerRadius());
+            pb.putFloat(probe.getOuterRadius());
         }
         pb.flip();
 

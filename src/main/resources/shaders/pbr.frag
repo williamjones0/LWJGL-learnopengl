@@ -76,10 +76,11 @@ struct Probe {
     samplerCube irradianceMap;
     samplerCube prefilterMap;
 
-    float xSize;
-    float ySize;
-    float zSize;
-    uint _pad0;
+    vec4 innerRange;
+    vec4 outerRange;
+
+    float innerRadius;
+    float outerRadius;
 };
 
 layout (binding = 2, std430) buffer ProbeBuffer {
@@ -97,6 +98,7 @@ struct Settings {
 
 #define NUM_POINT_LIGHTS 8
 #define NUM_SPOT_LIGHTS 4
+#define NUM_PROBES 35
 #define PI 3.14159265359
 #define EPSILON 0.0001
 
@@ -231,10 +233,65 @@ float orthoShadowCalculation(vec4 fragPosLightSpace) {
     return shadow;
 }
 
-bool intersectPointCube(vec3 point, vec3 centre, float xSize, float ySize, float zSize) {
-    return point.x >= centre.x - xSize && point.x <= centre.x + xSize &&
-           point.y >= centre.y - ySize && point.y <= centre.y + ySize &&
-           point.z >= centre.z - zSize && point.z <= centre.z + zSize;
+// PROBE FUNCTIONS
+float saturate(float val) {
+    return clamp(val, 0.0, 1.0);
+}
+
+vec3 saturate(vec3 val) {
+    return clamp(val, vec3(0.0), vec3(1.0));
+}
+
+bool intersectPointSphere(vec3 point, vec3 centre, float radius) {
+    return length(point - centre) <= radius;
+}
+
+vec3 rotate(vec3 pos, float angle) {
+    float xold, yold;
+    vec3 newpos;
+
+    xold = pos.x;
+    yold = pos.y;
+
+    newpos.x = xold * cos(angle) - yold * sin(angle);
+    newpos.y = xold * sin(angle) + yold * cos(angle);
+    newpos.z = pos.z;
+
+    return newpos;
+}
+
+bool intersectPointBox(vec3 point, vec3 centre, vec3 range, float angle) {
+    vec3 direction = point - centre;
+
+    direction = rotate(direction, angle);
+
+    float dirX = abs(direction.x);
+    float dirY = abs(direction.y);
+
+    if (dirX > range.x || dirY > range.y) {
+        return false;
+    }
+
+    return true;
+}
+
+float getSphereInfluenceWeights(vec3 point, vec3 centre, float innerRange, float outerRange) {
+    vec3 direction = point - centre;
+    float NDF = (length(direction) - innerRange) / (outerRange - innerRange);
+    return saturate(NDF);
+}
+
+float getBoxInfluenceWeights(vec3 point, vec3 centre, vec3 innerRange, vec3 outerRange, float angle) {
+    vec3 direction = point - centre;
+
+    direction = rotate(direction, angle);
+
+    float NDFX = (abs(direction.x) - innerRange.x) / (outerRange.x - innerRange.x);
+    float NDFY = (abs(direction.y) - innerRange.y) / (outerRange.y - innerRange.y);
+
+    float NDF = max(NDFX, NDFY);
+
+    return saturate(NDF);
 }
 
 void main() {
@@ -433,35 +490,109 @@ void main() {
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
 
-    // Determine which probe to use
-    vec3 ambient;
-    for (int i = 0; i < probeBuffer.Probes.length(); i++) {
-        int count = 0;
-        if (intersectPointCube(WorldPos, probeBuffer.Probes[i].position.xyz, 25, 35/2, 35/2)) {
-            vec3 irradiance = texture(probeBuffer.Probes[i].irradianceMap, N).rgb;
-            vec3 diffuse = irradiance * albedo;
+    // Determine which probes to use
+    vec3 ambient = vec3(0.0);
+    float blendFactors[NUM_PROBES];
+    for (int i = 0; i < NUM_PROBES; ++i) {
+        blendFactors[i] = 0.0;
+    }
 
-            // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
-            const float MAX_REFLECTION_LOD = 4.0;
-            vec3 prefilteredColor = textureLod(probeBuffer.Probes[i].prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-
-            if (settings.specularOcclusion) {
-                prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
+    bool inInnerRange = false;
+    for (int i = 0; i < NUM_PROBES; ++i) {
+        Probe probe = probeBuffer.Probes[i];
+        if (probe.outerRadius != 0.0) {
+            if (intersectPointSphere(WorldPos, probe.position.xyz, probe.innerRadius)) {
+                blendFactors[i] = 1.0;
+                inInnerRange = true;
+                break;
             }
-
-            if (settings.horizonSpecularOcclusion) {
-                float horizon = min(1.0 + dot(R, N), 1.0);
-                prefilteredColor *= horizon * horizon;
+        } else {
+            if (intersectPointBox(WorldPos, probe.position.xyz, probe.innerRange.xyz, 0.0)) {
+                blendFactors[i] = 1.0;
+                inInnerRange = true;
+                break;
             }
-
-            vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
-            vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
-
-            ambient = (kD * diffuse + specular) * ao;
-
-            count++;
         }
-//        ambient /= float(count);
+    }
+
+    if (!inInnerRange) {
+        int num = 0;
+
+        float probeNDFs[NUM_PROBES];
+        for (int i = 0; i < NUM_PROBES; ++i) {
+            probeNDFs[i] = 0.0;
+        }
+
+        float sumNDF = 0.0f;
+        float invSumNDF = 0.0f;
+        float sumBlendFactor = 0.0f;
+
+        for (int i = 0; i < NUM_PROBES; ++i) {
+            Probe probe = probeBuffer.Probes[i];
+            if (probe.outerRadius != 0.0) {
+                if (intersectPointSphere(WorldPos, probe.position.xyz, probe.outerRadius)) {
+                    num++;
+                    probeNDFs[i] = getSphereInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRadius, probe.outerRadius);
+                    sumNDF += probeNDFs[i];
+                    invSumNDF += (1.0f - probeNDFs[i]);
+                    blendFactors[i] = 1.0;
+                }
+            } else {
+                if (intersectPointBox(WorldPos, probe.position.xyz, probe.outerRange.xyz, 0.0)) {
+                    num++;
+                    probeNDFs[i] = getBoxInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRange.xyz, probe.outerRange.xyz, 0.0);
+                    sumNDF += probeNDFs[i];
+                    invSumNDF += (1.0f - probeNDFs[i]);
+                    blendFactors[i] = 1.0;
+                }
+            }
+        }
+
+        if (num >= 2) {
+            for (int i = 0; i < NUM_PROBES; ++i) {
+                if (probeNDFs[i] == 0.0f) {
+                    continue;
+                }
+                blendFactors[i] = (1.0f - (probeNDFs[i] / sumNDF)) / (float(num - 1));
+                blendFactors[i] *= ((1.0f - probeNDFs[i]) / invSumNDF);
+                sumBlendFactor += blendFactors[i];
+            }
+
+            if (sumBlendFactor == 0.0f) {
+                sumBlendFactor = 1.0f;
+            }
+
+            float constVal = 1.0f / sumBlendFactor;
+            for (int i = 0; i < NUM_PROBES; ++i) {
+                blendFactors[i] *= constVal;
+            }
+        }
+
+    }
+
+    for (int i = 0; i < NUM_PROBES; ++i) {
+        Probe probe = probeBuffer.Probes[i];
+        vec3 irradiance = texture(probe.irradianceMap, N).rgb;
+        vec3 diffuse = irradiance * albedo;
+
+        // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
+        const float MAX_REFLECTION_LOD = 4.0;
+        vec3 prefilteredColor = textureLod(probe.prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+        if (settings.specularOcclusion) {
+            prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
+        }
+
+        if (settings.horizonSpecularOcclusion) {
+            float horizon = min(1.0 + dot(R, N), 1.0);
+            prefilteredColor *= horizon * horizon;
+        }
+
+        vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+        vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
+
+        vec3 probeColor = (kD * diffuse + specular) * ao;
+        ambient += probeColor * blendFactors[i];
     }
 
     ambient += emissive;
@@ -484,8 +615,4 @@ void main() {
     } else {
         FragColor = vec4(color, 1.0);
     }
-
-//    if (emissionStrength > 0.0) {
-//        FragColor = vec4(emissionStrength, emissionStrength, emissionStrength, 1.0);
-//    }
 }

@@ -20,8 +20,8 @@ void main() {
 
     // Material properties
     vec3 albedo = vec3(1.0);
-    vec3 metallic = vec3(0.0);
-    float roughness = 1.0;
+    vec3 metallic = vec3(0.999);
+    float roughness = 0.0;
 
     // Lighting data input
     vec3 V = normalize(camPos - WorldPos);

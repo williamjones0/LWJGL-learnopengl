@@ -12,7 +12,6 @@ import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.shadow.SpotlightShadowRenderer;
 import io.william.renderer.sky.Sky;
-import io.william.renderer.terrain.PropManager;
 import io.william.renderer.terrain.Terrain;
 import io.william.util.Maths;
 import org.joml.Matrix4f;
@@ -569,47 +568,47 @@ public class Main {
         terrain.init("src/main/resources/terrain_settings.txt", camera.getPosition());
         scene.setTerrain(terrain);
 
-        scene.addProbe(new Probe(new Vector3f(-100, 15, -35)));
-        scene.addProbe(new Probe(new Vector3f(-50, 15, -35)));
-        scene.addProbe(new Probe(new Vector3f(0, 15, -35)));
-        scene.addProbe(new Probe(new Vector3f(50, 15, -35)));
-        scene.addProbe(new Probe(new Vector3f(100, 15, -35)));
+        scene.addProbe(new Probe(new Vector3f(-100, 15, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  15, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    15, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   15, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  15, -35), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 15, 0)));
-        scene.addProbe(new Probe(new Vector3f(-50, 15, 0)));
-        scene.addProbe(new Probe(new Vector3f(0, 15, 0)));
-        scene.addProbe(new Probe(new Vector3f(50, 15, 0)));
-        scene.addProbe(new Probe(new Vector3f(100, 15, 0)));
+        scene.addProbe(new Probe(new Vector3f(-100, 15, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  15, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    15, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   15, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  15, 0), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 15, 35)));
-        scene.addProbe(new Probe(new Vector3f(-50, 15, 35)));
-        scene.addProbe(new Probe(new Vector3f(0, 15, 35)));
-        scene.addProbe(new Probe(new Vector3f(50, 15, 35)));
-        scene.addProbe(new Probe(new Vector3f(100, 15, 35)));
+        scene.addProbe(new Probe(new Vector3f(-100, 15, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  15, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    15, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   15, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  15, 35), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 50, -35)));
-        scene.addProbe(new Probe(new Vector3f(-50, 50, -35)));
-        scene.addProbe(new Probe(new Vector3f(0, 50, -35)));
-        scene.addProbe(new Probe(new Vector3f(50, 50, -35)));
-        scene.addProbe(new Probe(new Vector3f(100, 50, -35)));
+        scene.addProbe(new Probe(new Vector3f(-100, 50, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  50, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    50, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   50, -35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  50, -35), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 50, 0)));
-        scene.addProbe(new Probe(new Vector3f(-50, 50, 0)));
-        scene.addProbe(new Probe(new Vector3f(0, 50, 0)));
-        scene.addProbe(new Probe(new Vector3f(50, 50, 0)));
-        scene.addProbe(new Probe(new Vector3f(100, 50, 0)));
+        scene.addProbe(new Probe(new Vector3f(-100, 50, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  50, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    50, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   50, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  50, 0), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 50, 35)));
-        scene.addProbe(new Probe(new Vector3f(-50, 50, 35)));
-        scene.addProbe(new Probe(new Vector3f(0, 50, 35)));
-        scene.addProbe(new Probe(new Vector3f(50, 50, 35)));
-        scene.addProbe(new Probe(new Vector3f(100, 50, 35)));
+        scene.addProbe(new Probe(new Vector3f(-100, 50, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  50, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    50, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   50, 35), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  50, 35), new Vector3f(0), new Vector3f(60), 0, 0));
 
-        scene.addProbe(new Probe(new Vector3f(-100, 85, 0)));
-        scene.addProbe(new Probe(new Vector3f(-50, 85, 0)));
-        scene.addProbe(new Probe(new Vector3f(0, 85, 0)));
-        scene.addProbe(new Probe(new Vector3f(50, 85, 0)));
-        scene.addProbe(new Probe(new Vector3f(100, 85, 0)));
+        scene.addProbe(new Probe(new Vector3f(-100, 85, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(-50,  85, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(0,    85, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(50,   85, 0), new Vector3f(0), new Vector3f(60), 0, 0));
+        scene.addProbe(new Probe(new Vector3f(100,  85, 0), new Vector3f(0), new Vector3f(60), 0, 0));
 
         masterRenderer.init(window, renderer, scene, camera, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer, gui);
     }
