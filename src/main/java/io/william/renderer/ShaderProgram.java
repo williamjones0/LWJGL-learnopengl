@@ -122,6 +122,7 @@ public class ShaderProgram {
         createUniform(uniformName + ".pointShadowBias");
         createUniform(uniformName + ".shadowMinBias");
         createUniform(uniformName + ".shadowMaxBias");
+        createUniform(uniformName + ".useProbes");
     }
 
     public void setUniform(String uniformName, Vector2f value) {

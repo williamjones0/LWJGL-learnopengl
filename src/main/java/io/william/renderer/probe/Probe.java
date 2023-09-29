@@ -296,6 +296,13 @@ public class Probe {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    public void updateRange(ShaderSettings settings) {
+        innerRange = settings.getProbeInnerRange();
+        outerRange = settings.getProbeOuterRange();
+        innerRadius = settings.getProbeInnerRadius();
+        outerRadius = settings.getProbeOuterRadius();
+    }
+
     public Vector3f getPosition() {
         return position;
     }

@@ -11,6 +11,9 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+uniform float metallic;
+uniform float roughness;
+
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
@@ -20,8 +23,6 @@ void main() {
 
     // Material properties
     vec3 albedo = vec3(1.0);
-    vec3 metallic = vec3(0.999);
-    float roughness = 0.0;
 
     // Lighting data input
     vec3 V = normalize(camPos - WorldPos);

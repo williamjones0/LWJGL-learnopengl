@@ -5,6 +5,7 @@ import io.william.game.component.RotationController;
 import io.william.io.ModelLoader;
 import io.william.io.SceneExporter;
 import io.william.io.SceneImporter;
+import io.william.renderer.probe.Probe;
 import io.william.renderer.shadow.OmnidirectionalShadowRenderer;
 import io.william.renderer.shadow.ShadowRenderer;
 import io.william.renderer.sky.Sky;
@@ -588,6 +589,15 @@ public class GUI {
                         }
                     }
 
+                    ImBoolean probeDebug = new ImBoolean(settings.isProbeDebug());
+                    if (ImGui.checkbox("Probe debug", probeDebug)) settings.setProbeDebug(probeDebug.get());
+
+                    float[] probeMetallic = new float[] { settings.getProbeDebugMetallic() };
+                    if (ImGui.dragFloat("Probe metallic", probeMetallic, 0.001f, 0f, 1f)) settings.setProbeDebugMetallic(probeMetallic[0]);
+
+                    float[] probeRoughness = new float[] { settings.getProbeDebugRoughness() };
+                    if (ImGui.dragFloat("Probe roughness", probeRoughness, 0.001f, 0f, 1f)) settings.setProbeDebugRoughness(probeRoughness[0]);
+
                     ImGui.separator();
                     ImGui.text("Atmosphere settings");
 
@@ -603,6 +613,9 @@ public class GUI {
                     if (initialTime != sky.getTime()) {
                         sky.setUpdated(true);
                     }
+
+                    ImBoolean updateDirLight = new ImBoolean(settings.isUpdateDirLight());
+                    if (ImGui.checkbox("Update directional light", updateDirLight)) settings.setUpdateDirLight(updateDirLight.get());
 
                     ImGui.endTabItem();
                 }
@@ -626,9 +639,6 @@ public class GUI {
                         ImGui.endCombo();
                     }
 
-                    // Settings
-                    ImGui.text("Settings");
-
                     // IBL
                     ImGui.text("IBL");
                     ImBoolean fastIrradiance = new ImBoolean(settings.isFastIrradiance());
@@ -641,7 +651,81 @@ public class GUI {
                         settings.setCubemapCamFOV(cubemapCamFOV[0]);
                     }
 
+                    // Probes
+                    ImGui.text("Probes");
+                    ImBoolean useProbes = new ImBoolean(settings.isUseProbes());
+                    if (ImGui.checkbox("Use probes", useProbes)) {
+                        settings.setUseProbes(useProbes.get());
+                    }
+
+                    float[] probeDebugRadius = new float[] { settings.getProbeDebugRadius() };
+                    if (ImGui.dragFloat("Probe debug radius", probeDebugRadius, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setProbeDebugRadius(probeDebugRadius[0]);
+                    }
+
+                    float[] probeDebugMetallic = new float[] { settings.getProbeDebugMetallic() };
+                    if (ImGui.dragFloat("Probe debug metallic", probeDebugMetallic, 0.1f, 0f, 1f)) {
+                        settings.setProbeDebugMetallic(probeDebugMetallic[0]);
+                    }
+
+                    float[] probeDebugRoughness = new float[] { settings.getProbeDebugRoughness() };
+                    if (ImGui.dragFloat("Probe debug roughness", probeDebugRoughness, 0.1f, 0f, 1f)) {
+                        settings.setProbeDebugRoughness(probeDebugRoughness[0]);
+                    }
+
+                    Vector3f initialProbeInnerRange = new Vector3f(settings.getProbeInnerRange());
+                    Vector3f initialProbeOuterRange = new Vector3f(settings.getProbeOuterRange());
+                    float initialProbeInnerRadius = settings.getProbeInnerRadius();
+                    float initialProbeOuterRadius = settings.getProbeOuterRadius();
+
+                    float[] probeInnerRange = Utils.vector3fToArray(settings.getProbeInnerRange());
+                    if (ImGui.dragFloat3("Probe inner range", probeInnerRange, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setProbeInnerRange(Utils.arrayToVector3f(probeInnerRange));
+                    }
+
+                    float[] probeOuterRange = Utils.vector3fToArray(settings.getProbeOuterRange());
+                    if (ImGui.dragFloat3("Probe outer range", probeOuterRange, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setProbeOuterRange(Utils.arrayToVector3f(probeOuterRange));
+                    }
+
+                    float[] probeInnerRadius = new float[] { settings.getProbeInnerRadius() };
+                    if (ImGui.dragFloat("Probe inner radius", probeInnerRadius, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setProbeInnerRadius(probeInnerRadius[0]);
+                    }
+
+                    float[] probeOuterRadius = new float[] { settings.getProbeOuterRadius() };
+                    if (ImGui.dragFloat("Probe outer radius", probeOuterRadius, 0.1f, 0f, Float.MAX_VALUE)) {
+                        settings.setProbeOuterRadius(probeOuterRadius[0]);
+                    }
+
+                    if (!initialProbeInnerRange.equals(settings.getProbeInnerRange()) || !initialProbeOuterRange.equals(settings.getProbeOuterRange()) ||
+                            initialProbeInnerRadius != settings.getProbeInnerRadius() || initialProbeOuterRadius != settings.getProbeOuterRadius()) {
+                        for (Probe probe : scene.getProbes()) {
+                            probe.updateRange(settings);
+                        }
+                        masterRenderer.setupBuffers(scene);
+                    }
+
                     ImGui.separator();
+
+                    // Post-processing
+                    ImGui.text("Post-processing");
+
+                    // Tone mapping
+                    String[] toneMappings = { "None", "LearnOpenGL", "ACES Fitted", "ACES Approx", "Reinhard", "Reinhard-Jodie", "Uncharted 2" };
+                    int[] currentToneMapping = new int[] { settings.getToneMappingType() };
+                    if (ImGui.beginCombo("Tone mapping", toneMappings[currentToneMapping[0]])) {
+                        for (int i = 0; i < toneMappings.length; i++) {
+                            boolean isSelected = currentToneMapping[0] == i;
+                            if (ImGui.selectable(toneMappings[i], isSelected)) {
+                                currentToneMapping[0] = i;
+                                settings.setToneMappingType(i);
+                            }
+
+                            if (isSelected) ImGui.setItemDefaultFocus();
+                        }
+                        ImGui.endCombo();
+                    }
 
                     // Bloom
                     float[] bloomStrength = new float[] { settings.getBloomStrength() };

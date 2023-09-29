@@ -73,6 +73,9 @@ struct Settings {
     float pointShadowBias;
     float shadowMinBias;
     float shadowMaxBias;
+
+    // Probes
+    bool useProbes;
 };
 
 #define NUM_POINT_LIGHTS 8

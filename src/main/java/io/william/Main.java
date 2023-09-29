@@ -19,6 +19,7 @@ import org.joml.Vector3f;
 import org.lwjgl.*;
 import io.william.renderer.primitive.UVSphere;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -652,8 +653,10 @@ public class Main {
         }
 
         // Update directional light
-//        scene.getDirLight().setDirection(scene.getSky().getSunDirection());
-//        masterRenderer.setSceneUpdated(true);
+        if (renderer.getShaderSettings().isUpdateDirLight()) {
+            scene.getDirLight().setDirection(scene.getSky().getSunDirection());
+            masterRenderer.setSceneUpdated(true);
+        }
 
         window.update();
         camera.update(deltaTime);
@@ -661,6 +664,8 @@ public class Main {
         updateEntities();
 
         processInput();
+
+        System.out.print(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage() + "\r");
     }
 
     private void updateEntities() {

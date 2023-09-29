@@ -120,36 +120,36 @@ public class Renderer {
 //
 //        createShaderUniforms(frostbiteShader);
 
-        // Terrain shader
-        terrainShader = new ShaderProgram("Terrain");
-        terrainShader.createVertexShader("src/main/resources/shaders/terrain/terrain.vert");
-        terrainShader.createTessellationControlShader("src/main/resources/shaders/terrain/terrain.tesc");
-        terrainShader.createTessellationEvaluationShader("src/main/resources/shaders/terrain/terrain.tese");
-        terrainShader.createGeometryShader("src/main/resources/shaders/terrain/terrain.geom");
-        terrainShader.createFragmentShader("src/main/resources/shaders/terrain/terrain.frag");
-        terrainShader.link();
-
-        createShaderUniforms(terrainShader);
-
-        terrainShader.createUniform("localMatrix");
-        terrainShader.createUniform("worldMatrix");
-
-        terrainShader.createUniform("index");
-        terrainShader.createUniform("gap");
-        terrainShader.createUniform("lod");
-        terrainShader.createUniform("scaleY");
-        terrainShader.createUniform("location");
-
-        for (int i = 0; i < 8; i++) {
-            terrainShader.createUniform("lod_morph_area[" + i + "]");
-        }
-
-        terrainShader.createUniform("tessellationFactor");
-        terrainShader.createUniform("tessellationSlope");
-        terrainShader.createUniform("tessellationShift");
-
-        terrainShader.createUniform("heightMap");
-        terrainShader.createUniform("normalMap");
+//        // Terrain shader
+//        terrainShader = new ShaderProgram("Terrain");
+//        terrainShader.createVertexShader("src/main/resources/shaders/terrain/terrain.vert");
+//        terrainShader.createTessellationControlShader("src/main/resources/shaders/terrain/terrain.tesc");
+//        terrainShader.createTessellationEvaluationShader("src/main/resources/shaders/terrain/terrain.tese");
+//        terrainShader.createGeometryShader("src/main/resources/shaders/terrain/terrain.geom");
+//        terrainShader.createFragmentShader("src/main/resources/shaders/terrain/terrain.frag");
+//        terrainShader.link();
+//
+//        createShaderUniforms(terrainShader);
+//
+//        terrainShader.createUniform("localMatrix");
+//        terrainShader.createUniform("worldMatrix");
+//
+//        terrainShader.createUniform("index");
+//        terrainShader.createUniform("gap");
+//        terrainShader.createUniform("lod");
+//        terrainShader.createUniform("scaleY");
+//        terrainShader.createUniform("location");
+//
+//        for (int i = 0; i < 8; i++) {
+//            terrainShader.createUniform("lod_morph_area[" + i + "]");
+//        }
+//
+//        terrainShader.createUniform("tessellationFactor");
+//        terrainShader.createUniform("tessellationSlope");
+//        terrainShader.createUniform("tessellationShift");
+//
+//        terrainShader.createUniform("heightMap");
+//        terrainShader.createUniform("normalMap");
 
         // Light shader
         lightShader = new ShaderProgram("LightCube");
@@ -179,6 +179,9 @@ public class Renderer {
         probeShader.createUniform("prefilterMap");
         probeShader.createUniform("brdfLUT");
 
+        probeShader.createUniform("metallic");
+        probeShader.createUniform("roughness");
+
         // HDR shader
         hdrShader = new ShaderProgram("HDR");
         hdrShader.createVertexShader("src/main/resources/shaders/hdr.vert");
@@ -190,6 +193,7 @@ public class Renderer {
         hdrShader.createUniform("exposure");
         hdrShader.createUniform("bloomStrength");
         hdrShader.createUniform("toneMapping");
+        hdrShader.createUniform("toneMappingType");
     }
 
     public void render(Camera camera, Scene scene, SceneMesh sceneMesh, int indirectBuffer, int drawCount, ShadowRenderer shadowRenderer, SpotlightShadowRenderer spotlightShadowRenderer, OmnidirectionalShadowRenderer omnidirectionalShadowRenderer, Window window) {
@@ -287,26 +291,26 @@ public class Renderer {
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, drawCount, 20);
         glBindVertexArray(0);
 
-        // Render terrain
-        terrainShader.bind();
-        terrainShader.setUniform("projection", projection);
-        terrainShader.setUniform("view", view);
-        terrainShader.setUniform("camPos", camera.getPosition());
-
-        updateShaderUniforms(terrainShader, scene, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer);
-
-        terrainShader.setUniform("heightMap", 13);
-        glActiveTexture(GL_TEXTURE13);
-        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getHeightMap().getID());
-
-        terrainShader.setUniform("normalMap", 14);
-        glActiveTexture(GL_TEXTURE14);
-        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getNormalMap().getID());
-
-//        terrain.updateQuadtree(camera.getPosition());
-//        terrain.render(terrainShader);
-
-        terrainShader.unbind();
+//        // Render terrain
+//        terrainShader.bind();
+//        terrainShader.setUniform("projection", projection);
+//        terrainShader.setUniform("view", view);
+//        terrainShader.setUniform("camPos", camera.getPosition());
+//
+//        updateShaderUniforms(terrainShader, scene, shadowRenderer, omnidirectionalShadowRenderer, spotlightShadowRenderer);
+//
+//        terrainShader.setUniform("heightMap", 13);
+//        glActiveTexture(GL_TEXTURE13);
+//        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getHeightMap().getID());
+//
+//        terrainShader.setUniform("normalMap", 14);
+//        glActiveTexture(GL_TEXTURE14);
+//        glBindTexture(GL_TEXTURE_2D, terrain.getConfiguration().getNormalMap().getID());
+//
+////        terrain.updateQuadtree(camera.getPosition());
+////        terrain.render(terrainShader);
+//
+//        terrainShader.unbind();
 
         // Render lights
         lightShader.bind();
@@ -343,40 +347,45 @@ public class Renderer {
         lightShader.unbind();
 
         // Render probes
-        probeShader.bind();
-        probeShader.setUniform("view", view);
-        probeShader.setUniform("projection", projection);
+        if (shaderSettings.isProbeDebug()) {
+            probeShader.bind();
+            probeShader.setUniform("view", view);
+            probeShader.setUniform("projection", projection);
 
-        probeShader.setUniform("camPos", camera.getPosition());
+            probeShader.setUniform("camPos", camera.getPosition());
 
-        probeShader.setUniform("brdfLUT", 9);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
+            probeShader.setUniform("brdfLUT", 9);
+            glActiveTexture(GL_TEXTURE9);
+            glBindTexture(GL_TEXTURE_2D, equirectangularMap.getBRDFLUT());
 
-        UVSphere uvSphere = new UVSphere(2, 64, 64);
+            probeShader.setUniform("metallic", shaderSettings.getProbeDebugMetallic());
+            probeShader.setUniform("roughness", shaderSettings.getProbeDebugRoughness());
 
-        Mesh sphereMesh = new Mesh(new MeshData(
-            uvSphere.getPositions(),
-            uvSphere.getNormals(),
-            uvSphere.getTexCoords(),
-            new float[]{},
-            new float[]{},
-            uvSphere.getIndices()
-        ));
+            UVSphere uvSphere = new UVSphere(2, 64, 64);
 
-        for (Probe probe : scene.getProbes()) {
-            Matrix4f model = Maths.calculateModelMatrix(probe.getPosition(), new Vector3f(0, 0, 0), 1);
-            probeShader.setUniform("model", model);
+            Mesh sphereMesh = new Mesh(new MeshData(
+                uvSphere.getPositions(),
+                uvSphere.getNormals(),
+                uvSphere.getTexCoords(),
+                new float[]{},
+                new float[]{},
+                uvSphere.getIndices()
+            ));
 
-            probeShader.setUniform("irradianceMap", 7);
-            glActiveTexture(GL_TEXTURE7);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getIrradianceMap());
+            for (Probe probe : scene.getProbes()) {
+                Matrix4f model = Maths.calculateModelMatrix(probe.getPosition(), new Vector3f(0, 0, 0), 1);
+                probeShader.setUniform("model", model);
 
-            probeShader.setUniform("prefilterMap", 8);
-            glActiveTexture(GL_TEXTURE8);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getPrefilterMap());
+                probeShader.setUniform("irradianceMap", 7);
+                glActiveTexture(GL_TEXTURE7);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getIrradianceMap());
 
-            sphereMesh.render();
+                probeShader.setUniform("prefilterMap", 8);
+                glActiveTexture(GL_TEXTURE8);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, probe.getPrefilterMap());
+
+                sphereMesh.render();
+            }
         }
 
         // Render skybox
@@ -385,11 +394,11 @@ public class Renderer {
 
         // Render sky
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//        if (sky.isUpdated()) {
+        if (sky.isUpdated()) {
             sky.renderLUTs();
             equirectangularMap.renderTextures(sky.getBackgroundCubemapID(), shaderSettings);
-//            sky.setUpdated(false);
-//        }
+            sky.setUpdated(false);
+        }
 
 //        equirectangularMap.renderTextures(equirectangularMap.getEnvironmentCubemap(), shaderSettings);
 
@@ -425,6 +434,7 @@ public class Renderer {
         hdrShader.setUniform("exposure", shaderSettings.getExposure());
         hdrShader.setUniform("bloomStrength", shaderSettings.getBloomStrength());
         hdrShader.setUniform("toneMapping", toneMapping);
+        hdrShader.setUniform("toneMappingType", shaderSettings.getToneMappingType());
 
         // Render quad
         io.william.util.renderer.Quad.render();
@@ -489,14 +499,14 @@ public class Renderer {
         shader.setUniform("dirLight.direction", dirLight.getDirection());
         shader.setUniform("dirLight.color", dirLight.getColor());
 
-//        // Update environment map uniforms
-//        shader.setUniform("irradianceMap", 7);
-//        glActiveTexture(GL_TEXTURE7);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
-//
-//        shader.setUniform("prefilterMap", 8);
-//        glActiveTexture(GL_TEXTURE8);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
+        // Update environment map uniforms
+        shader.setUniform("irradianceMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getIrradianceMap());
+
+        shader.setUniform("prefilterMap", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, equirectangularMap.getPrefilterMap());
 
         shader.setUniform("brdfLUT", 9);
         glActiveTexture(GL_TEXTURE9);
@@ -509,6 +519,7 @@ public class Renderer {
         shader.setUniform("settings.pointShadowBias", shaderSettings.getPointShadowBias());
         shader.setUniform("settings.shadowMinBias", shaderSettings.getShadowMinBias());
         shader.setUniform("settings.shadowMaxBias", shaderSettings.getShadowMaxBias());
+        shader.setUniform("settings.useProbes", shaderSettings.isUseProbes());
 
         // Update shadow mapping uniforms
         shader.setUniform("lightSpaceMatrix", shadowRenderer.getLightSpaceMatrix());
@@ -541,6 +552,8 @@ public class Renderer {
         shader.createDirLightUniform("dirLight");
         shader.createSpotLightListUniform("spotLights", MAX_SPOT_LIGHTS);
 
+        shader.createUniform("irradianceMap");
+        shader.createUniform("prefilterMap");
         shader.createUniform("brdfLUT");
 
         shader.createSettingsUniform("settings");

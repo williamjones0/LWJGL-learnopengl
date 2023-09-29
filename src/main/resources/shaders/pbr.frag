@@ -94,6 +94,9 @@ struct Settings {
     float pointShadowBias;
     float shadowMinBias;
     float shadowMaxBias;
+
+    // Probes
+    bool useProbes;
 };
 
 #define NUM_POINT_LIGHTS 8
@@ -492,92 +495,119 @@ void main() {
 
     // Determine which probes to use
     vec3 ambient = vec3(0.0);
-    float blendFactors[NUM_PROBES];
-    for (int i = 0; i < NUM_PROBES; ++i) {
-        blendFactors[i] = 0.0;
-    }
 
-    bool inInnerRange = false;
-    for (int i = 0; i < NUM_PROBES; ++i) {
-        Probe probe = probeBuffer.Probes[i];
-        if (probe.outerRadius != 0.0) {
-            if (intersectPointSphere(WorldPos, probe.position.xyz, probe.innerRadius)) {
-                blendFactors[i] = 1.0;
-                inInnerRange = true;
-                break;
-            }
-        } else {
-            if (intersectPointBox(WorldPos, probe.position.xyz, probe.innerRange.xyz, 0.0)) {
-                blendFactors[i] = 1.0;
-                inInnerRange = true;
-                break;
-            }
-        }
-    }
-
-    if (!inInnerRange) {
-        int num = 0;
-
-        float probeNDFs[NUM_PROBES];
+    if (settings.useProbes) {
+        float blendFactors[NUM_PROBES];
         for (int i = 0; i < NUM_PROBES; ++i) {
-            probeNDFs[i] = 0.0;
+            blendFactors[i] = 0.0;
         }
 
-        float sumNDF = 0.0f;
-        float invSumNDF = 0.0f;
-        float sumBlendFactor = 0.0f;
-
+        bool inInnerRange = false;
         for (int i = 0; i < NUM_PROBES; ++i) {
             Probe probe = probeBuffer.Probes[i];
             if (probe.outerRadius != 0.0) {
-                if (intersectPointSphere(WorldPos, probe.position.xyz, probe.outerRadius)) {
-                    num++;
-                    probeNDFs[i] = getSphereInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRadius, probe.outerRadius);
-                    sumNDF += probeNDFs[i];
-                    invSumNDF += (1.0f - probeNDFs[i]);
+                if (intersectPointSphere(WorldPos, probe.position.xyz, probe.innerRadius)) {
                     blendFactors[i] = 1.0;
+                    inInnerRange = true;
+                    break;
                 }
             } else {
-                if (intersectPointBox(WorldPos, probe.position.xyz, probe.outerRange.xyz, 0.0)) {
-                    num++;
-                    probeNDFs[i] = getBoxInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRange.xyz, probe.outerRange.xyz, 0.0);
-                    sumNDF += probeNDFs[i];
-                    invSumNDF += (1.0f - probeNDFs[i]);
+                if (intersectPointBox(WorldPos, probe.position.xyz, probe.innerRange.xyz, 0.0)) {
                     blendFactors[i] = 1.0;
+                    inInnerRange = true;
+                    break;
                 }
             }
         }
 
-        if (num >= 2) {
+        inInnerRange = false;
+
+        if (!inInnerRange) {
+            int num = 0;
+
+            float probeNDFs[NUM_PROBES];
             for (int i = 0; i < NUM_PROBES; ++i) {
-                if (probeNDFs[i] == 0.0f) {
-                    continue;
+                probeNDFs[i] = 0.0;
+            }
+
+            float sumNDF = 0.0f;
+            float invSumNDF = 0.0f;
+            float sumBlendFactor = 0.0f;
+
+            for (int i = 0; i < NUM_PROBES; ++i) {
+                Probe probe = probeBuffer.Probes[i];
+                if (probe.outerRadius != 0.0) {
+                    if (intersectPointSphere(WorldPos, probe.position.xyz, probe.outerRadius)) {
+                        num++;
+                        probeNDFs[i] = getSphereInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRadius, probe.outerRadius);
+                        sumNDF += probeNDFs[i];
+                        invSumNDF += (1.0f - probeNDFs[i]);
+                        blendFactors[i] = 1.0;
+                    }
+                } else {
+                    if (intersectPointBox(WorldPos, probe.position.xyz, probe.outerRange.xyz, 0.0)) {
+                        num++;
+                        probeNDFs[i] = getBoxInfluenceWeights(WorldPos, probe.position.xyz, probe.innerRange.xyz, probe.outerRange.xyz, 0.0);
+                        sumNDF += probeNDFs[i];
+                        invSumNDF += (1.0f - probeNDFs[i]);
+                        blendFactors[i] = 1.0;
+                    }
                 }
-                blendFactors[i] = (1.0f - (probeNDFs[i] / sumNDF)) / (float(num - 1));
-                blendFactors[i] *= ((1.0f - probeNDFs[i]) / invSumNDF);
-                sumBlendFactor += blendFactors[i];
             }
 
-            if (sumBlendFactor == 0.0f) {
-                sumBlendFactor = 1.0f;
+            if (num >= 2) {
+                for (int i = 0; i < NUM_PROBES; ++i) {
+                    if (probeNDFs[i] == 0.0f) {
+                        continue;
+                    }
+                    blendFactors[i] = (1.0f - (probeNDFs[i] / sumNDF)) / (float(num - 1));
+                    blendFactors[i] *= ((1.0f - probeNDFs[i]) / invSumNDF);
+                    sumBlendFactor += blendFactors[i];
+                }
+
+                if (sumBlendFactor == 0.0f) {
+                    sumBlendFactor = 1.0f;
+                }
+
+                float constVal = 1.0f / sumBlendFactor;
+                for (int i = 0; i < NUM_PROBES; ++i) {
+                    blendFactors[i] *= constVal;
+                }
             }
 
-            float constVal = 1.0f / sumBlendFactor;
-            for (int i = 0; i < NUM_PROBES; ++i) {
-                blendFactors[i] *= constVal;
-            }
         }
 
-    }
+        for (int i = 0; i < NUM_PROBES; ++i) {
+            Probe probe = probeBuffer.Probes[i];
+            vec3 irradiance = texture(probe.irradianceMap, N).rgb;
+            vec3 diffuse = irradiance * albedo;
 
-    for (int i = 0; i < NUM_PROBES; ++i) {
-        Probe probe = probeBuffer.Probes[i];
-        vec3 irradiance = texture(probe.irradianceMap, N).rgb;
+            // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
+            const float MAX_REFLECTION_LOD = 4.0;
+            vec3 prefilteredColor = textureLod(probe.prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+            if (settings.specularOcclusion) {
+                prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
+            }
+
+            if (settings.horizonSpecularOcclusion) {
+                float horizon = min(1.0 + dot(R, N), 1.0);
+                prefilteredColor *= horizon * horizon;
+            }
+
+            vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+            vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
+
+            vec3 probeColor = (kD * diffuse + specular) * ao;
+            ambient += probeColor * blendFactors[i];
+        }
+    } else {
+        vec3 irradiance = texture(irradianceMap, N).rgb;
         vec3 diffuse = irradiance * albedo;
 
         // Sample prefilter map and BRDF LUT and combine to get the IBL specular part
         const float MAX_REFLECTION_LOD = 4.0;
-        vec3 prefilteredColor = textureLod(probe.prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
 
         if (settings.specularOcclusion) {
             prefilteredColor *= computeSpecularAO(max(dot(N, V), 0.0), ao, roughness);
@@ -591,8 +621,8 @@ void main() {
         vec2 environmentBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
         vec3 specular = prefilteredColor * (kS * environmentBRDF.x + environmentBRDF.y);
 
-        vec3 probeColor = (kD * diffuse + specular) * ao;
-        ambient += probeColor * blendFactors[i];
+        ambient = (kD * diffuse + specular) * ao;
+        ambient += emissive;
     }
 
     ambient += emissive;
@@ -609,6 +639,10 @@ void main() {
     if (isnan(FragColor.x)) FragColor.x = EPSILON;
     if (isnan(FragColor.y)) FragColor.y = EPSILON;
     if (isnan(FragColor.z)) FragColor.z = EPSILON;
+
+    if (FragColor.x < EPSILON) FragColor.x = EPSILON;
+    if (FragColor.y < EPSILON) FragColor.y = EPSILON;
+    if (FragColor.z < EPSILON) FragColor.z = EPSILON;
 
     if (TEST_FRAG_COLOR.x != 0.01234) {
         FragColor = vec4(TEST_FRAG_COLOR, 1.0);
